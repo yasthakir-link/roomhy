@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Property Visit - Roomhy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+    </style>
+</head>
+<body class="text-slate-800">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-purple-600 to-blue-600 text-white p-6">
+                <h1 class="text-2xl font-bold flex items-center gap-3">
+                    <i data-lucide="calendar" class="w-7 h-7"></i>
+                    Schedule Property Visit
+                </h1>
+                <p class="text-purple-100 mt-2">Set up a visit schedule for your property</p>
+            </div>
+
+            <!-- Form -->
+            <div class="p-8">
+                <form id="scheduleForm" class="space-y-6">
+                    <!-- Property Info -->
+                    <div class="bg-gray-50 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Property Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Property Name</label>
+                                <input type="text" id="propertyName" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100" readonly>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tenant Name</label>
+                                <input type="text" id="tenantName" class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-100" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visit Details -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Visit Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Visit Type</label>
+                                <select id="visitType" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                                    <option value="physical">Physical Visit</option>
+                                    <option value="virtual">Virtual Visit</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Visit Date</label>
+                                <input type="date" id="visitDate" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Time Slot</label>
+                                <select id="timeSlot" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                                    <option value="">Select a time slot</option>
+                                    <option value="09:00-10:00">9:00 AM - 10:00 AM</option>
+                                    <option value="10:00-11:00">10:00 AM - 11:00 AM</option>
+                                    <option value="11:00-12:00">11:00 AM - 12:00 PM</option>
+                                    <option value="12:00-13:00">12:00 PM - 1:00 PM</option>
+                                    <option value="14:00-15:00">2:00 PM - 3:00 PM</option>
+                                    <option value="15:00-16:00">3:00 PM - 4:00 PM</option>
+                                    <option value="16:00-17:00">4:00 PM - 5:00 PM</option>
+                                    <option value="17:00-18:00">5:00 PM - 6:00 PM</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Duration (hours)</label>
+                                <select id="visitDuration" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                    <option value="1">1 hour</option>
+                                    <option value="1.5">1.5 hours</option>
+                                    <option value="2">2 hours</option>
+                                    <option value="3">3 hours</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Information -->
+                    <div class="space-y-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Additional Information</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
+                                <textarea id="specialInstructions" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Any special instructions for the visit..."></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Contact Information</label>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <input type="tel" id="contactPhone" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Contact phone">
+                                    <input type="email" id="contactEmail" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Contact email">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="flex justify-end gap-4 pt-4">
+                        <button type="button" onclick="window.history.back()" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+                        <button type="submit" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-4 h-4"></i>
+                            Schedule Visit
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentBookingId = null;
+        let currentUserType = 'owner'; // Assume owner for scheduling
+
+        // Get booking ID from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        currentBookingId = urlParams.get('bookingId');
+
+        if (!currentBookingId) {
+            alert('No booking ID provided');
+            window.location.href = 'booking_request.html';
+        }
+
+        // Load booking details
+        async function loadBookingDetails(bookingId) {
+            const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
+            try {
+                const response = await fetch(`${API_URL}/api/booking/requests/${bookingId}`);
+                const data = await response.json();
+
+                if (data.success && data.data) {
+                    const booking = data.data;
+                    document.getElementById('propertyName').value = booking.property_name || '';
+                    document.getElementById('tenantName').value = booking.name || '';
+
+                    // Pre-fill existing schedule data if available
+                    if (booking.visit_date) {
+                        document.getElementById('visitDate').value = booking.visit_date.split('T')[0];
+                    }
+                    if (booking.visit_time_slot) {
+                        document.getElementById('timeSlot').value = booking.visit_time_slot;
+                    }
+                    if (booking.visit_type) {
+                        document.getElementById('visitType').value = booking.visit_type;
+                    }
+                    if (booking.visit_duration) {
+                        document.getElementById('visitDuration').value = booking.visit_duration;
+                    }
+                    if (booking.visit_notes) {
+                        document.getElementById('specialInstructions').value = booking.visit_notes;
+                    }
+                    if (booking.contact_phone) {
+                        document.getElementById('contactPhone').value = booking.contact_phone;
+                    }
+                    if (booking.contact_email) {
+                        document.getElementById('contactEmail').value = booking.contact_email;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading booking details:', error);
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('scheduleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!currentBookingId) {
+                alert('No booking ID available');
+                return;
+            }
+
+            const formData = {
+                visit_type: document.getElementById('visitType').value,
+                visit_date: document.getElementById('visitDate').value,
+                visit_time_slot: document.getElementById('timeSlot').value,
+                visit_duration: document.getElementById('visitDuration').value,
+                visit_notes: document.getElementById('specialInstructions').value,
+                contact_phone: document.getElementById('contactPhone').value,
+                contact_email: document.getElementById('contactEmail').value
+            };
+
+            if (!formData.visit_date || !formData.visit_time_slot) {
+                alert('Please select a date and time slot');
+                return;
+            }
+
+            try {
+                const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
+                const response = await fetch(`${API_URL}/api/booking/requests/${currentBookingId}/schedule-visit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    alert('Visit scheduled successfully!');
+                    window.location.href = 'booking_request.html';
+                } else {
+                    alert('Error scheduling visit');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error scheduling visit');
+            }
+        });
+
+        // Initialize
+        loadBookingDetails(currentBookingId);
+    </script>
+</body>
+</html>

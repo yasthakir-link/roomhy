@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roomhy - Stays, PGs & Hostels</title>
+    <script src="./js/api-config.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    keyframes: {
+                        kenburns: {
+                            '0%': { transform: 'scale(1) translate(0, 0)' },
+                            '100%': { transform: 'scale(1.1) translate(-2%, 2%)' },
+                        }
+                    },
+                    animation: {
+                        kenburns: 'kenburns 30s ease-in-out infinite alternate',
+                    },
+                    colors: {
+                        // Custom colors from FilterSection.tsx context (approximated)
+                        'primary': '#3b82f6', // blue-500
+                        'secondary': '#e5e7eb', // gray-200
+                        'background': '#ffffff',
+                        'backgroundColor': '#3b82f6', // blue-600
+                        'backgroundColorHover': '#2563eb', // blue-700
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f2f6; 
+            color: #1F2937;
+        }
+
+        .text-shadow {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .light-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .light-card:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            transform: translateY(-4px);
+        }
+        
+        .glow-button {
+            transition: all 0.3s ease;
+        }
+        .glow-button:hover {
+            transform: scale(1.02); /* Slightly less aggressive scale for filter buttons */
+        }
+        
+        .horizontal-slider::-webkit-scrollbar {
+            display: none;
+        }
+        .horizontal-slider {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
+        /* ENHANCED FOCUS RING FOR SELECT/INPUTS - MADE BORDER LOOK MORE SOLID */
+        .form-select, .form-input {
+            transition: all 0.2s ease-in-out;
+            /* Removed subtle box-shadow for a more solid, flat look */
+            
+            /* Custom arrow CSS */
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.2em 1.2em;
+            padding-right: 2.5rem; /* Make room for the custom arrow */
+        }
+        .form-input:focus, .form-select:focus, .form-checkbox:focus, .form-radio:focus {
+            outline: none;
+            border-color: #3b82f6; /* Primary blue border */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); /* Softer, broader focus ring */
+        }
+        
+         @media (min-width: 1024px) {
+            #filter-sidebar {
+                top: 2.5rem; /* Adjust as needed */
+            }
+         }
+         
+         .filter-action-select {
+             /* This style block is kept for completeness in case it was used elsewhere, though the element was removed from the header. */
+             background-color: white;
+             border: 1px solid #D1D5DB; /* gray-300 */
+             padding: 0.5rem 0.75rem; /* py-2 px-3 */
+             border-radius: 0.5rem; /* rounded-lg */
+             font-size: 0.875rem; /* text-sm */
+             font-weight: 500;
+             color: #4B5563; /* text-gray-700 */
+             cursor: pointer;
+             transition: all 0.2s;
+             box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+         }
+         .filter-action-select:hover {
+             background-color: #F9FAFB; /* gray-50 */
+             border-color: #9CA3AF; /* gray-400 */
+         }
+
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="w-full bg-white/95 backdrop-blur-sm shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6">
+            <div class="flex h-20 items-center justify-between">
+                
+                <div class="flex items-center">
+                    <a href="index.html" class="flex-shrink-0">
+                        <img src="images/logoroomhy.jpg" alt="Roomhy Logo" class="h-10 w-25">
+                    </a>
+                </div>
+                
+                <div class="flex items-center gap-3 sm:gap-6">
+                    
+                    <nav class="hidden">
+                        <a href="about.html" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">About Us</a>
+                        <a href="contact.html" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">Contact</a>
+                    </nav>
+
+                    <a href="list.html" class="flex-shrink-0 flex items-center space-x-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Post <span class="hidden sm:inline">Your</span> Property</span>
+                    </a>
+                    
+                    <button id="menu-toggle" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        <i data-lucide="menu" class="w-7 h-7 text-gray-800"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <section class="relative py-20 md:py-28 text-white">
+        <div id="hero-image-wrapper" class="absolute inset-0 w-full h-full overflow-hidden">
+            <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1980&auto:format&fit=crop" alt="Hero background 1" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out animate-kenburns opacity-100">
+            <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto:format&fit=crop" alt="Hero background 2" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out animate-kenburns opacity-0">
+            <img src="https://images.unsplash.com/photo-1494203484021-3c454daf695d?q=80&w=2070&auto:format&fit=crop" alt="Hero background 3" class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out animate-kenburns opacity-0">
+            <div class="absolute inset-0 w-full h-full bg-black/60"></div> 
+        </div>
+        <div class="container mx-auto px-4 sm:px-6 text-center relative z-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-shadow mb-6">Find your perfect stay</h1>
+            <div class="relative w-full max-w-2xl mx-auto">
+                <input type="text" id="property-search-input" placeholder="Search location e.g., 'Koramangala, Bangalore'" class="w-full p-4 pl-5 pr-14 rounded-lg bg-white text-gray-900 border-transparent focus:ring-4 focus:ring-cyan-300/50 focus:outline-none placeholder-gray-500 shadow-lg">
+                <button type="submit" id="property-search-btn" class="absolute right-2.5 top-1/2 -translate-y-1/2 p-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                    <i data-lucide="search" class="w-5 h-5 text-white"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
+    
+    <div id="mobile-menu" class="fixed top-0 right-0 w-80 h-full bg-white z-50 shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="flex justify-end p-4 flex-shrink-0">
+            <button id="menu-close" class="p-2">
+                <i data-lucide="x" class="w-6 h-6 text-gray-700"></i>
+            </button>
+        </div>
+
+        <div class="flex justify-between items-center px-6 py-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                    <i data-lucide="users" class="w-6 h-6 text-gray-600"></i>
+                </div>
+                <span class="text-lg font-semibold text-gray-800">Hi ,welcome??</span>
+            </div>
+            <a href="profile.html" class="text-sm font-medium text-blue-600 hover:underline">Profile</a>
+        </div>
+
+        <div class="px-6 py-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 relative overflow-hidden">
+                <img src="images/post-property-bg.svg" alt="Illustartion of people with house" class="absolute right-0 bottom-0 opacity-80 w-32 h-auto" style="pointer-events: none;">
+                <p class="font-semibold text-gray-800 mb-3 relative z-10">Looking to Sell/Rent your Property?</p>
+                <a href="list.html" class="block text-center w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors relative z-10">
+                    Post Property for Free
+                </a>
+            </div>
+        </div>
+
+        <nav class="flex-grow p-4 space-y-1 overflow-y-auto">
+            <a href="stays.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
+                </div>
+                <span>Our Properties</span>
+            </a>
+            <a href="fav.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="heart" class="w-5 h-5 text-red-600"></i>
+                </div>
+                <span>Favorites</span>
+            </a>
+            <a href="mystays.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="building" class="w-5 h-5 text-purple-600"></i>
+                </div>
+                <span>My Stays</span>
+            </a>
+            <a href="about.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="info" class="w-5 h-5 text-yellow-600"></i>
+                </div>
+                <span>About Us</span>
+            </a>
+            <a href="contact.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="phone" class="w-5 h-5 text-cyan-600"></i>
+                </div>
+                <span>Contact Us</span>
+            </a>
+        </nav>
+        
+        <div class="p-4 border-t flex-shrink-0">
+            <a href="logout.html" class="flex items-center space-x-4 p-3 rounded-lg text-red-600 hover:bg-red-50">
+                <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="log-out" class="w-5 h-5 text-gray-600"></i>
+                </div>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
+    <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12 mt-8">
+        
+         <div class="mb-6 lg:hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="mobile-property-count" class="text-xl font-bold text-gray-900">Loading...</h2>
+                <span class="text-sm font-medium bg-gray-100 text-gray-700 px-3 py-1 rounded-md">Page 1 of 1</span>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button id="filter-toggle" class="flex-shrink-0 flex items-center justify-center space-x-2 bg-white text-gray-700 font-medium px-4 py-3 rounded-lg shadow border border-gray-300">
+                    <i data-lucide="filter" class="w-5 h-5"></i>
+                    <span>Filters</span>
+                </button>
+                <div class="flex-grow">
+                     <label for="sort-mobile" class="sr-only">Sort by</label>
+                    <select id="sort-mobile" name="sort-mobile" class="form-select w-full rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 py-3 h-full">
+                        <option>Sort by</option>
+                        <option>Bidding: Ending Soonest</option>
+                        <option>Price: Low to High</option>
+                        <option>Price: High to Low</option>
+                        <option>Newest Listings</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="filter-overlay" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden"></div>
+
+        <!-- Mobile Filter Drawer (Simulated FilterSection.tsx) -->
+        <div id="mobile-filter-drawer" class="fixed top-0 right-0 w-80 max-w-full h-full bg-white z-50 shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out lg:hidden">
+            <div class="p-4 border-b flex justify-between items-center shadow-sm">
+                <h3 class="text-xl font-bold">Filters</h3>
+                <button id="close-filter-mobile" class="p-2 text-gray-600 hover:text-gray-800">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="p-6 h-full overflow-y-auto pb-24">
+                <div class='space-y-6'>
+                    
+                    <!-- City Dropdown (Simulated SearchableSelect) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Select City</label>
+                        <select id="mobile-select-city" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">Select a city</option>
+                            <option value="kota">Kota, Rajasthan</option>
+                            <option value="indore">Indore, Madhya Pradesh</option>
+                            <option value="sikar">Sikar, Rajasthan</option>
+                        </select>
+                    </div>
+
+                    <!-- Area Dropdown (Simulated SearchableSelect) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Select Area</label>
+                        <select id="mobile-select-area" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">First select a city</option>
+                            <option value="north-campus" disabled>North Campus (Requires City)</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Simulated: Select a city first to see areas.</p>
+                    </div>
+
+                    <!-- Price Range (Simulated Selects) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Price Range</label>
+                        <div class='flex gap-2'>
+                            <select id="mobile-min-price" class='form-select w-1/2 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4'>
+                                <option value="4000">Min Price</option>
+                                <option value="1500">?1500</option>
+                                <option value="4000">?4000</option>
+                                <option value="8000">?8000</option>
+                            </select>
+                            <select id="mobile-max-price" class='form-select w-1/2 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4'>
+                                <option value="50000_plus">Max Price</option>
+                                <option value="15000">?15000</option>
+                                <option value="25000">?25000</option>
+                            <option value="50000_plus">?50000+</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Gender Selection (Dropdown) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Gender</label>
+                        <select id="mobile-gender" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">Select Gender</option>
+                            <option value="boys">Boys</option>
+                            <option value="girls">Girls</option>
+                            <option value="co-ed">Co-ed</option>
+                        </select>
+                    </div>
+
+                    <!-- Property Type Selection (Dropdown) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Property Type</label>
+                        <select id="mobile-property-type" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">Select Property Type</option>
+                            <option value="pg">PG / Co-Living</option>
+                            <option value="hostel">Hostel</option>
+                            <option value="flat">Flat / Studio</option>
+                        </select>
+                    </div>
+
+                    <!-- Occupancy (Dropdown) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Occupancy</label>
+                        <select id="mobile-occupancy" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">Select Occupancy</option>
+                            <option value="single">Single Room</option>
+                            <option value="double">Double Sharing</option>
+                            <option value="triple">Triple Sharing</option>
+                            <option value="multi">Multi Sharing</option>
+                        </select>
+                    </div>
+
+                    <!-- Apply & Clear Filters (Simulated Buttons) -->
+                    <div class='flex flex-col gap-3 mt-6'>
+                        <button id="mobile-apply-filters" class='w-full bg-backgroundColor hover:bg-backgroundColorHover text-white font-bold py-3 rounded-xl transition-colors shadow-md glow-button'>
+                            Apply Filters
+                        </button>
+                        <button class='w-full border border-backgroundColor text-backgroundColor hover:bg-blue-50 bg-transparent font-bold py-3 rounded-xl transition-colors shadow-sm glow-button'>
+                            Clear Filters
+                        </button>
+                        <button id="mobile-request-all" class='w-full border-2 border-green-600 text-green-600 hover:bg-green-50 bg-transparent font-bold py-3 rounded-xl transition-colors shadow-md glow-button'>
+                            Bid to all
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="lg:grid lg:grid-cols-4 lg:gap-8">
+            
+            <!-- Desktop Filter Sidebar (Simulated FilterSection.tsx) -->
+            <aside id="filter-sidebar" class="lg:col-span-1 lg:sticky h-fit mb-8 lg:mb-0 hidden lg:block lg:w-72 p-6 light-card rounded-xl transition-all duration-300 top-[150px]">
+                <!-- Removed Actions Dropdown and adjusted for cleaner title -->
+                <div class='mb-6 text-2xl font-bold flex items-center justify-start border-b pb-4'>
+                    <span class="text-gray-900 flex items-center">
+                         <i data-lucide="filter" class="w-6 h-6 mr-2 text-blue-600"></i>
+                        Filters
+                    </span>
+                </div>
+                
+                <div class='space-y-6'>
+                    
+                    <!-- City Dropdown (Simulated SearchableSelect) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Select City</label>
+                        <select id="desktop-select-city" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">Select a city</option>
+                            <option value="kota">Kota, Rajasthan</option>
+                            <option value="indore">Indore, Madhya Pradesh</option>
+                            <option value="sikar">Sikar, Rajasthan</option>
+                        </select>
+                    </div>
+
+                    <!-- Area Dropdown (Simulated SearchableSelect) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Select Area</label>
+                        <select id="desktop-select-area" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">First select a city</option>
+                            <option value="north-campus" disabled>North Campus (Requires City)</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Simulated: Select a city first to see areas.</p>
+                    </div>
+                    
+                    <!-- Price Range (Simulated Selects) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Price Range</label>
+                        <div class='flex gap-2'>
+                            <select id="desktop-min-price" class='form-select w-1/2 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4'>
+                                <option value="4000">Min Price</option>
+                                <option value="1500">?1500</option>
+                                <option value="4000">?4000</option>
+                                <option value="8000">?8000</option>
+                            </select>
+                            <select id="desktop-max-price" class='form-select w-1/2 rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4'>
+                                <option value="50000_plus">Max Price</option>
+                                <option value="15000">?15000</option>
+                                <option value="25000">?25000</option>
+                                <option value="50000_plus">?50000+</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Gender Selection (Dropdown) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Gender</label>
+                        <select id="desktop-gender" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">Select Gender</option>
+                            <option value="boys">Boys</option>
+                            <option value="girls">Girls</option>
+                            <option value="co-ed">Co-ed</option>
+                        </select>
+                    </div>
+
+                    <!-- Property Type Selection (Dropdown) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Property Type</label>
+                        <select id="desktop-property-type" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">Select Property Type</option>
+                            <option value="pg">PG / Co-Living</option>
+                            <option value="hostel">Hostel</option>
+                            <option value="flat">Flat / Studio</option>
+                        </select>
+                    </div>
+
+                    <!-- Occupancy (Dropdown) -->
+                    <div>
+                        <label class='block text-sm font-semibold text-gray-800 mb-2'>Occupancy</label>
+                        <select id="desktop-occupancy" class="form-select w-full rounded-xl border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 py-3 px-4">
+                            <option value="">Select Occupancy</option>
+                            <option value="single">Single Room</option>
+                            <option value="double">Double Sharing</option>
+                            <option value="triple">Triple Sharing</option>
+                            <option value="multi">Multi Sharing</option>
+                        </select>
+                    </div>
+
+                    <!-- Apply & Clear Filters (Original Buttons Reinstated) -->
+                    <div class='flex flex-col gap-3 pt-4'>
+                        <button id="desktop-apply-filters" class='w-full bg-backgroundColor hover:bg-backgroundColorHover text-white font-bold py-3 rounded-xl transition-colors shadow-lg glow-button'>
+                            Apply Filters
+                        </button>
+                        <button class='w-full border border-backgroundColor text-backgroundColor hover:bg-blue-50 bg-transparent font-bold py-3 rounded-xl transition-colors shadow-sm glow-button'>
+                            Clear Filters
+                        </button>
+                        <button id="desktop-request-all" class='w-full border-2 border-green-600 text-green-600 hover:bg-green-50 bg-transparent font-bold py-3 rounded-xl transition-colors shadow-md glow-button'>
+                            Bid to all
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <div id="main-content-area" class="lg:col-span-3"> 
+                 
+                 <div class="hidden lg:flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-4">
+                        <h2 id="desktop-property-count" class="text-3xl font-bold text-gray-900">Loading...</h2>
+                        <span class="text-sm font-medium bg-gray-100 text-gray-700 px-3 py-1 rounded-md">Page 1 of 1</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button id="filter-toggle-desktop" class="flex-shrink-0 flex items-center justify-center space-x-2 bg-blue-50 text-blue-600 font-medium px-4 py-3 rounded-lg shadow-sm border border-gray-300 hover:bg-gray-50 transition-colors">
+                            <i data-lucide="filter" class="w-5 h-5"></i>
+                            <span>Filters</span>
+                        </button>
+                         <div>
+                             <label for="sort-desktop" class="sr-only">Sort by</label>
+                            <select id="sort-desktop" name="sort-desktop" class="form-select w-full sm:w-auto rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3">
+                                <option>Sort by</option>
+                                <option>Bidding: Ending Soonest</option>
+                                <option>Price: Low to High</option>
+                                <option>Price: High to Low</option>
+                                <option>Newest Listings</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="stays-list-view">
+                    <section>
+                        <div id="propertiesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Live properties will be rendered here based on approved & online visits -->
+                        </div>
+                        <nav class="flex items-center justify-between border-t border-gray-200 px-4 sm:px-0 mt-12 pt-8">
+                            <div class="flex-1 flex justify-between sm:hidden"> <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"> Previous </a> <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"> Next </a></div>
+                            <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                                <div><p class="text-sm text-gray-700">Showing <span id="showingFrom" class="font-medium">1</span> to <span id="showingTo" class="font-medium">12</span> of <span id="showingTotal" class="font-medium">0</span> results</p></div>
+                                <div><nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination"><a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"><span class="sr-only">Previous</span><i data-lucide="chevron-left" class="h-5 w-5"></i></a><a href="#" aria-current="page" class="z-10 bg-blue-50 border-blue-500 text-blue-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium"> 1 </a><a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium"> 2 </a><a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium"> 3 </a><span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700"> ... </span><a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hidden md:inline-flex relative items-center px-4 py-2 border text-sm font-medium"> 8 </a><a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"><span class="sr-only">Next</span><i data-lucide="chevron-right" class="h-5 w-5"></i></a></nav></div>
+                            </div>
+                        </nav>
+                    </section>
+                </div>
+                        
+                    </section>
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <a href="contact.html" class="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110">
+        <i data-lucide="message-circle" class="w-8 h-8"></i>
+    </a>
+    
+    <footer class="bg-gray-800 text-gray-300">
+        <div class="container mx-auto px-6 py-16">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
+                <div class="md:col-span-1"><a href="index.html" class="mb-4 inline-block"><img src="images/logoroomhy.jpg" alt="Roomhy Logo" class="h-10 w-25"></a><p class="text-gray-400 text-sm">Your trusted partner in finding the perfect student accommodation. Live, learn, and grow with us.</p><div class="flex space-x-5 mt-6"><a href="#" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="facebook" class="w-5 h-5"></i></a><a href="#" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="instagram" class="w-5 h-5"></i></a><a href="#" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="twitter" class="w-5 h-5"></i></a></div></div>
+                <div><h4 class="font-semibold text-lg mb-5 text-white">Explore</h4><ul class="space-y-3"><li><a href="#" class="text-gray-300 hover:text-white transition-colors">Apartments</a></li><li><a href="#" class="text-gray-300 hover:text-white transition-colors">Hostels</a></li><li><a href="#" class="text-gray-300 hover:text-white transition-colors">Co-Living</a></li><li><a href="#" class="text-gray-300 hover:text-white transition-colors">PGs</a></li></ul></div>
+                <div><h4 class="font-semibold text-lg mb-5 text-white">Company</h4><ul class="space-y-3"><li><a href="about.html" class="text-gray-300 hover:text-white transition-colors">About Us</a></li><li><a href="list.html" class="text-gray-300 hover:text-white transition-colors">List Your Property</a></li><li><a href="privacy.html" class="text-gray-300 hover:text-white transition-colors">Privacy Policy</a></li><li><a href="terms.html" class="text-gray-300 hover:text-white transition-colors">Terms of Service</a></li></ul></div>
+                
+                <div>
+                    <h4 class="font-semibold text-lg mb-5 text-white">Get in Touch</h4>
+                    <ul class="space-y-3">
+                        <li class="flex items-start space-x-2">
+                            <i data-lucide="mail" class="w-4 h-4 text-gray-400 mt-1 flex-shrink-0"></i>
+                            <a href="mailto:support@roomhy.com" class="text-gray-300 hover:text-white transition-colors">support@roomhy.com</a>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i data-lucide="phone" class="w-4 h-4 text-gray-400 mt-1 flex-shrink-0"></i>
+                            <a href="tel:+911234567890" class="text-gray-300 hover:text-white transition-colors">+91 12345 67890</a>
+                        </li>
+                        <li class="flex items-start space-x-2">
+                            <i data-lucide="map-pin" class="w-4 h-4 text-gray-400 mt-1 flex-shrink-0"></i>
+                            <span class="text-gray-300">Bengaluru, India</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-12 border-t border-gray-700 pt-8 text-center text-gray-400 text-sm"><p>&copy; 2025 Roomhy. All Rights Reserved. Built with ?? for students.</p></div>
+        </div>
+    </footer>
+
+
+    <script>
+        lucide.createIcons();
+
+        // API_URL is already defined in api-config.js
+
+        // ======================================================
+        // START: Filter Properties by Type & City from URL Parameters
+        // ======================================================
+        
+        function getUrlParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        function filterPropertiesByTypeAndCity() {
+            const typeParam = getUrlParam('type'); // Get 'type' from URL
+            const cityParam = getUrlParam('city'); // Get 'city' from URL
+            const searchParam = getUrlParam('search'); // Get 'search' from URL
+
+            // Get all property cards
+            const properties = document.querySelectorAll('a.group[href*="#"]');
+            let visibleCount = 0;
+
+            properties.forEach(card => {
+                const badge = card.querySelector('span');
+                const locationText = card.textContent;
+                
+                if (!badge) return;
+
+                const badgeText = badge.textContent.toLowerCase();
+                let matchesType = true;
+                let matchesCity = true;
+                let matchesSearch = true;
+
+                // ===== FILTER BY TYPE =====
+                if (typeParam) {
+                    if (typeParam === 'hostel' && !badgeText.includes('hostel')) {
+                        matchesType = false;
+                    } else if (typeParam === 'pg' && !(badgeText.includes('pg') || badgeText.includes('co-living'))) {
+                        matchesType = false;
+                    } else if (typeParam === 'apartment' && !(badgeText.includes('apartment') || badgeText.includes('studio') || badgeText.includes('flat'))) {
+                        matchesType = false;
+                    }
+                }
+
+                // ===== FILTER BY CITY =====
+                if (cityParam) {
+                    const cityLower = cityParam.toLowerCase();
+                    // Check if city name appears in the location text
+                    if (!locationText.toLowerCase().includes(cityLower)) {
+                        matchesCity = false;
+                    }
+                }
+
+                // ===== FILTER BY AREA =====
+                let matchesArea = true;
+                const mobileAreaSelect = document.getElementById('mobile-select-area');
+                const desktopAreaSelect = document.getElementById('desktop-select-area');
+                const areaValue = (mobileAreaSelect?.value || desktopAreaSelect?.value || '').toLowerCase();
+                
+                if (areaValue) {
+                    // Check if the selected area appears in the location text
+                    if (!locationText.toLowerCase().includes(areaValue)) {
+                        matchesArea = false;
+                    }
+                }
+
+                // ===== FILTER BY SEARCH =====
+                if (searchParam) {
+                    const searchLower = searchParam.toLowerCase();
+                    if (!locationText.toLowerCase().includes(searchLower)) {
+                        matchesSearch = false;
+                    }
+                }
+
+                // Show card only if it matches all applied filters
+                const shouldShow = matchesType && matchesCity && matchesArea && matchesSearch;
+                card.style.display = shouldShow ? 'block' : 'none';
+                if (shouldShow) visibleCount++;
+            });
+
+            // Update the count
+            const countHeader = document.querySelector('h2');
+            if (countHeader) {
+                let filterText = '';
+                const mobileAreaSelect = document.getElementById('mobile-select-area');
+                const desktopAreaSelect = document.getElementById('desktop-select-area');
+                const areaValue = (mobileAreaSelect?.value || desktopAreaSelect?.value || '').toLowerCase();
+                
+                if (typeParam && cityParam && areaValue) {
+                    filterText = `${visibleCount} ${typeParam.charAt(0).toUpperCase() + typeParam.slice(1)} Properties in ${cityParam} (${areaValue.charAt(0).toUpperCase() + areaValue.slice(1)})`;
+                } else if (typeParam && cityParam) {
+                    filterText = `${visibleCount} ${typeParam.charAt(0).toUpperCase() + typeParam.slice(1)} Properties in ${cityParam}`;
+                } else if (cityParam && areaValue) {
+                    filterText = `${visibleCount} Properties in ${cityParam} (${areaValue.charAt(0).toUpperCase() + areaValue.slice(1)})`;
+                } else if (typeParam) {
+                    filterText = `${visibleCount} ${typeParam.charAt(0).toUpperCase() + typeParam.slice(1)} Properties Found`;
+                } else if (cityParam) {
+                    filterText = `${visibleCount} Properties in ${cityParam}`;
+                } else if (searchParam) {
+                    filterText = `${visibleCount} Results for "${searchParam}"`;
+                } else {
+                    filterText = `${visibleCount} Properties Found`;
+                }
+                countHeader.textContent = filterText;
+            }
+        }
+
+        // ======================================================
+        // Load Cities from API and populate dropdowns
+        // ======================================================
+        async function loadCities() {
+            try {
+                const response = await fetch(`${API_URL}/api/locations/cities`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch cities');
+                }
+                const data = await response.json();
+                const cities = data.success ? data.data : data;
+
+                // Populate desktop city dropdown
+                const desktopSelect = document.getElementById('desktop-select-city');
+                if (desktopSelect) {
+                    desktopSelect.innerHTML = '<option value="">Select a city</option>';
+                    cities.forEach(city => {
+                        const option = document.createElement('option');
+                        option.value = city.name.toLowerCase().replace(/\s+/g, '-');
+                        option.textContent = `${city.name}, ${city.state}`;
+                        desktopSelect.appendChild(option);
+                    });
+                }
+
+                // Populate mobile city dropdown
+                const mobileSelect = document.getElementById('mobile-select-city');
+                if (mobileSelect) {
+                    mobileSelect.innerHTML = '<option value="">Select a city</option>';
+                    cities.forEach(city => {
+                        const option = document.createElement('option');
+                        option.value = city.name.toLowerCase().replace(/\s+/g, '-');
+                        option.textContent = `${city.name}, ${city.state}`;
+                        mobileSelect.appendChild(option);
+                    });
+                }
+
+                console.log('Cities loaded successfully:', cities.length);
+            } catch (error) {
+                console.error('Error loading cities:', error);
+                // Fallback to hardcoded cities
+                const fallbackCities = [
+                    { name: 'Bangalore', state: 'Karnataka' },
+                    { name: 'Chennai', state: 'Tamil Nadu' },
+                    { name: 'Coimbatore', state: 'Tamil Nadu' }
+                ];
+
+                const desktopSelect = document.getElementById('desktop-select-city');
+                const mobileSelect = document.getElementById('mobile-select-city');
+
+                [desktopSelect, mobileSelect].forEach(select => {
+                    if (select) {
+                        select.innerHTML = '<option value="">Select a city</option>';
+                        fallbackCities.forEach(city => {
+                            const option = document.createElement('option');
+                            option.value = city.name.toLowerCase().replace(/\s+/g, '-');
+                            option.textContent = `${city.name}, ${city.state}`;
+                            select.appendChild(option);
+                        });
+                    }
+                });
+            }
+        }
+
+        // ======================================================
+        // Load Areas based on selected city
+        // ======================================================
+        async function loadAreasForCity(cityName) {
+            if (!cityName) {
+                // Reset area dropdowns
+                const desktopAreaSelect = document.getElementById('desktop-select-area');
+                const mobileAreaSelect = document.getElementById('mobile-select-area');
+                if (desktopAreaSelect) desktopAreaSelect.innerHTML = '<option value="">First select a city</option>';
+                if (mobileAreaSelect) mobileAreaSelect.innerHTML = '<option value="">First select a city</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/locations/areas/city/${encodeURIComponent(cityName)}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch areas');
+                }
+                const data = await response.json();
+                const areas = data.success ? data.data : data;
+
+                // Populate desktop area dropdown
+                const desktopAreaSelect = document.getElementById('desktop-select-area');
+                if (desktopAreaSelect) {
+                    desktopAreaSelect.innerHTML = '<option value="">Select an area</option>';
+                    areas.forEach(area => {
+                        const option = document.createElement('option');
+                        option.value = area.name.toLowerCase().replace(/\s+/g, '-');
+                        option.textContent = area.name;
+                        desktopAreaSelect.appendChild(option);
+                    });
+                }
+
+                // Populate mobile area dropdown
+                const mobileAreaSelect = document.getElementById('mobile-select-area');
+                if (mobileAreaSelect) {
+                    mobileAreaSelect.innerHTML = '<option value="">Select an area</option>';
+                    areas.forEach(area => {
+                        const option = document.createElement('option');
+                        option.value = area.name.toLowerCase().replace(/\s+/g, '-');
+                        option.textContent = area.name;
+                        mobileAreaSelect.appendChild(option);
+                    });
+                }
+
+                console.log('Areas loaded for city:', cityName, areas.length);
+            } catch (error) {
+                console.error('Error loading areas:', error);
+                // Fallback to empty areas
+                const desktopAreaSelect = document.getElementById('desktop-select-area');
+                const mobileAreaSelect = document.getElementById('mobile-select-area');
+                if (desktopAreaSelect) desktopAreaSelect.innerHTML = '<option value="">No areas available</option>';
+                if (mobileAreaSelect) mobileAreaSelect.innerHTML = '<option value="">No areas available</option>';
+            }
+        }
+
+        // Call on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Load cities first
+            await loadCities();
+            
+            // Then auto-select city if URL has city parameter
+            autoSelectCityInDropdowns();
+            
+            // Get the selected city and populate areas
+            const cityValue = document.getElementById('desktop-select-city')?.value || document.getElementById('mobile-select-city')?.value || '';
+            if (cityValue) {
+                await loadAreasForCity(cityValue);
+                updateAreaDropdown(cityValue);
+            }
+            
+            // Load and filter properties with URL parameters
+            loadWebsiteListing();
+        });
+
+        // ======================================================
+        // Event Listeners for Filter Dropdowns
+        // ======================================================
+        
+        // Desktop city dropdown change handler
+        document.getElementById('desktop-select-city')?.addEventListener('change', async function() {
+            const selectedCity = this.value;
+            await loadAreasForCity(selectedCity);
+            
+            // Sync mobile dropdown
+            const mobileSelect = document.getElementById('mobile-select-city');
+            if (mobileSelect) mobileSelect.value = selectedCity;
+            
+            // Apply filters
+            applyFilters();
+        });
+
+        // Mobile city dropdown change handler
+        document.getElementById('mobile-select-city')?.addEventListener('change', async function() {
+            const selectedCity = this.value;
+            await loadAreasForCity(selectedCity);
+            
+            // Sync desktop dropdown
+            const desktopSelect = document.getElementById('desktop-select-city');
+            if (desktopSelect) desktopSelect.value = selectedCity;
+            
+            // Apply filters
+            applyFilters();
+        });
+
+        // Desktop area dropdown change handler
+        document.getElementById('desktop-select-area')?.addEventListener('change', function() {
+            // Sync mobile dropdown
+            const mobileSelect = document.getElementById('mobile-select-area');
+            if (mobileSelect) mobileSelect.value = this.value;
+            
+            // Apply filters
+            applyFilters();
+        });
+
+        // Mobile area dropdown change handler
+        document.getElementById('mobile-select-area')?.addEventListener('change', function() {
+            // Sync desktop dropdown
+            const desktopSelect = document.getElementById('desktop-select-area');
+            if (desktopSelect) desktopSelect.value = this.value;
+            
+            // Apply filters
+            applyFilters();
+        });
+
+        // Price range change handlers
+        document.getElementById('desktop-min-price')?.addEventListener('change', applyFilters);
+        document.getElementById('desktop-max-price')?.addEventListener('change', applyFilters);
+        document.getElementById('mobile-min-price')?.addEventListener('change', applyFilters);
+        document.getElementById('mobile-max-price')?.addEventListener('change', applyFilters);
+
+        // Gender change handlers
+        document.getElementById('desktop-gender')?.addEventListener('change', applyFilters);
+        document.getElementById('mobile-gender')?.addEventListener('change', applyFilters);
+
+        // Property type change handlers
+        document.getElementById('desktop-property-type')?.addEventListener('change', applyFilters);
+        document.getElementById('mobile-property-type')?.addEventListener('change', applyFilters);
+
+        // ======================================================
+        // Apply Filters Function
+        // ======================================================
+        function applyFilters() {
+            const filters = {
+                city: document.getElementById('desktop-select-city')?.value || document.getElementById('mobile-select-city')?.value || '',
+                area: document.getElementById('desktop-select-area')?.value || document.getElementById('mobile-select-area')?.value || '',
+                minPrice: document.getElementById('desktop-min-price')?.value || document.getElementById('mobile-min-price')?.value || '',
+                maxPrice: document.getElementById('desktop-max-price')?.value || document.getElementById('mobile-max-price')?.value || '',
+                gender: document.getElementById('desktop-gender')?.value || document.getElementById('mobile-gender')?.value || '',
+                propertyType: document.getElementById('desktop-property-type')?.value || document.getElementById('mobile-property-type')?.value || ''
+            };
+
+            // Reload properties with filters
+            loadWebsiteListing(filters);
+        }
+
+        // ======================================================
+        // Auto-select City in Dropdown if URL has city parameter
+        // ======================================================
+        function autoSelectCityInDropdowns() {
+            const cityParam = getUrlParam('city');
+            if (!cityParam) return;
+
+            // Use the city name directly from URL parameter
+            const cityValue = cityParam.toLowerCase();
+
+            // Auto-select in mobile dropdown
+            const mobileSelect = document.getElementById('mobile-select-city');
+            if (mobileSelect) {
+                mobileSelect.value = cityValue;
+            }
+
+            // Auto-select in desktop dropdown
+            const desktopSelect = document.getElementById('desktop-select-city');
+            if (desktopSelect) {
+                desktopSelect.value = cityValue;
+            }
+        }
+
+        // Called from main DOMContentLoaded handler above
+        // This function auto-selects city in dropdowns if URL has city parameter
+
+        // ======================================================
+        // START: Dynamic Live Properties Rendering (from localStorage)
+        // ======================================================
+
+        function getVisitsFromStorage() {
+            try { return JSON.parse(localStorage.getItem('roomhy_visits') || '[]'); } catch (e) { return []; }
+        }
+
+        // Fetch properties from database API
+        async function fetchPropertiesFromAPI(filters = {}) {
+            try {
+                // Use the approved properties endpoint from visits
+                let url = `${API_URL}/api/visits/public/approved`;
+
+                // Add query parameters for filters
+                const params = new URLSearchParams();
+                if (filters.city) params.append('city', filters.city);
+                if (filters.area) params.append('area', filters.area);
+                if (filters.minPrice) params.append('minPrice', filters.minPrice);
+                if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+                if (filters.gender) params.append('gender', filters.gender);
+                if (filters.propertyType) params.append('propertyType', filters.propertyType);
+
+                if (params.toString()) url += '?' + params.toString();
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    console.error('API Error:', response.status);
+                    // Fallback to localStorage if API fails
+                    return getVisitsFromStorage();
+                }
+
+                const data = await response.json();
+                
+                // Handle both response formats
+                let properties = [];
+                if (data.success && data.enquiries) {
+                    properties = data.enquiries;
+                } else if (data.success && data.properties) {
+                    properties = data.properties;
+                } else if (Array.isArray(data)) {
+                    properties = data;
+                } else {
+                    return getVisitsFromStorage();
+                }
+
+                // IMPORTANT: Filter only APPROVED properties (status = 'completed')
+                properties = properties.filter(p => p.status === 'completed');
+
+                // Apply client-side filters (area, price, gender, property type)
+                properties = properties.filter(prop => {
+                    // Filter by area
+                    if (filters.area) {
+                        const propArea = (prop.propertyInfo?.area || prop.locality || prop.area || '').toLowerCase();
+                        if (!propArea.includes(filters.area.toLowerCase())) return false;
+                    }
+                    
+                    // Filter by gender
+                    // Filter by gender
+                    if (filters.gender) {
+                        const propGender = (prop.gender_suitability || prop.propertyInfo?.gender_suitability || prop.gender || '').toLowerCase();
+                        const filterGender = filters.gender.toLowerCase();
+                        if (propGender && !['co-ed', filterGender].includes(propGender)) return false;
+                    }
+                    
+                    // Filter by property type
+                    if (filters.propertyType) {
+                        const propType = (prop.property_type || prop.propertyInfo?.property_type || prop.type || '').toLowerCase();
+                        if (!propType.includes(filters.propertyType.toLowerCase())) return false;
+                    }
+                    
+                    // Filter by price range - handle both MongoDB and fallback data structures
+                    const rent = prop.rent || prop.monthlyRent || 0;
+                    if (filters.minPrice && rent < parseInt(filters.minPrice)) return false;
+                    if (filters.maxPrice && filters.maxPrice !== '50000_plus' && rent > parseInt(filters.maxPrice)) return false;
+                    
+                    return true;
+                });
+
+                // Cache in localStorage for offline access
+                localStorage.setItem('roomhy_visits', JSON.stringify(properties));
+                return properties;
+
+            } catch (err) {
+                console.error('Error fetching from API:', err);
+                // Fallback to localStorage if API fails
+                return getVisitsFromStorage();
+            }
+        }
+
+        function populateAreaOptionsFromVisits(cityValue) {
+            // Fetch all properties first to get unique areas
+            fetchPropertiesFromAPI({ city: cityValue || '' }).then(visits => {
+                const areas = new Set();
+                
+                visits.forEach(v => {
+                    // Handle WebsiteEnquiry data structure from MongoDB
+                    let area = v.locality || v.area || '';
+                    
+                    // Also check propertyInfo if it exists (fallback for VisitReport)
+                    if (!area && v.propertyInfo) {
+                        area = v.propertyInfo.area || v.propertyInfo.locality || '';
+                    }
+                    
+                    if (area) areas.add(area);
+                });
+
+                const desktopAreaSelect = document.getElementById('desktop-select-area');
+                const mobileAreaSelect = document.getElementById('mobile-select-area');
+                
+                const areaOptions = '<option value="">All Areas</option>' + 
+                    Array.from(areas).map(a => `<option value="${a}">${a}</option>`).join('');
+                
+                if (desktopAreaSelect) {
+                    desktopAreaSelect.innerHTML = areaOptions;
+                }
+                if (mobileAreaSelect) {
+                    mobileAreaSelect.innerHTML = areaOptions;
+                }
+            }).catch(err => {
+                console.error('Error populating areas:', err);
+            });
+        }
+
+        function renderPropertyCard(v) {
+            // Handle WebsiteEnquiry data structure from MongoDB (primary) and VisitReport fallback
+            const prop = v.propertyInfo || {};
+            const title = v.property_name || prop.name || 'Property';
+            const area = v.locality || prop.area || prop.locality || '';
+            const city = v.city || prop.city || '';
+            const rent = v.rent || v.monthlyRent || prop.rent || 0;
+            const badge = v.property_type || prop.property_type || prop.type || '';
+            const photos = (v.professionalPhotos && v.professionalPhotos.length) ? v.professionalPhotos : (v.photos || []);
+            const img = photos && photos[0] ? photos[0] : 'https://images.unsplash.com/photo-1567016432779-1fee749a1532?q=80&w=1974&auto=format&fit=crop';
+            const propertyId = encodeURIComponent(v._id || v.enquiry_id);
+            const rawPropertyId = v._id || v.enquiry_id;
+
+            // Build thumbnail scroller (up to 4 thumbnails)
+            const thumbs = (photos && photos.length) ? photos.slice(0,4).map(s => `<img src="${s}" class="h-20 w-28 object-cover rounded cursor-pointer">`).join('') : '';
+
+            // Prepare property data for favorite toggle
+            const propertyDataStr = JSON.stringify({
+                _id: rawPropertyId,
+                enquiry_id: v.enquiry_id,
+                property_name: title,
+                city: city,
+                locality: area,
+                rent: rent,
+                property_type: badge,
+                photos: photos,
+                isVerified: v.isVerified,
+                rating: v.rating,
+                reviewsCount: v.reviewsCount
+            }).replace(/"/g, '&quot;');
+
+            return `
+                <div class="light-card rounded-xl overflow-hidden h-full flex flex-col">
+                    <a href="property.html?id=${propertyId}" class="group block flex-grow">
+                        <div class="relative">
+                            <img src="${img}" alt="${title}" class="w-full h-56 object-cover group-hover:opacity-90 transition-opacity">
+                            ${v.isVerified ? '<div class="absolute top-3 right-3 bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full flex items-center space-x-1"><i data-lucide="shield-check" class="w-4 h-4"></i><span>Verified</span></div>' : ''}
+                            <button class="favorite-btn absolute top-3 left-3 bg-white hover:bg-red-50 text-gray-600 hover:text-red-500 p-2 rounded-full shadow-md transition-colors" data-property-id="${rawPropertyId}" data-property='${propertyDataStr}' title="Add to favorites">
+                                <i data-lucide="heart" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <div class="p-5 text-left bg-white flex-grow">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <span class="text-xs text-pink-800 bg-pink-100 px-2 py-1 rounded-full font-medium">${badge}</span>
+                                    <h3 class="text-xl font-bold mt-3 mb-2 text-gray-900">${title}</h3>
+                                    <p class="text-gray-500 flex items-center mb-4"><i data-lucide="map-pin" class="w-4 h-4 mr-2"></i>${area}${city ? ', ' + city : ''}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-lg font-bold text-gray-900">?${rent} <span class="text-sm font-normal text-gray-500">/ mo</span></p>
+                                    <div class="flex items-center justify-end space-x-1"><i data-lucide="star" class="w-5 h-5 text-yellow-500 fill-yellow-500"></i><span class="font-semibold text-gray-800">${v.rating || '4.5'}</span><span class="text-sm text-gray-500">(${v.reviewsCount || 0})</span></div>
+                                </div>
+                            </div>
+                            ${ thumbs ? `<div class="mt-4 overflow-x-auto horizontal-slider flex gap-2">${thumbs}</div>` : '' }
+                        </div>
+                    </a>
+                    <div class="p-5 pt-0 bg-white border-t border-gray-100">
+                        <a href="property.html?id=${propertyId}" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 flex items-center justify-center gap-2">
+                            <i data-lucide="message-square" class="w-4 h-4"></i>
+                            <span>Bid Now</span>
+                        </a>
+                    </div>
+                </div>`;
+        }
+
+        function loadWebsiteListing(providedFilters = null) {
+            // If filters are provided, use them; otherwise read from DOM
+            const filters = providedFilters || {
+                city: document.getElementById('desktop-select-city')?.value || document.getElementById('mobile-select-city')?.value || '',
+                area: document.getElementById('desktop-select-area')?.value || document.getElementById('mobile-select-area')?.value || '',
+                minPrice: document.getElementById('desktop-min-price')?.value || document.getElementById('mobile-min-price')?.value || '',
+                maxPrice: document.getElementById('desktop-max-price')?.value || document.getElementById('mobile-max-price')?.value || '',
+                gender: document.getElementById('desktop-gender')?.value || document.getElementById('mobile-gender')?.value || '',
+                propertyType: document.getElementById('desktop-property-type')?.value || document.getElementById('mobile-property-type')?.value || ''
+            };
+
+            // Check if this is the initial load with URL parameters
+            const typeParam = getUrlParam('type') || '';
+            const cityParam = getUrlParam('city') || '';
+            
+            // If no filters provided and URL has city parameter, use it
+            if (!providedFilters && cityParam && !filters.city) {
+                filters.city = cityParam;
+                const desktopSelect = document.getElementById('desktop-select-city');
+                const mobileSelect = document.getElementById('mobile-select-city');
+                if (desktopSelect) desktopSelect.value = cityParam;
+                if (mobileSelect) mobileSelect.value = cityParam;
+            }
+            
+            // If no filters provided and URL has type parameter, use it for property type
+            if (!providedFilters && typeParam && !filters.propertyType) {
+                filters.propertyType = typeParam;
+                const desktopSelect = document.getElementById('desktop-property-type');
+                const mobileSelect = document.getElementById('mobile-property-type');
+                if (desktopSelect) desktopSelect.value = typeParam;
+                if (mobileSelect) mobileSelect.value = typeParam;
+            }
+
+            // Fetch from API with filters
+            fetchPropertiesFromAPI(filters).then(visits => {
+                let filtered = visits;
+
+                // Filter to only show properties with professional photos
+                filtered = filtered.filter(v => v.professionalPhotos && v.professionalPhotos.length > 0);
+
+                const grid = document.getElementById('propertiesGrid');
+                if (!grid) return;
+                
+                if (!filtered.length) {
+                    grid.innerHTML = '<p class="text-gray-500 px-4">No properties found for selected filters.</p>';
+                    document.getElementById('showingTotal').innerText = '0';
+                    return;
+                }
+
+                grid.innerHTML = filtered.map(v => renderPropertyCard(v)).join('');
+                lucide.createIcons();
+                document.getElementById('showingTotal').innerText = filtered.length;
+                document.getElementById('showingFrom').innerText = filtered.length ? '1' : '0';
+                document.getElementById('showingTo').innerText = filtered.length;
+                
+                // Update property count display
+                updatePropertyCount(filtered.length);
+            }).catch(err => {
+                console.error('Error loading properties:', err);
+                const grid = document.getElementById('propertiesGrid');
+                if (grid) {
+                    grid.innerHTML = '<p class="text-red-500 px-4">Error loading properties. Please try again.</p>';
+                }
+                updatePropertyCount(0);
+            });
+        }
+
+        // Update property count in header
+        function updatePropertyCount(count) {
+            const mobileCount = document.getElementById('mobile-property-count');
+            const desktopCount = document.getElementById('desktop-property-count');
+            
+            const countText = count === 1 ? `${count} Property Found` : `${count} Properties Found`;
+            
+            if (mobileCount) mobileCount.textContent = countText;
+            if (desktopCount) desktopCount.textContent = countText;
+        }
+
+        // Wire up selects to reload list
+        // Note: Event listeners moved to main event listener section above
+        document.getElementById('desktop-property-type')?.addEventListener('change', loadWebsiteListing);
+        document.getElementById('mobile-property-type')?.addEventListener('change', loadWebsiteListing);
+        
+        // Wire up occupancy filters
+        document.getElementById('desktop-occupancy')?.addEventListener('change', loadWebsiteListing);
+        document.getElementById('mobile-occupancy')?.addEventListener('change', loadWebsiteListing);
+
+        // Function to populate cities from MongoDB
+        function populateCities() {
+            fetchPropertiesFromAPI({}).then(properties => {
+                const cities = new Set();
+                properties.forEach(p => {
+                    const city = p.city || p.propertyInfo?.city || '';
+                    if (city) cities.add(city.toLowerCase());
+                });
+                
+                const cityOptions = '<option value="">Select a city</option>' + 
+                    Array.from(cities).sort().map(c => `<option value="${c.toLowerCase()}">${c}</option>`).join('');
+                
+                document.getElementById('desktop-select-city').innerHTML = cityOptions;
+                document.getElementById('mobile-select-city').innerHTML = cityOptions;
+            }).catch(err => {
+                console.error('Error populating cities:', err);
+            });
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function(){ 
+            populateCities();
+            populateAreaOptionsFromVisits(''); 
+            loadWebsiteListing(); 
+        });
+
+        // ======================================================
+        // END: Dynamic Live Properties Rendering
+        // ======================================================
+
+        // ======================================================
+        // END: Auto-select City in Dropdown
+        // ======================================================
+
+        // ======================================================
+        // START: Area Extraction and Dropdown Population
+        // ======================================================
+
+        // Map of cities and their areas extracted from properties
+        const cityAreaMap = {
+            'kota': ['Mahaveer Nagar', 'CP Nagar'],
+            'indore': ['Vijay Nagar', 'Bhawarkua', 'Saket Nagar'],
+            'sikar': ['Station Road'],
+            'pune': ['Hinjewadi'],
+            'bangalore': ['Koramangala'],
+            'delhi': ['North Campus']
+        };
+
+        // Function to populate area dropdown based on selected city
+        function updateAreaDropdown(cityValue) {
+            const areas = cityAreaMap[cityValue.toLowerCase()] || [];
+
+            // Update mobile area dropdown
+            const mobileAreaSelect = document.getElementById('mobile-select-area');
+            if (mobileAreaSelect) {
+                mobileAreaSelect.innerHTML = '<option value="">First select a city</option>';
+                if (areas.length > 0) {
+                    areas.forEach(area => {
+                        const option = document.createElement('option');
+                        option.value = area.toLowerCase();
+                        option.textContent = area;
+                        mobileAreaSelect.appendChild(option);
+                    });
+                }
+            }
+
+            // Update desktop area dropdown
+            const desktopAreaSelect = document.getElementById('desktop-select-area');
+            if (desktopAreaSelect) {
+                desktopAreaSelect.innerHTML = '<option value="">First select a city</option>';
+                if (areas.length > 0) {
+                    areas.forEach(area => {
+                        const option = document.createElement('option');
+                        option.value = area.toLowerCase();
+                        option.textContent = area;
+                        desktopAreaSelect.appendChild(option);
+                    });
+                }
+            }
+        }
+
+        // Add change event listeners to city and area dropdowns
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileSelectCity = document.getElementById('mobile-select-city');
+            const desktopSelectCity = document.getElementById('desktop-select-city');
+            const mobileSelectArea = document.getElementById('mobile-select-area');
+            const desktopSelectArea = document.getElementById('desktop-select-area');
+
+            if (mobileSelectCity) {
+                mobileSelectCity.addEventListener('change', (e) => {
+                    updateAreaDropdown(e.target.value);
+                    populateAreaOptionsFromVisits(e.target.value);
+                    loadWebsiteListing(); // Reload properties when city changes
+                });
+            }
+
+            if (desktopSelectCity) {
+                desktopSelectCity.addEventListener('change', (e) => {
+                    updateAreaDropdown(e.target.value);
+                    populateAreaOptionsFromVisits(e.target.value);
+                    loadWebsiteListing(); // Reload properties when city changes
+                });
+            }
+
+            // Add change event listeners to area dropdowns to trigger re-filtering
+            if (mobileSelectArea) {
+                mobileSelectArea.addEventListener('change', () => {
+                    loadWebsiteListing(); // Reload properties when area changes
+                });
+            }
+
+            if (desktopSelectArea) {
+                desktopSelectArea.addEventListener('change', () => {
+                    loadWebsiteListing(); // Reload properties when area changes
+                });
+            }
+
+            // If city is already selected (from URL), populate areas
+            const selectedCity = mobileSelectCity ? mobileSelectCity.value : desktopSelectCity.value;
+            if (selectedCity) {
+                updateAreaDropdown(selectedCity);
+            }
+        });
+
+        // ======================================================
+        // END: Area Extraction and Dropdown Population
+        // ======================================================
+
+        // ======================================================
+        // START: Search Functionality
+        // ======================================================
+
+        function performSearch() {
+            const searchInput = document.getElementById('property-search-input');
+            
+            if (!searchInput) return;
+
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            if (!searchTerm) {
+                // Show all properties if search is empty
+                document.querySelectorAll('a.group[href*="#"]').forEach(card => {
+                    card.style.display = 'block';
+                });
+                return;
+            }
+
+            let visibleCount = 0;
+            document.querySelectorAll('a.group[href*="#"]').forEach(card => {
+                const cardText = card.textContent.toLowerCase();
+                const matches = cardText.includes(searchTerm);
+                card.style.display = matches ? 'block' : 'none';
+                if (matches) visibleCount++;
+            });
+
+            // Update count
+            const countHeader = document.querySelector('h2');
+            if (countHeader) {
+                countHeader.textContent = `${visibleCount} Properties Found for "${searchTerm}"`;
+            }
+        }
+
+        // Handle initial search from URL parameter
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchParam = getUrlParam('search');
+            if (searchParam) {
+                const searchInput = document.getElementById('property-search-input');
+                if (searchInput) {
+                    searchInput.value = decodeURIComponent(searchParam);
+                    performSearch();
+                }
+            }
+
+            // Add search button functionality
+            const searchButton = document.getElementById('property-search-btn');
+            const searchInputField = document.getElementById('property-search-input');
+
+            if (searchButton && searchInputField) {
+                searchButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    performSearch();
+                });
+
+                searchInputField.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        performSearch();
+                    }
+                });
+            }
+        });
+
+        // ======================================================
+        // END: Search Functionality
+        // ======================================================
+
+        // Simple toast helper (used for notifications across this page)
+        window.showToast = function(message, type='info', duration=3500){
+            try{
+                const toast = document.createElement('div');
+                toast.className = 'fixed z-50 right-6 bottom-6 max-w-xs px-4 py-3 rounded shadow-lg text-sm text-white';
+                toast.style.transition = 'transform 240ms ease, opacity 240ms ease';
+                toast.style.opacity = '0';
+                if(type === 'success') toast.style.background = 'linear-gradient(90deg,#10b981,#059669)';
+                else if(type === 'error') toast.style.background = 'linear-gradient(90deg,#ef4444,#dc2626)';
+                else toast.style.background = 'linear-gradient(90deg,#3b82f6,#06b6d4)';
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                requestAnimationFrame(()=>{ toast.style.opacity = '1'; toast.style.transform = 'translateY(0)'; });
+                setTimeout(()=>{ toast.style.opacity = '0'; toast.style.transform = 'translateY(10px)'; setTimeout(()=>toast.remove(),300); }, duration);
+            }catch(e){ console.warn('showToast failed', e); }
+        };
+
+        // Listen for localStorage changes (admin/backend fallback) to reload listings and show notifications
+        window.addEventListener('storage', function(ev){
+            try{
+                if (!ev) return;
+                if (ev.key === 'roomhy_visits' || ev.key === 'new_property_added') {
+                    // reload area options and listings
+                    populateAreaOptionsFromVisits('');
+                    loadWebsiteListing();
+                    showToast('New property added', 'info');
+                }
+                // Optional: show toast for enquiries/bids saved in localStorage keys
+                if (ev.key && ev.key.indexOf('owner_enquiries') === 0) {
+                    showToast('New request received', 'info');
+                }
+                if (ev.key && ev.key.indexOf('owner_property_bids') === 0) {
+                    showToast('New bid placed', 'info');
+                }
+            }catch(e){/* ignore */}
+        });
+
+        // ======================================================
+        // START: Populate City Selects (dynamic from MongoDB and admin locations)
+        // ======================================================
+        (function(){
+            // First, try to populate from MongoDB approved properties
+            async function populateCitiesFromMongoDB(){
+                try{
+                    const response = await fetch('/api/website-enquiry/all');
+                    if (!response.ok) throw new Error('Failed to fetch');
+                    
+                    const data = await response.json();
+                    let properties = (data.enquiries || []).filter(p => p.status === 'completed');
+                    
+                    // Extract unique cities
+                    const citiesSet = new Set();
+                    properties.forEach(prop => {
+                        if (prop.city) {
+                            citiesSet.add(prop.city);
+                        }
+                    });
+                    
+                    // If we found cities, populate the selects
+                    if (citiesSet.size > 0) {
+                        const cities = Array.from(citiesSet).sort();
+                        const desktop = document.getElementById('desktop-select-city');
+                        const mobile = document.getElementById('mobile-select-city');
+                        const opts = '<option value="">Select a city</option>' + cities.map(c => `<option value="${c.toLowerCase()}">${c}</option>`).join('');
+                        if(desktop) desktop.innerHTML = opts;
+                        if(mobile) mobile.innerHTML = opts;
+                    }
+                } catch(e){
+                    console.log('Could not fetch cities from MongoDB, trying locations-sync.js');
+                    loadCitiesFromLocationsSync();
+                }
+            }
+
+            // Fallback: Load from locations-sync.js if available
+            function loadCitiesFromLocationsSync(){
+                var s = document.createElement('script');
+                s.src = 'js/locations-sync.js';
+                s.onload = function(){
+                    function fillCitySelects(){
+                        try{
+                            var cities = (window.roomhyLocations && typeof window.roomhyLocations.getCities === 'function') ? window.roomhyLocations.getCities() : [];
+                            var desktop = document.getElementById('desktop-select-city');
+                            var mobile = document.getElementById('mobile-select-city');
+                            var opts = '<option value="">Select a city</option>' + (cities.length ? cities.map(function(c){ return '<option value="'+c.name.toLowerCase()+'">'+c.name+'</option>'; }).join('') : '');
+                            if(desktop) desktop.innerHTML = opts;
+                            if(mobile) mobile.innerHTML = opts;
+                        }catch(e){/* ignore */}
+                    }
+                    fillCitySelects();
+                    if(window.roomhyLocations && typeof window.roomhyLocations.onChange === 'function'){
+                        window.roomhyLocations.onChange(fillCitySelects);
+                    }
+                };
+                document.head.appendChild(s);
+            }
+
+            // Load cities from MongoDB on page load
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', populateCitiesFromMongoDB);
+            } else {
+                populateCitiesFromMongoDB();
+            }
+        })();
+        // ======================================================
+        // END: Populate City Selects
+        // ======================================================
+
+        /* Mobile Side Menu JS (Existing Logic) */
+        const menuToggle = document.getElementById('menu-toggle');
+        const menuClose = document.getElementById('menu-close');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuOverlay = document.getElementById('menu-overlay');
+
+        if (menuToggle && mobileMenu && menuClose && menuOverlay) {
+            menuToggle.addEventListener('click', () => {
+                mobileMenu.classList.remove('translate-x-full');
+                menuOverlay.classList.remove('hidden');
+            });
+            const closeMenu = () => {
+                mobileMenu.classList.add('translate-x-full');
+                menuOverlay.classList.add('hidden');
+            };
+            menuClose.addEventListener('click', closeMenu);
+            menuOverlay.addEventListener('click', closeMenu);
+            mobileMenu.querySelectorAll('a').forEach(link => { link.addEventListener('click', closeMenu); });
+        }
+        
+        /* Apply and Clear Filters Functionality */
+        function clearAllFilters() {
+            // Reset all filter dropdowns to default values
+            document.getElementById('desktop-select-city').value = '';
+            document.getElementById('mobile-select-city').value = '';
+            document.getElementById('desktop-select-area').value = '';
+            document.getElementById('mobile-select-area').value = '';
+            document.getElementById('desktop-min-price').value = '4000';
+            document.getElementById('mobile-min-price').value = '4000';
+            document.getElementById('desktop-max-price').value = '50000_plus';
+            document.getElementById('mobile-max-price').value = '50000_plus';
+            document.getElementById('desktop-gender').value = '';
+            document.getElementById('mobile-gender').value = '';
+            document.getElementById('desktop-property-type').value = '';
+            document.getElementById('mobile-property-type').value = '';
+            document.getElementById('desktop-occupancy').value = '';
+            document.getElementById('mobile-occupancy').value = '';
+            
+            // Reload listings
+            populateAreaOptionsFromVisits('');
+            loadWebsiteListing();
+        }
+        
+        // Wire up Apply Filters buttons (close mobile drawer after applying)
+        const mobileApplyFilterBtn = document.querySelector('#mobile-filter-drawer button:nth-child(1)');
+        if (mobileApplyFilterBtn && mobileApplyFilterBtn.textContent.includes('Apply Filters')) {
+            mobileApplyFilterBtn.addEventListener('click', loadWebsiteListing);
+        }
+
+        // Wire up desktop Apply Filters buttons
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.textContent.includes('Apply Filters')) {
+                btn.addEventListener('click', loadWebsiteListing);
+            }
+        });
+        
+        // Wire up Clear Filters buttons (desktop and mobile)
+        document.querySelectorAll('button').forEach(btn => {
+            if (btn.textContent.includes('Clear Filters')) {
+                btn.addEventListener('click', clearAllFilters);
+            }
+        });
+        
+        /* Filter Toggle JS (Mobile & Desktop) - UPDATED LOGIC */
+        const filterToggleMobile = document.getElementById('filter-toggle'); 
+        const filterToggleDesktop = document.getElementById('filter-toggle-desktop'); 
+        const filterSidebar = document.getElementById('filter-sidebar'); 
+        const mainContentArea = document.getElementById('main-content-area'); 
+        
+        // New variables for the mobile drawer
+        const mobileFilterDrawer = document.getElementById('mobile-filter-drawer');
+        const closeFilterMobile = document.getElementById('close-filter-mobile');
+        const filterOverlay = document.getElementById('filter-overlay');
+
+        // Toggle function for the mobile drawer (Slide-in/out from right)
+        function toggleMobileFilterDrawer() {
+            if (!mobileFilterDrawer || !filterOverlay) return;
+            const isHidden = mobileFilterDrawer.classList.contains('translate-x-full');
+            
+            if (isHidden) {
+                // Show drawer
+                mobileFilterDrawer.classList.remove('translate-x-full');
+                mobileFilterDrawer.classList.add('translate-x-0');
+                filterOverlay.classList.remove('hidden');
+            } else {
+                // Hide drawer
+                mobileFilterDrawer.classList.remove('translate-x-0');
+                mobileFilterDrawer.classList.add('translate-x-full');
+                filterOverlay.classList.add('hidden');
+            }
+            lucide.createIcons();
+        }
+        
+        // Toggle function for the desktop sidebar (Show/Hide)
+        function toggleDesktopSidebar() {
+            if (!filterSidebar || !mainContentArea || !filterToggleDesktop) return;
+            
+            const isNowHidden = filterSidebar.classList.toggle('hidden');
+            
+            // On desktop, adjust grid
+            if (window.innerWidth >= 1024) {
+                // When sidebar is hidden, main content spans 4 cols
+                mainContentArea.classList.toggle('lg:col-span-4', isNowHidden);
+                // When sidebar is visible, main content spans 3 cols
+                mainContentArea.classList.toggle('lg:col-span-3', !isNowHidden);
+                // Ensure sidebar is shown/hidden correctly on desktop
+                filterSidebar.classList.toggle('lg:block', !isNowHidden);
+            }
+            
+            // Update desktop button style
+            filterToggleDesktop.classList.toggle('bg-blue-50', !isNowHidden);
+            filterToggleDesktop.classList.toggle('text-blue-600', !isNowHidden);
+            
+            lucide.createIcons();
+        }
+
+        // --- Attach Event Listeners ---
+        if (filterToggleMobile) {
+            filterToggleMobile.addEventListener('click', toggleMobileFilterDrawer);
+        }
+        if (closeFilterMobile) {
+            closeFilterMobile.addEventListener('click', toggleMobileFilterDrawer);
+        }
+        if (filterOverlay) {
+            filterOverlay.addEventListener('click', toggleMobileFilterDrawer);
+        }
+        // Also attach the apply button to close the drawer for convenience
+        const mobileApplyFilters = document.getElementById('mobile-apply-filters');
+        if (mobileApplyFilters) {
+            mobileApplyFilters.addEventListener('click', () => {
+                applyFilters();
+                toggleMobileFilterDrawer();
+            });
+        }
+        
+        if (filterToggleDesktop) {
+            filterToggleDesktop.addEventListener('click', toggleDesktopSidebar);
+        }
+
+        // Desktop apply filters button
+        const desktopApplyFilters = document.getElementById('desktop-apply-filters');
+        if (desktopApplyFilters) {
+            desktopApplyFilters.addEventListener('click', applyFilters);
+        }
+        
+        /* Hero Slideshow JS */
+        const heroWrapper = document.getElementById('hero-image-wrapper');
+        if (heroWrapper) {
+            const heroImages = heroWrapper.querySelectorAll('img');
+            const totalHeroImages = heroImages.length;
+            let currentHeroIndex = 0;
+
+            if (totalHeroImages > 1) {
+                setInterval(() => {
+                    const nextHeroIndex = (currentHeroIndex + 1) % totalHeroImages;
+                    heroImages[currentHeroIndex].classList.remove('opacity-100');
+                    heroImages[currentHeroIndex].classList.add('opacity-0');
+                    heroImages[nextHeroIndex].classList.remove('opacity-0');
+                    heroImages[nextHeroIndex].classList.add('opacity-100');
+                    currentHeroIndex = nextHeroIndex;
+                }, 5000); 
+            }
+        }
+
+        // ======================================================
+        // REQUEST ON ALL FUNCTIONALITY
+        // ======================================================
+        
+        let currentFilteredProperties = [];
+
+        // Store filtered properties whenever loadWebsiteListing is called
+        const originalLoadWebsiteListing = window.loadWebsiteListing;
+        window.loadWebsiteListing = function() {
+            // Call original function but intercept to store properties
+            const typeParam = getUrlParam('type') || '';
+            const cityParam = getUrlParam('city') || '';
+            
+            let desktopCity = document.getElementById('desktop-select-city')?.value || '';
+            let mobileCity = document.getElementById('mobile-select-city')?.value || '';
+            
+            if (cityParam && !desktopCity && !mobileCity) {
+                desktopCity = cityParam;
+                const desktopSelect = document.getElementById('desktop-select-city');
+                const mobileSelect = document.getElementById('mobile-select-city');
+                if (desktopSelect) desktopSelect.value = cityParam;
+                if (mobileSelect) mobileSelect.value = cityParam;
+            }
+            
+            const cityValue = (desktopCity || mobileCity || '').toString().toLowerCase();
+            
+            const desktopArea = document.getElementById('desktop-select-area')?.value || '';
+            const mobileArea = document.getElementById('mobile-select-area')?.value || '';
+            const areaValue = (desktopArea || mobileArea).toString();
+            
+            const desktopMinPrice = document.getElementById('desktop-min-price')?.value || '';
+            const mobileMinPrice = document.getElementById('mobile-min-price')?.value || '';
+            const minPrice = desktopMinPrice || mobileMinPrice || '';
+            
+            const desktopMaxPrice = document.getElementById('desktop-max-price')?.value || '';
+            const mobileMaxPrice = document.getElementById('mobile-max-price')?.value || '';
+            const maxPrice = desktopMaxPrice || mobileMaxPrice || '';
+            
+            const desktopGender = document.getElementById('desktop-gender')?.value || '';
+            const mobileGender = document.getElementById('mobile-gender')?.value || '';
+            const genderValue = desktopGender || mobileGender || '';
+            
+            const desktopPropertyType = document.getElementById('desktop-property-type')?.value || '';
+            const mobilePropertyType = document.getElementById('mobile-property-type')?.value || '';
+            const propertyTypeValue = (desktopPropertyType || mobilePropertyType || typeParam || '').toString().toLowerCase();
+            
+            const desktopOccupancy = document.getElementById('desktop-occupancy')?.value || '';
+            const mobileOccupancy = document.getElementById('mobile-occupancy')?.value || '';
+            const occupancyValue = desktopOccupancy || mobileOccupancy || '';
+
+            const filters = {};
+            if (cityValue) filters.city = cityValue;
+            if (areaValue) filters.area = areaValue;
+            if (genderValue) filters.gender = genderValue;
+            if (propertyTypeValue) filters.propertyType = propertyTypeValue;
+            if (minPrice) filters.minPrice = minPrice;
+            if (maxPrice && maxPrice !== '50000_plus') filters.maxPrice = maxPrice;
+            if (occupancyValue) filters.occupancy = occupancyValue;
+
+            fetchPropertiesFromAPI(filters).then(visits => {
+                let filtered = visits;
+                filtered = filtered.filter(v => v.professionalPhotos && v.professionalPhotos.length > 0);
+
+                if (genderValue) {
+                    filtered = filtered.filter(v => {
+                        const gender = (v.propertyInfo && v.propertyInfo.gender || '').toString().toLowerCase();
+                        return gender === genderValue.toLowerCase() || gender === 'co-ed' || genderValue.toLowerCase() === 'co-ed';
+                    });
+                }
+
+                // Store filtered properties for "Request on all" feature
+                currentFilteredProperties = filtered;
+
+                const grid = document.getElementById('propertiesGrid');
+                if (!grid) return;
+                
+                if (!filtered.length) {
+                    grid.innerHTML = '<p class="text-gray-500 px-4">No properties found for selected filters.</p>';
+                    document.getElementById('showingTotal').innerText = '0';
+                    return;
+                }
+
+                grid.innerHTML = filtered.map(v => renderPropertyCard(v)).join('');
+                lucide.createIcons();
+                document.getElementById('showingTotal').innerText = filtered.length;
+                document.getElementById('showingFrom').innerText = filtered.length ? '1' : '0';
+                document.getElementById('showingTo').innerText = filtered.length;
+            }).catch(err => {
+                console.error('Error loading properties:', err);
+                const grid = document.getElementById('propertiesGrid');
+                if (grid) {
+                    grid.innerHTML = '<p class="text-red-500 px-4">Error loading properties. Please try again.</p>';
+                }
+            });
+        };
+
+        // Request on all button handlers
+        function showRequestAllModal() {
+            if (currentFilteredProperties.length === 0) {
+                alert('No properties to request. Please apply filters and try again.');
+                return;
+            }
+            
+            const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null');
+            if (!user || !user.loginId) {
+                alert('Please login to submit requests');
+                window.location.href = '../index.html';
+                return;
+            }
+
+            // Update property count and show modal
+            document.getElementById('property-count').innerText = currentFilteredProperties.length;
+            const modal = document.getElementById('request-all-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeRequestAllModal() {
+            const modal = document.getElementById('request-all-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function submitRequestAll() {
+            console.log('Submit request all clicked');
+            const submitBtn = document.getElementById('submit-request-all');
+            const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null');
+            
+            if (!user || !user.loginId) {
+                alert('Please login to submit requests');
+                return;
+            }
+
+            const name = document.getElementById('request-all-name')?.value || '';
+            const phone = document.getElementById('request-all-phone')?.value || '';
+            const message = document.getElementById('request-all-message')?.value || '';
+
+            console.log('Form values:', { name, phone, message });
+
+            if (!name || !phone) {
+                alert('Please fill in name and phone number');
+                return;
+            }
+
+            const phoneRegex = /^\d{10}$/;
+            if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
+                alert('Please enter a valid 10-digit phone number');
+                return;
+            }
+
+            try {
+                // Disable button and show loading state
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="flex items-center gap-2"><i data-lucide="loader" class="w-4 h-4 animate-spin"></i>Sending...</span>';
+                    lucide.createIcons();
+                }
+
+                let successCount = 0;
+                let failureCount = 0;
+
+                console.log('Submitting requests for', currentFilteredProperties.length, 'properties');
+
+                // Submit request for each property
+                for (const property of currentFilteredProperties) {
+                    try {
+                        const propertyName = property.property_name || 'Property';
+                        const area = property.locality || property.propertyInfo?.area || 'Unknown';
+                        const propertyType = property.property_type || property.propertyInfo?.property_type || 'PG';
+                        const rentAmount = property.rent || 0;
+
+                        console.log('Submitting for property:', propertyName);
+
+                        const response = await fetch(`${API_URL}/api/booking/create`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                property_id: property._id || property.enquiry_id,
+                                property_name: propertyName,
+                                area: area,
+                                property_type: propertyType,
+                                rent_amount: parseInt(rentAmount),
+                                user_id: user.loginId,
+                                name: name,
+                                email: user.email || user.loginId,
+                                phone: phone,
+                                request_type: 'bulk_request',
+                                message: message || ''
+                            })
+                        });
+
+                        if (response.ok) {
+                            console.log('Request successful for', propertyName);
+                            successCount++;
+                        } else {
+                            const errorData = await response.json().catch(() => ({ message: response.statusText }));
+                            console.error('Request failed for', propertyName, ':', response.status, errorData);
+                            failureCount++;
+                        }
+                    } catch (err) {
+                        console.error('Error submitting request for property:', err);
+                        failureCount++;
+                    }
+                }
+
+                // Show result
+                console.log('Final result - Success:', successCount, 'Failures:', failureCount);
+                
+                if (successCount > 0) {
+                    alert(`Success! ${successCount} booking request(s) sent to property managers.${failureCount > 0 ? ' ' + failureCount + ' request(s) failed.' : ''}`);
+                    closeRequestAllModal();
+                    
+                    // Close mobile drawer if open
+                    document.getElementById('mobile-filter-drawer')?.classList.add('translate-x-full');
+                    document.getElementById('filter-overlay')?.classList.add('hidden');
+                    
+                    // Reset form
+                    document.getElementById('request-all-form')?.reset();
+                } else {
+                    alert('Failed to submit requests. Please try again. Check browser console (F12) for details.');
+                    console.error('All requests failed. API_URL:', API_URL);
+                }
+            } catch (error) {
+                console.error('Outer error:', error);
+                alert('Error submitting requests. Details: ' + error.message);
+            } finally {
+                // Re-enable button and reset text
+                const submitBtn = document.getElementById('submit-request-all');
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Send Requests';
+                }
+            }
+        }
+
+        // Wire up button handlers - wrapped in setTimeout to ensure DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                document.getElementById('mobile-request-all')?.addEventListener('click', showRequestAllModal);
+                document.getElementById('desktop-request-all')?.addEventListener('click', showRequestAllModal);
+                document.getElementById('close-request-all-modal')?.addEventListener('click', closeRequestAllModal);
+                document.getElementById('close-request-all-modal-btn')?.addEventListener('click', closeRequestAllModal);
+                document.getElementById('submit-request-all')?.addEventListener('click', submitRequestAll);
+                
+                // Close modal when clicking outside
+                document.getElementById('request-all-modal')?.addEventListener('click', (e) => {
+                    if (e.target.id === 'request-all-modal') {
+                        closeRequestAllModal();
+                    }
+                });
+            });
+        } else {
+            document.getElementById('mobile-request-all')?.addEventListener('click', showRequestAllModal);
+            document.getElementById('desktop-request-all')?.addEventListener('click', showRequestAllModal);
+            document.getElementById('close-request-all-modal')?.addEventListener('click', closeRequestAllModal);
+            document.getElementById('close-request-all-modal-btn')?.addEventListener('click', closeRequestAllModal);
+            document.getElementById('submit-request-all')?.addEventListener('click', submitRequestAll);
+            
+            // Close modal when clicking outside
+            document.getElementById('request-all-modal')?.addEventListener('click', (e) => {
+                if (e.target.id === 'request-all-modal') {
+                    closeRequestAllModal();
+                }
+            });
+        }
+
+    </script>
+
+    <!-- REQUEST ALL MODAL -->
+    <div id="request-all-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 animate-fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-gray-900">Request on All Properties</h2>
+                <button id="close-request-all-modal" class="text-gray-500 hover:text-gray-700">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <p class="text-gray-600 mb-6">Your request will be sent to <span id="property-count" class="font-semibold">0</span> property managers. They will contact you soon.</p>
+
+            <form id="request-all-form" class="space-y-4">
+                <div>
+                    <label for="request-all-name" class="block text-sm font-semibold text-gray-700 mb-2">Full Name *</label>
+                    <input type="text" id="request-all-name" placeholder="Enter your name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                </div>
+
+                <div>
+                    <label for="request-all-phone" class="block text-sm font-semibold text-gray-700 mb-2">Phone Number *</label>
+                    <input type="tel" id="request-all-phone" placeholder="10-digit phone number" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" pattern="[0-9]{10}" required>
+                </div>
+
+                <div>
+                    <label for="request-all-message" class="block text-sm font-semibold text-gray-700 mb-2">Message (Optional)</label>
+                    <textarea id="request-all-message" placeholder="Any specific requirements or preferences..." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24 resize-none"></textarea>
+                </div>
+
+                <p class="text-xs text-gray-500 bg-blue-50 p-3 rounded-lg">Property managers will use this information to contact you with suitable options.</p>
+
+                <div class="flex gap-3 mt-6">
+                    <button type="button" id="close-request-all-modal-btn" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="button" id="submit-request-all" class="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-lg transition-all shadow-md hover:shadow-lg">
+                        Send Requests
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        @keyframes fade-in {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out;
+        }
+    </style>
+</body>
+
+</html>
+

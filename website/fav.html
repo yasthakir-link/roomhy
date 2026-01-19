@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Favorites - Roomhy</title>
+    <script>
+        // API Configuration
+        const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+
+    <script>
+        tailwind.config = {
+            theme: {
+            extend: {
+                keyframes: {
+                    kenburns: {
+                        '0%': { transform: 'scale(1) translate(0, 0)' },
+                        '100%': { transform: 'scale(1.1) translate(-2%, 2%)' },
+                    },
+                    // Keyframes for testimonial sliding
+                    'slide-left': {
+                        '0%': { transform: 'translateX(0%)' },
+                        '100%': { transform: 'translateX(-50%)' },
+                    },
+                    'slide-right': {
+                        '0%': { transform: 'translateX(-50%)' },
+                        '100%': { transform: 'translateX(0%)' },
+                    }
+                },
+                    animation: {
+                        kenburns: 'kenburns 30s ease-in-out infinite alternate',
+                        // Animations for testimonial sliding
+                        'slide-left-infinite': 'slide-left 40s linear infinite',
+                        'slide-right-infinite': 'slide-right 40s linear infinite',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f2f6; 
+            color: #1F2937;
+        }
+
+        .text-shadow {
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes gradient-flow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .animate-gradient-flow {
+            background-size: 200% auto;
+            background-image: linear-gradient(to right, #06b6d4 0%, #3b82f6 50%, #06b6d4 100%);
+            animation: gradient-flow 10s ease infinite;
+        }
+
+        .light-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        .light-card:hover {
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+            transform: translateY(-4px);
+        }
+        
+        .glow-button {
+            transition: all 0.3s ease;
+        }
+        .glow-button:hover {
+            transform: scale(1.05);
+        }
+        
+        .horizontal-slider::-webkit-scrollbar {
+            display: none;
+        }
+        .horizontal-slider {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        .offering-card-item {
+            opacity: 0;
+        }
+        .offering-card .overlay {
+            transition: background 0.4s ease;
+        }
+        .group:hover .offering-card .overlay {
+            background: linear-gradient(to top, rgba(0,0,0,0.75), transparent);
+        }
+        .offering-card h3 {
+            transition: transform 0.4s ease;
+            transform: translateY(10px);
+        }
+        .group:hover .offering-card h3 {
+            transform: translateY(0);
+        }
+
+        @keyframes slide-in {
+            from { opacity: 0; transform: translateY(40px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-slide-in {
+            animation: slide-in 0.7s ease-out forwards;
+        }
+
+        @keyframes card-slide-up {
+            from { opacity: 0; transform: translateY(50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-animate {
+            animation: card-slide-up 0.6s ease-out forwards;
+        }
+        .cta-section {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1582693630824-53c825364347?q=80&w=2070&auto:format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .animate-float {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        .testimonial-card {
+            background-color: #ffffff;
+            border-radius: 12px;
+            border: 1px solid #E5E7EB;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+            margin: 0 16px; /* Spacing between cards */
+            width: 350px; /* Fixed width for cards */
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .testimonial-carousel {
+            display: flex;
+            overflow: hidden;
+            width: 100%;
+            -webkit-mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+            mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+        }
+
+        .testimonial-track-inner {
+          display: flex;
+          white-space: nowrap; 
+          align-items: stretch;
+        }
+        
+        .testimonial-track-inner > .testimonial-card {
+          flex-shrink: 0;
+        }
+        
+        @keyframes slide-left {
+          0%   { transform: translateX(0%); }
+          100% { transform: translateX(-50%); } 
+        }
+        
+        @keyframes slide-right {
+          0%   { transform: translateX(-50%); } 
+          100% { transform: translateX(0%); }
+        }
+        
+        .testimonial-row-1 .testimonial-track-inner {
+          animation: slide-right 40s linear infinite;
+          will-change: transform;
+        }
+        
+        .testimonial-row-2 .testimonial-track-inner {
+          animation: slide-left 40s linear infinite;
+          will-change: transform;
+        }
+        
+        .testimonial-track-inner:hover {
+          animation-play-state: paused;
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+          .testimonial-row-1 .testimonial-track-inner,
+          .testimonial-row-2 .testimonial-track-inner {
+            animation: none;
+          }
+        }
+
+        /* NEW: Custom styling for city filter cards (matching index.html) */
+        .city-filter-container .neon-border {
+            border: 2px solid #000000 !important; /* Strong black border */
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.4); /* Neon blue glow effect */
+            transition: box-shadow 0.3s ease, transform 0.3s ease;
+        }
+        
+        /* UNIFIED HOVER/ACTIVE/FOCUS STYLES FOR NEON BORDER */
+        .city-filter:hover .neon-border, 
+        .city-filter:active .neon-border,
+        .city-filter:focus .neon-border {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.9), 0 0 25px rgba(239, 68, 68, 0.5); /* Hover glow to red/pink for contrast */
+        }
+        
+        /* UNIFIED HOVER/ACTIVE/FOCUS STYLES FOR NEON BORDER - APPLYING TRANSFORM TO THE PARENT CONTAINER */
+        .city-filter:hover, 
+        .city-filter:active,
+        .city-filter:focus {
+            transform: translateY(-2px); /* Apply lift effect to the whole container */
+            transition: transform 0.3s ease;
+        }
+        
+        /* === UPDATED CITY IMAGE SLIDE/KEN BURNS EFFECT === */
+        .city-filter .city-image {
+             /* Increased duration for a smoother "slide" feel */
+             transition: transform 0.8s ease-in-out;
+        }
+        /* DESKTOP/FOCUS HOVER EFFECT (This applies the image slide/scale) */
+        .city-filter:hover .city-image,
+        .city-filter:focus .city-image {
+             /* Scale up and translate right/down for a subtle Ken Burns "slide" effect */
+             transform: scale(1.2) translate(5%, 5%); 
+        }
+        /* For touch devices, ensure tapping (active) doesn't keep the animation, only the hover/focus state applies the slide. */
+        .city-filter:active .city-image {
+             /* When active (tapped), reset the slide transformation to avoid keeping the slide */
+             transform: scale(1); /* Ensure it doesn't slide on tap, only on hover/focus */
+             transition-duration: 0.1s; /* Quick reset for active state */
+        }
+        /* ============================================== */
+
+      /* ====== Premium Footer Styling ====== */
+        .footer {
+          font-family: 'Inter', sans-serif;
+          color: #e5e7eb;
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .footer a {
+          color: #cbd5e1;
+          text-decoration: none;
+          transition: color 0.3s ease;
+        }
+        
+        .footer a:hover {
+          color: #60a5fa;
+        }
+        
+        /* --- OUR PRESENCE --- */
+        .footer-top {
+          background: rgba(255, 255, 255, 0.04);
+          text-align: center;
+          padding: 2rem 1.5rem;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .footer-top h2 {
+          font-size: 1.4rem;
+          color: #ffffff;
+          margin-bottom: 1.5rem;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          
+        }
+        
+        .footer-presence {
+          display: flex;
+          justify-content: left;
+          flex-wrap: wrap;
+          gap: 450px;
+          padding-left: 50px;
+        }
+        
+        .footer-presence h4 {
+          color: #60a5fa;
+          margin-bottom: 0.6rem;
+        }
+        
+        .footer-presence ul {
+          list-style: none;
+          padding: 0;
+        }
+        
+        .footer-presence li {
+          margin: 0.3rem 0;
+        }
+        
+        /* --- MAIN FOOTER --- */
+        .footer-main {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+          gap: 2rem;
+          padding: 3rem 2rem;
+          align-items: start;
+        }
+        
+        .footer-logo img {
+          width: 180px;
+          margin-bottom: 0.5rem;
+        }
+        
+        .footer-logo p {
+          color: #cbd5e1;
+          font-size: 0.95rem;
+        }
+        
+        .footer-links h4,
+        .footer-legal h4,
+        .footer-contact h4 {
+          font-weight: 600;
+          color: #ffffff;
+          margin-bottom: 1rem;
+          position: relative;
+        }
+        
+        .footer-links h4::after,
+        .footer-legal h4::after,
+        .footer-contact h4::after {
+          content: '';
+          position: absolute;
+          bottom: -0.4rem;
+          left: 0;
+          width: 40px;
+          height: 2px;
+          background: #60a5fa;
+          border-radius: 2px;
+        }
+        
+        .footer-links ul,
+        .footer-legal ul {
+          list-style: none;
+          padding: 0;
+        }
+        
+        .footer-links li,
+        .footer-legal li {
+          margin-bottom: 0.4rem;
+        }
+        
+        /* --- CONTACT --- */
+        .footer-contact p {
+          color: #d1d5db;
+          margin: 0.4rem 0;
+          font-size: 0.95rem;
+        }
+        
+        .footer-contact i {
+          color: #60a5fa;
+          margin-right: 0.4rem;
+        }
+        
+        .footer-social {
+          margin-top: 0.8rem;
+        }
+        
+        .footer-social a {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255, 255, 255, 0.08);
+          color: #ffffff;
+          width: 35px;
+          height: 35px;
+          border-radius: 8px;
+          margin-right: 0.6rem;
+          transition: all 0.3s ease;
+        }
+        
+        .footer-social a:hover {
+          background: #60a5fa;
+          color: #0f172a;
+          transform: translateY(-4px);
+        }
+        
+        /* --- BOTTOM --- */
+        .footer-bottom {
+          border-top: 1px solid rgba(255, 255, 255, 0.1);
+          text-align: center;
+          padding: 1rem;
+          font-size: 0.9rem;
+          color: #9ca3af;
+          background: rgba(0, 0, 0, 0.2);
+        }
+        
+        /* --- RESPONSIVE (MOBILE) --- */
+        @media (max-width: 768px) {
+          .footer-presence {
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            padding-left: 1rem;
+            gap: 0;
+           
+          }
+        
+          .footer-main {
+            grid-template-columns: 1fr;
+            text-align: left;
+          }
+        
+          .footer-logo img {
+            margin-bottom: 1rem;
+          }
+        
+          .footer-social {
+            justify-content: flex-start;
+          }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-sm shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6">
+            <div class="flex h-20 items-center justify-between">
+                
+                <div class="flex items-center">
+                    <a href="index.html" class="flex-shrink-0">
+                        <img src="images/logoroomhy.jpg" alt="Roomhy Logo" class="h-10 w-25">
+                    </a>
+                </div>
+                
+                <div class="flex items-center gap-3 sm:gap-6">
+                    <nav class="hidden lg:flex items-center space-x-6">
+                        <a href="about.html" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">About Us</a>
+                        <a href="contact.html" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">Contact</a>
+                    </nav>
+
+                    <a href="list.html" class="flex-shrink-0 flex items-center space-x-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Post <span class="hidden sm:inline">Your</span> Property</span>
+                    </a>
+                    
+                    <button id="menu-toggle" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        <i data-lucide="menu" class="w-7 h-7 text-gray-800"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+    <section class="relative py-20 md:py-28 text-white">
+        <div id="hero-image-wrapper" class="absolute inset-0 w-full h-full overflow-hidden">
+            
+            <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1980&auto:format&fit=crop" 
+                 alt="Hero background 1" 
+                 class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out animate-kenburns opacity-100">
+            
+            <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto:format&fit=crop" 
+                 alt="Hero background 2" 
+                 class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out animate-kenburns opacity-0">
+            
+            <img src="https://images.unsplash.com/photo-1494203484021-3c454daf695d?q=80&w=2070&auto:format&fit=crop" 
+                 alt="Hero background 3" 
+                 class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out animate-kenburns opacity-0">
+
+            <div class="absolute inset-0 w-full h-full bg-black/60"></div> 
+        </div>
+
+        <div class="container mx-auto px-4 sm:px-6 text-center relative z-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-shadow mb-4" style="color: #fffcf2;">
+                My Favorites
+            </h1>
+            <p class="text-lg text-gray-200 max-w-2xl mx-auto mb-6">
+                Here are all the properties you've saved. Review your top choices all in one place.
+            </p>
+
+            <div class="relative w-full max-w-2xl mx-auto">
+                <input type="text" placeholder="Search your favorites..." class="w-full p-4 pl-5 pr-14 rounded-lg bg-white text-gray-900 border-transparent focus:ring-4 focus:ring-cyan-300/50 focus:outline-none placeholder-gray-500 shadow-lg">
+                <button type="submit" class="absolute right-2.5 top-1/2 -translate-y-1/2 p-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                    <i data-lucide="search" class="w-5 h-5 text-white"></i>
+                </button>
+            </div>
+            </div>
+    </section>
+
+    <!-- START: TOP CITIES SECTION (Matching index.html) -->
+    <section id="top-cities-categories" class="container mx-auto px-4 sm:px-6 -mt-8 relative z-10">
+        <div class="bg-white py-4 shadow-lg rounded-2xl city-filter-container overflow-hidden"> 
+            <h2 class="sr-only">Top Cities</h2>
+            
+            <!-- Cities list - dynamically populated by JavaScript -->
+            <div id="cities-category-slider" class="flex gap-4 md:gap-8 pb-2 scroll-smooth px-4 horizontal-slider overflow-x-auto">
+                <!-- Dynamic city cards will be inserted here by JavaScript (rebuildCityList) -->
+            </div>
+        </div>
+    </section>
+    <!-- END: TOP CITIES SECTION -->
+
+    <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
+    
+    <div id="mobile-menu" class="fixed top-0 right-0 w-80 h-full bg-white z-50 shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="flex justify-end p-4 flex-shrink-0">
+            <button id="menu-close" class="p-2">
+                <i data-lucide="x" class="w-6 h-6 text-gray-700"></i>
+            </button>
+        </div>
+
+        <div class="flex justify-between items-center px-6 py-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                    <i data-lucide="users" class="w-6 h-6 text-gray-600"></i>
+                </div>
+                <span class="text-lg font-semibold text-gray-800">Hi,welcome 👋</span>
+            </div>
+            <a href="profile.html" class="text-sm font-medium text-blue-600 hover:underline">Profile</a>
+        </div>
+
+        <div class="px-6 py-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 relative overflow-hidden">
+                <img src="images/post-property-bg.svg" alt="Illustartion of people with house" class="absolute right-0 bottom-0 opacity-80 w-32 h-auto" style="pointer-events: none;">
+                <p class="font-semibold text-gray-800 mb-3 relative z-10">Looking to Sell/Rent your Property?</p>
+                <a href="list.html" class="block text-center w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors relative z-10">
+                    Post Property for Free
+                </a>
+            </div>
+        </div>
+
+        <nav class="flex-grow p-4 space-y-1 overflow-y-auto">
+            <a href="index.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
+                </div>
+                <span>Our Properties</span>
+            </a>
+            <a href="favorites.html" class="flex items-center space-x-4 p-3 rounded-lg text-blue-600 bg-blue-50">
+                <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="heart" class="w-5 h-5 text-red-600"></i>
+                </div>
+                <span>Favorites</span>
+            </a>
+            <a href="mystays.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="building" class="w-5 h-5 text-purple-600"></i>
+                </div>
+                <span>My Stays</span>
+            </a>
+            <a href="about.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="info" class="w-5 h-5 text-yellow-600"></i>
+                </div>
+                <span>About Us</span>
+            </a>
+            <a href="contact.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="phone" class="w-5 h-5 text-cyan-600"></i>
+                </div>
+                <span>Contact Us</span>
+            </a>
+        </nav>
+        
+        <div class="p-4 border-t flex-shrink-0">
+            <a href="logout.html" class="flex items-center space-x-4 p-3 rounded-lg text-red-600 hover:bg-red-50">
+                <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="log-out" class="w-5 h-5 text-gray-600"></i>
+                </div>
+                <span>Logout</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- TOP SPACES SECTION (Dynamic) -->
+    <section id="top-spaces-dynamic" class="container mx-auto px-4 sm:px-6 py-8 md:py-12">
+        <div id="dynamic-top-spaces-container"></div>
+    </section>
+
+    <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12 space-y-16">
+
+        <section id="favorites-list">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <div class="group w-full">
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=2070&auto:format&fit=crop" alt="Urban Stay PG" class="w-full h-48 object-cover">
+                        </div>
+                        <div class="p-4 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-bold text-lg text-gray-900">Urban Stay PG</h3>
+                                <div class="text-right flex-shrink-0 ml-2">
+                                    <p class="font-bold text-blue-600 text-lg">?7,999</p>
+                                    <p class="text-xs text-gray-500 line-through">?11,999</p>
+                                    <p class="text-xs text-gray-500">onwards</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 text-sm mt-1">Chandan Nagar, Indore</p>
+                            <div class="mt-4 pt-4 border-t border-gray-100">
+                                <h4 class="text-xs font-semibold text-gray-500 mb-2">Key Facilities</h4>
+                                <div class="flex items-center space-x-3 text-gray-600">
+                                    <i data-lucide="wifi" class="w-4 h-4"></i>
+                                    <i data-lucide="wind" class="w-4 h-4"></i>
+                                    <i data-lucide="tv" class="w-4 h-4"></i>
+                                    <span class="text-xs font-bold text-blue-600 bg-blue-100 py-0.5 px-1.5 rounded">+11</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex gap-3">
+                                <a href="#" class="block w-full text-center bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                                    View Details
+                                </a>
+                                <button class="flex-shrink-0 block text-center bg-red-100 text-red-700 font-medium p-2.5 rounded-lg text-sm hover:bg-red-200 transition-colors" title="Remove from Favorites">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="group w-full">
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=2070&auto:format&fit=crop" alt="Skyline Heights" class="w-full h-48 object-cover">
+                        </div>
+                        <div class="p-4 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-bold text-lg text-gray-900">Skyline Heights</h3>
+                                <div class="text-right flex-shrink-0 ml-2">
+                                    <p class="font-bold text-blue-600 text-lg">?12,000</p>
+                                    <p class="text-xs text-gray-500 line-through">?14,500</p>
+                                    <p class="text-xs text-gray-500">onwards</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 text-sm mt-1">Chandan Nagar, Indore</p>
+                            <div class="mt-4 pt-4 border-t border-gray-100">
+                                <h4 class="text-xs font-semibold text-gray-500 mb-2">Key Facilities</h4>
+                                <div class="flex items-center space-x-3 text-gray-600">
+                                    <i data-lucide="wifi" class="w-4 h-4"></i>
+                                    <i data-lucide="wind" class="w-4 h-4"></i>
+                                    <i data-lucide="utensils" class="w-4 h-4"></i>
+                                    <span class="text-xs font-bold text-blue-600 bg-blue-100 py-0.5 px-1.5 rounded">+19</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex gap-3">
+                                <a href="#" class="block w-full text-center bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                                    View Details
+                                </a>
+                                <button class="flex-shrink-0 block text-center bg-red-100 text-red-700 font-medium p-2.5 rounded-lg text-sm hover:bg-red-200 transition-colors" title="Remove from Favorites">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="group w-full">
+                    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1567016432779-1fee749a1532?q=80&w=1974&auto:format&fit=crop" alt="Campus Corner" class="w-full h-48 object-cover">
+                        </div>
+                        <div class="p-4 flex flex-col flex-grow">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-bold text-lg text-gray-900">Campus Corner</h3>
+                                <div class="text-right flex-shrink-0 ml-2">
+                                    <p class="font-bold text-blue-600 text-lg">?13,000</p>
+                                    <p class="text-xs text-gray-500 line-through">?14,000</p>
+                                    <p class="text-xs text-gray-500">onwards</p>
+                                </div>
+                            </div>
+                            <p class="text-gray-600 text-sm mt-1">North Campus, Delhi</p>
+                            <div class="mt-4 pt-4 border-t border-gray-100">
+                                <h4 class="text-xs font-semibold text-gray-500 mb-2">Key Facilities</h4>
+                                <div class="flex items-center space-x-3 text-gray-600">
+                                    <i data-lucide="wifi" class="w-4 h-4"></i>
+                                    <i data-lucide="wind" class="w-4 h-4"></i>
+                                    <span class="text-xs font-bold text-blue-600 bg-blue-100 py-0.5 px-1.5 rounded">+6</span>
+                                </div>
+                            </div>
+                            <div class="mt-4 flex gap-3">
+                                <a href="#" class="block w-full text-center bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                                    View Details
+                                </a>
+                                <button class="flex-shrink-0 block text-center bg-red-100 text-red-700 font-medium p-2.5 rounded-lg text-sm hover:bg-red-200 transition-colors" title="Remove from Favorites">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        </main>
+    <footer class="footer">
+      <div class="footer-top">
+        <h2>Our Presence</h2>
+        <div class="footer-presence">
+          <div>
+            <h4>Kota</h4>
+            <ul>
+              <li><a href="#">Hostels in Kota</a></li>
+              <li><a href="#">Apartments in Kota</a></li>
+              <li><a href="#">PG in Kota</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Indore</h4>
+            <ul>
+              <li><a href="#">Hostels in Indore</a></li>
+              <li><a href="#">Apartments in Indore</a></li>
+              <li><a href="#">PG in Indore</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Ahmedabad</h4>
+            <ul>
+              <li><a href="#">Hostels in Ahmedabad</a></li>
+              <li><a href="#">Apartments in Ahmedabad</a></li>
+              <li><a href="#">PG in Ahmedabad</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    
+      <div class="footer-main">
+        <div class="footer-logo">
+          <img src="images/logoroomhy.jpg" alt="Roomhy Logo">
+          <p>Discover Your Next Home, Together.</p>
+        </div>
+    
+        <div class="footer-links">
+          <h4>Quick Links</h4>
+          <ul>
+            <li><a href="contact.html">Contact Us</a></li>
+            <li><a href="about.html">About Us</a></li>
+            <li><a href="index.html">Our Properties</a></li>
+          </ul>
+        </div>
+    
+        <div class="footer-legal">
+          <h4>Legal</h4>
+          <ul>
+            <li><a href="#">Terms & Conditions</a></li>
+            <li><a href="#">Privacy Policy</a></li>
+            <li><a href="#">Cancellation Policy</a></li>
+            <li><a href="#">Refund Policy</a></li>
+          </ul>
+        </div>
+    
+        <div class="footer-contact">
+          <h4>Contact</h4>
+          <p><i class="fas fa-phone"></i> +91 99830 05030</p>
+          <p><i class="fas fa-envelope"></i> hello@roomhy.com</p>
+          <div class="footer-social">
+            <a href="#" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+            <a href="#" title="X"><i class="fab fa-x-twitter"></i></a>
+            <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+            <a href="#" title="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+            <a href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
+          </div>
+        </div>
+      </div>
+    
+      <div class="footer-bottom">
+        <p>� 2025 <strong>Roomhy</strong>. All Rights Reserved.</p>
+      </div>
+    </footer>
+    <script>
+        lucide.createIcons();
+
+        // Load cities from localStorage and render dynamically
+        function loadDynamicCities() {
+            const citiesData = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
+            
+            // Extract city names and full objects
+            let cityInfo = citiesData.map(city => {
+                if (typeof city === 'string') {
+                    return { name: city, img: '', icon: 'map-pin' };
+                }
+                if (typeof city === 'object' && city.name) {
+                    return { name: city.name, img: '', icon: 'map-pin' };
+                }
+                return null;
+            }).filter(city => city !== null);
+
+            if (cityInfo.length === 0) {
+                console.log('No cities configured');
+                return;
+            }
+
+            // Rebuild city list using the rebuildCityList function
+            rebuildCityList(cityInfo);
+        }
+
+        // ======================================================
+        // START: `rebuildCityList` FUNCTION (Matching index.html)
+        // ======================================================
+        function rebuildCityList(data) {
+            const slider = document.getElementById('cities-category-slider');
+            if (!slider) return;
+
+            // Ensure data is valid
+            if (!data || !Array.isArray(data) || data.length === 0) {
+                console.warn('No city data provided to rebuildCityList, using defaults');
+                data = [
+                    { name: "Kota", img: "images/OIP.webp", icon: "university" },
+                    { name: "Sikar", img: "https://images.unsplash.com/photo-1549487560-671520624a9e?q=80&w=2070&auto:format&fit=crop", icon: "building-2" },
+                    { name: "Indore", img: "https://images.unsplash.com/photo-1570129477492-45c003edd2be?q=80&w=2070&auto:format&fit=crop", icon: "landmark" }
+                ];
+            }
+
+            // Function to generate a single city card HTML
+            const generateCityCard = (city) => `
+                <a href="#" class="city-filter group flex flex-col items-center justify-start text-center flex-shrink-0 w-28 space-y-2" data-city="${city.name}">
+                    <div class="w-24 h-24 rounded-full relative overflow-hidden neon-border">
+                        <img src="${city.img || ''}" alt="Photo of ${city.name}" class="absolute inset-0 w-full h-full object-cover city-image">
+                        <div class="absolute inset-0 z-10 flex items-center justify-center bg-gray-100 text-3xl font-bold text-gray-700 city-avatar hidden"></div>
+                        <div class="absolute inset-0 z-20 w-full h-full bg-white flex items-center justify-center transition-opacity duration-500 ease-in-out group-hover:opacity-0 group-focus:opacity-0 city-overlay-icon">
+                            <i data-lucide="${city.icon}" class="w-9 h-9 text-gray-600"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-sm font-medium text-gray-800 leading-tight">${city.name}</h3>
+                </a>
+            `;
+
+            // Build the original set of cards (no duplication, static layout)
+            let cardsHTML = '';
+            data.forEach(city => {
+                cardsHTML += generateCityCard(city);
+            });
+
+            slider.innerHTML = cardsHTML;
+
+            // Re-run lucide icons for the new elements
+            lucide.createIcons();
+
+            // Show letter-avatar fallback when image missing or fails to load
+            document.querySelectorAll('.city-filter').forEach(card => {
+                const img = card.querySelector('.city-image');
+                const fallback = card.querySelector('.city-avatar');
+                const overlay = card.querySelector('.city-overlay-icon');
+                const name = (card.dataset.city || '').toString();
+
+                function showFallback(){
+                    if(fallback){ fallback.textContent = name ? name[0].toUpperCase() : '?'; fallback.classList.remove('hidden'); }
+                    if(img) img.classList.add('hidden');
+                    if(overlay) overlay.classList.add('hidden');
+                }
+
+                const src = img && (img.getAttribute('src') || img.src || '');
+                // Treat local placeholder images (e.g., paths under `images/`) as missing so avatar is shown
+                const isLocalPlaceholder = src && src.toString().toLowerCase().includes('images/');
+                if(!img || !src || isLocalPlaceholder){
+                    showFallback();
+                } else {
+                    if(img.complete){
+                        if(img.naturalWidth === 0) showFallback();
+                    } else {
+                        img.addEventListener('error', showFallback);
+                        img.addEventListener('load', () => { if(fallback) fallback.classList.add('hidden'); if(overlay) overlay.classList.remove('hidden'); img.classList.remove('hidden'); });
+                    }
+                }
+            });
+
+            // Re-attach click listeners to the dynamically created elements
+            document.querySelectorAll('.city-filter').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const city = this.dataset.city;
+                    if (city) {
+                        // Navigate to ourproperty.html with city parameter
+                        window.location.href = `ourproperty.html?city=${encodeURIComponent(city)}`;
+                    }
+                });
+            });
+        }
+        // ======================================================
+        // END: `rebuildCityList` FUNCTION
+        // ======================================================
+
+        // START: DYNAMIC TOP SPACES LOADER (FROM LOCALSTORAGE)
+        // ======================================================
+        function loadDynamicTopSpaces() {
+            // Get cities from localStorage (added via location.html)
+            let citiesData = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
+            
+            // Extract city names - handle both string and object formats
+            let cityNames = citiesData.map(city => {
+                if (typeof city === 'string') return city;
+                if (typeof city === 'object' && city.name) return city.name;
+                return null;
+            }).filter(city => city !== null);
+            
+            // Filter out hardcoded cities (Indore and Kota)
+            const customCities = cityNames.filter(city => 
+                city.toLowerCase() !== 'indore' && city.toLowerCase() !== 'kota'
+            );
+            
+            if (customCities.length === 0) {
+                console.log('No custom cities configured. Top Spaces sections hidden.');
+                return;
+            }
+            
+            // Find the city with the most properties
+            const promises = customCities.map(city => 
+                fetch(`${API_URL}/api/website-enquiry/city/${encodeURIComponent(city)}`)
+                    .then(res => res.json())
+                    .then(data => ({
+                        city: city,
+                        count: (data.enquiries || []).length,
+                        enquiries: data.enquiries || []
+                    }))
+                    .catch(err => {
+                        console.error(`Error fetching data for ${city}:`, err);
+                        return {
+                            city: city,
+                            count: 0,
+                            enquiries: []
+                        };
+                    })
+            );
+            
+            Promise.all(promises).then(results => {
+                // Filter out cities with no properties
+                const validResults = results.filter(r => r.count > 0);
+                
+                if (validResults.length === 0) {
+                    console.log('No properties found in any city.');
+                    return;
+                }
+                
+                // Find city with highest property count
+                const topCity = validResults.reduce((max, current) => 
+                    current.count > max.count ? current : max
+                );
+                
+                // Find the container to insert the section
+                const topSpacesContainer = document.getElementById('dynamic-top-spaces-container');
+                if (!topSpacesContainer) {
+                    console.log('Could not find dynamic-top-spaces-container');
+                    return;
+                }
+                
+                const sectionId = `top-spaces-${topCity.city.toLowerCase().replace(/\s+/g, '-')}`;
+                const sliderId = `spaces-slider-${topCity.city.toLowerCase().replace(/\s+/g, '-')}`;
+                
+                // Check if section already exists
+                if (document.getElementById(sectionId)) return;
+                
+                const sectionHTML = `
+                    <section id="${sectionId}" class="light-card rounded-2xl p-6">
+                        <h2 id="${sectionId}-title" class="text-2xl md:text-3xl font-bold mb-6 text-gray-900">Top Spaces in ${topCity.city}</h2>
+                        <div class="relative -m-2">
+                            <button class="spaces-prev-btn hidden absolute -left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 text-gray-700 sm:block lg:hidden" data-slider="${sliderId}">
+                                <i data-lucide="chevron-left" class="w-6 h-6"></i>
+                            </button>
+                            <div id="${sliderId}" class="flex gap-6 overflow-x-auto pb-2 pt-2 -mx-4 px-4 snap-x snap-mandatory scroll-smooth horizontal-slider lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:p-0 lg:m-0">
+                                <!-- Dynamic content will be loaded here -->
+                            </div>
+                            <button class="spaces-next-btn hidden absolute -right-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 text-gray-700 sm:block lg:hidden" data-slider="${sliderId}">
+                                <i data-lucide="chevron-right" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </section>
+                `;
+                
+                // Insert into the container
+                topSpacesContainer.innerHTML = sectionHTML;
+                
+                // Render properties for the top city
+                const slider = document.getElementById(sliderId);
+                if (slider && topCity.enquiries.length > 0) {
+                    const spaces = topCity.enquiries.slice(0, 4).map(enq => ({
+                        img: enq.photos && enq.photos.length > 0 ? enq.photos[0] : 'https://via.placeholder.com/300x200?text=Property',
+                        title: enq.property_name,
+                        location: `${enq.locality || ''}, ${enq.city}`.trim(),
+                        price: enq.rent || 'Contact',
+                        facilities: enq.amenities || [],
+                        id: enq.enquiry_id
+                    }));
+                    renderPropertySlider(spaces, slider);
+                    // Re-run lucide icons for the new HTML
+                    lucide.createIcons();
+                } else {
+                    slider.innerHTML = '<p class="text-gray-500 px-4">No properties available for this city yet.</p>';
+                }
+            });
+        }
+
+        // ======================================================
+        // RENDER PROPERTY SLIDER
+        // ======================================================
+        function renderPropertySlider(spaces, slider) {
+            let html = '';
+            spaces.forEach(space => {
+                let facilitiesHTML = '';
+                if (space.facilities && space.facilities.length > 0) {
+                    const amenitiesList = Array.isArray(space.facilities) ? space.facilities : [];
+                    facilitiesHTML = amenitiesList.slice(0, 3).map(amenity => {
+                        const iconMap = {
+                            'wifi': 'wifi', 'ac': 'wind', 'tv': 'tv', 'laundry': 'shirt',
+                            'parking': 'car', 'food': 'utensils', 'gym': 'dumbbell'
+                        };
+                        const icon = iconMap[amenity.toLowerCase()] || 'star';
+                        return `<i data-lucide="${icon}" class="w-4 h-4"></i>`;
+                    }).join('');
+                }
+
+                let oldPriceHTML = '';
+                if (space.oldPrice) {
+                    oldPriceHTML = `<p class="text-xs text-gray-500 line-through">?${space.oldPrice}</p>`;
+                }
+
+                const price = typeof space.price === 'number' ? space.price.toLocaleString() : space.price;
+
+                html += `
+                    <div class="group flex-shrink-0 snap-start w-80 lg:w-full">
+                        <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">
+                            <div class="relative">
+                                <img src="${space.img}" alt="${space.title}" class="w-full h-48 object-cover">
+                                <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-1.5">
+                                    <span class="w-2 h-2 bg-white rounded-full opacity-90"></span>
+                                    <span class="w-2 h-2 bg-white rounded-full opacity-50"></span>
+                                    <span class="w-2 h-2 bg-white rounded-full opacity-50"></span>
+                                    <span class="w-2 h-2 bg-white rounded-full opacity-50"></span>
+                                </div>
+                            </div>
+
+                            <div class="p-4 flex flex-col flex-grow">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="font-bold text-lg text-gray-900">${space.title}</h3>
+                                    <div class="text-right flex-shrink-0 ml-2">
+                                        <p class="font-bold text-blue-600 text-lg">?${price}</p>
+                                        ${oldPriceHTML}
+                                        <p class="text-xs text-gray-500">onwards</p>
+                                    </div>
+                                </div>
+
+                                <p class="text-gray-600 text-sm mt-1">${space.location}</p>
+
+                                <div class="mt-4 pt-4 border-t border-gray-100">
+                                    <h4 class="text-xs font-semibold text-gray-500 mb-2">Key Facilities</h4>
+                                    <div class="flex items-center space-x-3 text-gray-600">
+                                        ${facilitiesHTML}
+                                    </div>
+                                </div>
+
+                                <a href="property.html?id=${space.id || ''}" class="block w-full text-center bg-blue-600 text-white font-medium py-2.5 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors mt-4">
+                                    View Details
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            slider.innerHTML = html;
+            lucide.createIcons();
+        }
+
+        // Load cities and top spaces on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDynamicCities();
+            loadDynamicTopSpaces();
+        });
+        
+        /*
+        ============================================================
+        JavaScript for Mobile Side Menu
+        ============================================================
+        */
+        const menuToggle = document.getElementById('menu-toggle');
+        const menuClose = document.getElementById('menu-close');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuOverlay = document.getElementById('menu-overlay');
+
+        if (menuToggle && mobileMenu && menuClose && menuOverlay) {
+            menuToggle.addEventListener('click', () => {
+                mobileMenu.classList.remove('translate-x-full');
+                menuOverlay.classList.remove('hidden');
+            });
+
+            const closeMenu = () => {
+                mobileMenu.classList.add('translate-x-full');
+                menuOverlay.classList.add('hidden');
+            };
+
+            menuClose.addEventListener('click', closeMenu);
+            menuOverlay.addEventListener('click', closeMenu);
+
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    if (link.href.includes('#')) {
+                        setTimeout(closeMenu, 100);
+                    }
+                    closeMenu();
+                });
+            });
+        }
+        
+        /*
+        ============================================================
+        Top Spaces Slider Navigation
+        ============================================================
+        */
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.spaces-prev-btn') || e.target.closest('.spaces-next-btn')) {
+                const btn = e.target.closest('button');
+                const sliderId = btn.dataset.slider;
+                if (sliderId) {
+                    const slider = document.getElementById(sliderId);
+                    if (slider) {
+                        const isNext = btn.classList.contains('spaces-next-btn');
+                        slider.scrollBy({
+                            left: isNext ? 300 : -300,
+                            behavior: 'smooth'
+                        });
+                    }
+                }
+            }
+        });
+
+        /*
+        ============================================================
+        Hero Slideshow
+        ============================================================
+        */
+        const heroWrapper = document.getElementById('hero-image-wrapper');
+        if (heroWrapper) {
+            const heroImages = heroWrapper.querySelectorAll('img');
+            const totalHeroImages = heroImages.length;
+            let currentHeroIndex = 0;
+
+            if (totalHeroImages > 1) {
+                setInterval(() => {
+                    const nextHeroIndex = (currentHeroIndex + 1) % totalHeroImages;
+                    
+                    heroImages[currentHeroIndex].classList.remove('opacity-100');
+                    heroImages[currentHeroIndex].classList.add('opacity-0');
+                    
+                    heroImages[nextHeroIndex].classList.remove('opacity-0');
+                    heroImages[nextHeroIndex].classList.add('opacity-100');
+                    
+                    currentHeroIndex = nextHeroIndex;
+                }, 5000);
+            }
+        }
+    </script>
+    </body>
+</html>
+

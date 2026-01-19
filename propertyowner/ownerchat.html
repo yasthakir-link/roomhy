@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Chat - Roomhy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+        import { getFirestore, collection, doc, addDoc, onSnapshot, query, orderBy, where, getDocs, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDemie4RXoP2H0p4nPD7cJBo1xzy5qIRxk",
+            authDomain: "chatroomhy.firebaseapp.com",
+            projectId: "chatroomhy",
+            storageBucket: "chatroomhy.firebasestorage.app",
+            messagingSenderId: "815811304053",
+            appId: "1:815811304053:web:337c1d21d63ab7dd4df63c",
+            measurementId: "G-WRBZ6LVWPZ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.collection = collection;
+        window.doc = doc;
+        window.addDoc = addDoc;
+        window.onSnapshot = onSnapshot;
+        window.query = query;
+        window.orderBy = orderBy;
+        window.where = where;
+        window.getDocs = getDocs;
+        window.updateDoc = updateDoc;
+        window.deleteDoc = deleteDoc;
+        window.serverTimestamp = serverTimestamp;
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .sidebar { background-color: #111827; color: #9ca3af; }
+        .sidebar-link { color: #9ca3af; font-weight: 500; transition: all 0.2s ease; display: flex; align-items: center; padding: 0.75rem 1.5rem; font-size: 0.9rem; border-left: 3px solid transparent; cursor: pointer; }
+        .sidebar-link:hover { color: #f3f4f6; background-color: #1f2937; }
+        .sidebar-link.active { background-color: #1f2937; color: #ffffff; border-left-color: #a855f7; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        
+        /* Chat UI Specifics */
+        .message-bubble { max-width: 80%; position: relative; }
+        .message-bubble.owner { 
+            background: #7e22ce; color: white; border-radius: 16px 16px 4px 16px; 
+            box-shadow: 0 4px 6px -1px rgba(126, 34, 206, 0.2);
+        }
+        .message-bubble.user { 
+            background: white; color: #1e293b; border: 1px solid #e2e8f0; border-radius: 16px 16px 16px 4px; 
+        }
+        
+        .message-options {
+            opacity: 0;
+            transition: opacity 0.2s;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .owner .message-options { left: -70px; }
+        .user .message-options { right: -70px; }
+        .message-container:hover .message-options { opacity: 1; }
+
+        .active-chat-item { border-left: 4px solid #a855f7; background-color: #f5f3ff; }
+    </style>
+</head>
+<body class="text-slate-800 h-screen overflow-hidden flex flex-col">
+
+    <div class="flex h-full overflow-hidden">
+        <!-- Sidebar - Matching rooms.html -->
+        <aside class="sidebar w-72 flex-shrink-0 hidden md:flex flex-col z-20 overflow-y-auto custom-scrollbar">
+            <div class="h-16 flex items-center px-6 border-b border-gray-800 sticky top-0 bg-[#111827] z-10">
+                 <div class="flex items-center gap-3">
+                     <div class="bg-purple-600 p-1.5 rounded-lg"><i data-lucide="home" class="w-5 h-5 text-white"></i></div>
+                     <div><h1 class="text-xl font-bold text-white">RoomHy</h1><span class="text-[10px] text-gray-500">OWNER PANEL</span></div>
+                 </div>
+            </div>
+            <nav class="flex-1 py-6 space-y-1">
+                <a href="admin.html" class="sidebar-link"><i data-lucide="layout-dashboard" class="w-5 h-5 mr-3"></i> Dashboard</a>
+                <a href="properties.html" class="sidebar-link"><i data-lucide="building" class="w-5 h-5 mr-3"></i> Properties</a>
+                <a href="rooms.html" class="sidebar-link"><i data-lucide="bed-double" class="w-5 h-5 mr-3"></i> Rooms</a>
+                <a href="tenantrec.html" class="sidebar-link"><i data-lucide="clipboard-list" class="w-5 h-5 mr-3"></i> Tenant Records</a>
+                <a href="enquiry.html" class="sidebar-link"><i data-lucide="mail" class="w-5 h-5 mr-3"></i> Enquiry</a>
+                <a href="documents.html" class="sidebar-link"><i data-lucide="file-text" class="w-5 h-5 mr-3"></i> Documents</a>
+                <a href="payment.html" class="sidebar-link"><i data-lucide="credit-card" class="w-5 h-5 mr-3"></i> Payments</a>
+                <a href="complaints.html" class="sidebar-link"><i data-lucide="alert-circle" class="w-5 h-5 mr-3"></i> Complaints</a>
+                <a href="location.html" class="sidebar-link"><i data-lucide="map-pin" class="w-5 h-5 mr-3"></i> Location</a>
+                <a href="ownerchat.html" class="sidebar-link active"><i data-lucide="message-square" class="w-5 h-5 mr-3"></i> Chat</a>
+                <a href="ownerprofile.html" class="sidebar-link"><i data-lucide="user" class="w-5 h-5 mr-3"></i> Profile</a>
+                <a href="settings.html" class="sidebar-link"><i data-lucide="settings" class="w-5 h-5 mr-3"></i> Settings</a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden bg-[#f3f4f6]">
+            <!-- Header - Matching rooms.html -->
+            <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6 relative z-30 flex-shrink-0">
+                <div class="flex items-center">
+                    <button id="mobile-menu-button" class="md:hidden mr-4 text-gray-500 hover:text-gray-700 focus:outline-none">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+                    <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                        <i data-lucide="message-square" class="w-6 h-6 text-purple-600"></i> Conversations
+                    </h2>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="relative p-2 text-gray-400 hover:text-gray-500">
+                        <span class="absolute top-2 right-2 block h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                        <i data-lucide="bell" class="w-6 h-6"></i>
+                    </button>
+                    <div class="flex items-center gap-3 pl-4 border-l border-gray-200">
+                        <div class="h-9 w-9 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold border border-purple-200" id="headerAvatar">O</div>
+                        <div class="hidden sm:block">
+                            <p class="text-xs font-bold text-gray-800" id="headerOwnerName">Owner</p>
+                            <p class="text-[10px] text-gray-500" id="headerOwnerId">ID: ...</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="flex-1 flex overflow-hidden">
+                <!-- Chat Contacts List -->
+                <div class="w-full md:w-80 bg-white border-r border-gray-200 flex flex-col" id="contacts-panel">
+                    <div class="p-4 border-b border-gray-100 bg-gray-50/50">
+                        <div class="relative">
+                            <input type="text" placeholder="Search tenants..." class="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 outline-none">
+                            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-2.5 text-gray-400"></i>
+                        </div>
+                    </div>
+                    <div id="chat-list" class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
+                        <!-- Chat items injected here -->
+                    </div>
+                </div>
+
+                <!-- Chat Canvas -->
+                <div class="flex-1 flex flex-col bg-slate-50 relative" id="chat-canvas">
+                    <div id="no-chat-selected" class="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                        <div class="w-20 h-20 bg-purple-50 rounded-full flex items-center justify-center mb-4">
+                            <i data-lucide="message-square" class="w-10 h-10 text-purple-300"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-700">Select a conversation</h3>
+                        <p class="text-sm text-gray-400 max-w-xs mt-1">Select a tenant from the sidebar to start messaging and manage bookings.</p>
+                    </div>
+
+                    <div id="chat-active" class="flex-1 flex flex-col hidden">
+                        <!-- Chat Header -->
+                        <div class="bg-white px-6 py-3 border-b border-gray-200 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <button id="back-to-contacts" class="md:hidden text-gray-400 p-1"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                                <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold" id="active-chat-avatar">U</div>
+                                <div>
+                                    <h3 class="font-bold text-gray-800 leading-tight" id="active-chat-name">Tenant Name</h3>
+                                    <p class="text-[10px] text-green-500 flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Online</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button class="p-2 text-gray-400 hover:bg-gray-50 rounded-lg"><i data-lucide="phone" class="w-5 h-5"></i></button>
+                                <button class="p-2 text-gray-400 hover:bg-gray-50 rounded-lg"><i data-lucide="more-vertical" class="w-5 h-5"></i></button>
+                            </div>
+                        </div>
+
+                        <!-- Messages Area -->
+                        <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar max-h-[60vh]">
+                            <!-- Message clusters injected here -->
+                        </div>
+
+                        <!-- Input Area -->
+                        <div class="p-4 bg-white border-t border-gray-100">
+                            <div class="flex items-end gap-3 max-w-4xl mx-auto">
+                                <div class="flex-1 flex flex-col gap-2">
+                                    <!-- Reaction/Control Bar -->
+                                    <div class="flex items-center gap-2 pb-1">
+                                        <button id="like-input-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-50 text-green-600 text-[10px] font-bold border border-green-100 hover:bg-green-100 transition-all">
+                                            <i data-lucide="thumbs-up" class="w-3 h-3"></i> LIKE
+                                        </button>
+                                        <button id="dislike-input-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-50 text-red-600 text-[10px] font-bold border border-red-100 hover:bg-red-100 transition-all">
+                                            <i data-lucide="thumbs-down" class="w-3 h-3"></i> DISLIKE
+                                        </button>
+                                    </div>
+                                    <div class="relative flex-1">
+                                        <textarea id="message-text" rows="1" placeholder="Write a message..." class="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none resize-none transition-all"></textarea>
+                                        <button id="send-btn" class="absolute right-2 bottom-2 w-9 h-9 bg-purple-600 text-white rounded-xl flex items-center justify-center shadow-lg shadow-purple-200 hover:bg-purple-700 transition-all">
+                                            <i data-lucide="send" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentOwner = null;
+        let currentChat = null;
+        let unsubscribeMessages = null;
+
+        // Initialize Lucide icons
+        function refreshIcons() {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // Load Session
+        async function loadOwner() {
+            const owner = JSON.parse(sessionStorage.getItem('owner_user') || localStorage.getItem('user') || 'null');
+            if (owner) {
+                currentOwner = owner;
+                const ownerId = owner.loginId || owner.ownerId || '...';
+                const ownerName = owner.name || owner.ownerName || 'Owner';
+                
+                document.getElementById('headerOwnerName').textContent = ownerName;
+                document.getElementById('headerOwnerId').textContent = `ID: ${ownerId}`;
+                document.getElementById('headerAvatar').textContent = ownerName.charAt(0).toUpperCase();
+                
+                loadChats();
+            } else {
+                window.location.href = 'ownerlogin.html';
+            }
+        }
+
+        async function loadChats() {
+            if (!currentOwner) return;
+            const ownerId = currentOwner.loginId || currentOwner.ownerId;
+            const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
+
+            try {
+                // Fetch confirmed bookings or active conversations
+                const response = await fetch(`${API_URL}/api/booking/requests?ownerId=${ownerId}`);
+                const data = await response.json();
+                const allBookings = data.data || [];
+                
+                // Filter out rejected bookings
+                const bookings = allBookings.filter(b => b.status !== 'rejected');
+
+                const chatList = document.getElementById('chat-list');
+                chatList.innerHTML = '';
+
+                if (bookings.length === 0) {
+                    chatList.innerHTML = '<div class="p-8 text-center text-xs text-gray-400">No active conversations.</div>';
+                    return;
+                }
+
+                // Deduplicate by user
+                const uniqueUsers = [];
+                const seenUsers = new Set();
+                bookings.forEach(b => {
+                    if (!seenUsers.has(b.user_id)) {
+                        seenUsers.add(b.user_id);
+                        uniqueUsers.push(b);
+                    }
+                });
+
+                uniqueUsers.forEach(booking => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center gap-3 p-3 rounded-xl cursor-pointer hover:bg-slate-50 transition-all border border-transparent';
+                    if (currentChat && currentChat.user_id === booking.user_id) item.classList.add('active-chat-item');
+                    
+                    item.innerHTML = `
+                        <div class="w-11 h-11 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-sm">${(booking.name || 'U').charAt(0)}</div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex justify-between items-baseline">
+                                <h4 class="text-sm font-bold text-slate-800 truncate">${booking.name || 'User'}</h4>
+                                <span class="text-[9px] text-gray-400">ID: ${booking.user_id}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 truncate">${booking.property_name || 'Inquiry regarding stay'}</p>
+                        </div>
+                    `;
+                    item.onclick = () => openChat(booking);
+                    chatList.appendChild(item);
+                });
+                refreshIcons();
+            } catch (err) {
+                console.error("Chat list error", err);
+            }
+        }
+
+        function openChat(booking) {
+            currentChat = booking;
+            
+            // UI Toggle
+            document.getElementById('no-chat-selected').classList.add('hidden');
+            document.getElementById('chat-active').classList.remove('hidden');
+            
+            // Update Active Header
+            document.getElementById('active-chat-name').textContent = booking.name || 'User';
+            document.getElementById('active-chat-avatar').textContent = (booking.name || 'U').charAt(0).toUpperCase();
+            
+            // Mobile toggle
+            if (window.innerWidth < 768) {
+                document.getElementById('contacts-panel').classList.add('hidden');
+            }
+
+            // Highlighting in list
+            document.querySelectorAll('#chat-list > div').forEach(el => el.classList.remove('active-chat-item'));
+            // Note: In real app, match by ID. Here we just reload or use simple logic.
+
+            loadMessages();
+        }
+
+        function loadMessages() {
+            if (!currentChat || !currentOwner) return;
+
+            const ownerId = currentOwner.loginId || currentOwner.ownerId;
+            const userId = currentChat.user_id;
+            const chatId = `${userId}_${ownerId}`;
+            
+            const messagesRef = window.collection(window.db, 'chats', chatId, 'messages');
+            const q = window.query(messagesRef, window.orderBy('timestamp', 'asc'));
+
+            if (unsubscribeMessages) unsubscribeMessages();
+
+            unsubscribeMessages = window.onSnapshot(q, (snapshot) => {
+                const messagesDiv = document.getElementById('messages');
+                let hasNewTenantMessage = false;
+                let latestTenantMessage = null;
+
+                snapshot.forEach((msgDoc) => {
+                    const msg = msgDoc.data();
+                    const isOwner = msg.sender === 'owner';
+                    
+                    // Track new tenant messages for notification
+                    if (!isOwner && !msg.notified) {
+                        hasNewTenantMessage = true;
+                        latestTenantMessage = msg;
+                        // Mark as notified to avoid duplicate notifications
+                        msg.notified = true;
+                    }
+                    
+                    const msgContainer = document.createElement('div');
+                    msgContainer.className = `message-container flex w-full ${isOwner ? 'justify-end' : 'justify-start'}`;
+                    
+                    const time = msg.timestamp ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...';
+                    
+                    // Reaction Icons
+                    let reactionsHtml = '';
+                    if (msg.reaction === 'like') reactionsHtml = '<div class="absolute -bottom-2 right-2 bg-white rounded-full p-0.5 shadow-sm border border-green-100"><i data-lucide="thumbs-up" class="w-2.5 h-2.5 text-green-500"></i></div>';
+                    if (msg.reaction === 'dislike') reactionsHtml = '<div class="absolute -bottom-2 right-2 bg-white rounded-full p-0.5 shadow-sm border border-red-100"><i data-lucide="thumbs-down" class="w-2.5 h-2.5 text-red-500"></i></div>';
+
+                    msgContainer.innerHTML = `
+                        <div class="message-bubble p-3 shadow-sm ${isOwner ? 'owner' : 'user'}">
+                            <p class="text-sm leading-relaxed">${msg.text.replace(/\d{10,}/g, '***')}</p>
+                            <div class="flex items-center justify-end gap-1.5 mt-1">
+                                <span class="text-[9px] opacity-60">${time}</span>
+                                ${msg.edited ? '<span class="text-[9px] opacity-40">Edited</span>' : ''}
+                            </div>
+                            ${reactionsHtml}
+                            
+                            <!-- Edit/Delete Options -->
+                            <div class="message-options flex items-center bg-white border border-gray-100 rounded-full px-2 py-1 shadow-md gap-2">
+                                <button onclick="editMessage('${msgDoc.id}', \`${msg.text.replace(/'/g, "\\'")}\`)" class="p-1 hover:text-purple-600 text-gray-400 transition-colors" title="Edit">
+                                    <i data-lucide="edit-2" class="w-3 h-3"></i>
+                                </button>
+                                <button onclick="deleteMessage('${msgDoc.id}')" class="p-1 hover:text-red-600 text-gray-400 transition-colors" title="Delete">
+                                    <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    messagesDiv.appendChild(msgContainer);
+                });
+
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                refreshIcons();
+
+                // Send email notification for new tenant messages
+                if (hasNewTenantMessage && latestTenantMessage) {
+                    sendChatNotification(latestTenantMessage);
+                }
+            });
+        }
+
+        async function sendMessage(reaction = null) {
+            const input = document.getElementById('message-text');
+            const text = reaction ? (reaction === 'like' ? '👍' : '👎') : input.value.trim();
+            
+            if (!text || !currentChat || !currentOwner) return;
+
+            const ownerId = currentOwner.loginId || currentOwner.ownerId;
+            const userId = currentChat.user_id;
+            const chatId = `${userId}_${ownerId}`;
+            
+            try {
+                const messagesRef = window.collection(window.db, 'chats', chatId, 'messages');
+                await window.addDoc(messagesRef, {
+                    text: text,
+                    sender: 'owner',
+                    senderId: ownerId,
+                    timestamp: window.serverTimestamp(),
+                    reaction: reaction
+                });
+                
+                // If it's a decision (like/reject), update the booking request
+                if (reaction) {
+                    const decision = reaction === 'like' ? 'like' : 'reject';
+                    await updateChatDecision(decision, 'owner');
+                }
+                
+                input.value = '';
+                input.style.height = 'auto';
+            } catch (err) {
+                console.error("Send error", err);
+            }
+        }
+
+        window.editMessage = async function(msgId, currentText) {
+            if (!currentChat || !currentOwner) return;
+            const newText = prompt("Edit your message:", currentText);
+            if (newText && newText.trim() !== currentText) {
+                const ownerId = currentOwner.loginId || currentOwner.ownerId;
+                const chatId = `${currentChat.user_id}_${ownerId}`;
+                const msgRef = window.doc(window.db, 'chats', chatId, 'messages', msgId);
+                
+                try {
+                    await window.updateDoc(msgRef, {
+                        text: newText.trim(),
+                        edited: true,
+                        updatedAt: window.serverTimestamp()
+                    });
+                } catch (e) { alert("Failed to edit"); }
+            }
+        };
+
+        async function updateChatDecision(decision, userType) {
+            if (!currentChat) return;
+
+            const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
+            try {
+                const response = await fetch(`${API_URL}/api/booking/requests/${currentChat._id || currentChat.id}/decision`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ decision, userType })
+                });
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Decision updated:', result);
+                    
+                    // If both liked, send schedule link to chat
+                    if (result.data.owner_liked && result.data.user_liked) {
+                        // Send schedule page link to user chat
+                        const ownerId = currentOwner.loginId || currentOwner.ownerId;
+                        const chatId = `${currentChat.user_id}_${ownerId}`;
+                        const messagesRef = window.collection(window.db, 'chats', chatId, 'messages');
+
+                        await window.addDoc(messagesRef, {
+                            text: `[Schedule Visit](../propertyowner/schedulevisit.html?bookingId=${currentChat._id || currentChat.id})`,
+                            sender: 'system',
+                            senderId: 'system',
+                            timestamp: window.serverTimestamp(),
+                            isLink: true
+                        });
+
+                        alert('Both parties accepted! Schedule page link sent to tenant.');
+                    }
+                    
+                    // If rejected, show message
+                    if (result.data.owner_rejected || result.data.user_rejected) {
+                        alert('Booking rejected. Chat closed.');
+                        // Could close chat or refresh
+                        loadChats(); // Refresh to remove if rejected
+                    }
+                } else {
+                    console.error('Failed to update decision');
+                }
+            } catch (err) {
+                console.error('Error updating decision:', err);
+            }
+        }
+
+        // Send email notification for new chat messages
+        async function sendChatNotification(message) {
+            if (!currentOwner || !currentChat) return;
+
+            try {
+                const ownerId = currentOwner.loginId || currentOwner.ownerId;
+                const tenantName = currentChat.name || 'Tenant';
+                
+                // Get owner's email from localStorage (stored during onboarding)
+                const ownerAccounts = JSON.parse(localStorage.getItem('owner_accounts') || '[]');
+                const currentAccount = ownerAccounts.find(acc => acc.loginId === ownerId);
+                
+                if (!currentAccount || !currentAccount.email) {
+                    console.warn('Owner email not found for notifications');
+                    return;
+                }
+
+                const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
+                const response = await fetch(`${API_URL}/api/notifications/chat-message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        ownerId: ownerId,
+                        tenantName: tenantName,
+                        message: message.text,
+                        chatId: `${currentChat.user_id}_${ownerId}`
+                    })
+                });
+
+                if (response.ok) {
+                    console.log('✅ Chat notification email sent to owner');
+                } else {
+                    console.warn('âš ï¸ Failed to send chat notification email');
+                }
+            } catch (error) {
+                console.error('Error sending chat notification:', error);
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('send-btn').onclick = () => sendMessage();
+        document.getElementById('like-input-btn').onclick = () => sendMessage('like');
+        document.getElementById('dislike-input-btn').onclick = () => sendMessage('dislike');
+        
+        document.getElementById('message-text').onkeypress = (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        };
+
+        document.getElementById('back-to-contacts').onclick = () => {
+            document.getElementById('contacts-panel').classList.remove('hidden');
+            document.getElementById('chat-active').classList.add('hidden');
+            document.getElementById('no-chat-selected').classList.remove('hidden');
+        };
+
+        // Auto-expand textarea
+        const tx = document.getElementById('message-text');
+        tx.addEventListener("input", function() {
+            this.style.height = "auto";
+            this.style.height = (this.scrollHeight) + "px";
+        }, false);
+
+        // Responsive handling
+        window.onresize = () => {
+            if (window.innerWidth >= 768) {
+                document.getElementById('contacts-panel').classList.remove('hidden');
+            }
+        };
+
+        loadOwner();
+    </script>
+</body>
+</html>
