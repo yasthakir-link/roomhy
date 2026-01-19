@@ -8,6 +8,7 @@
         // API Configuration
         const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
     </script>
+    <script src="./js/favorites-system.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -584,7 +585,18 @@
     <main class="container mx-auto px-4 sm:px-6 py-8 md:py-12 space-y-16">
 
         <section id="favorites-list">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div id="favorites-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Favorites will be loaded dynamically here -->
+            </div>
+            <div id="no-favorites" class="text-center py-16 hidden">
+                <i data-lucide="heart" class="w-16 h-16 text-gray-300 mx-auto mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-600 mb-2">No Favorites Yet</h2>
+                <p class="text-gray-500 mb-6">Start adding properties to your favorites by clicking the heart icon!</p>
+                <a href="ourproperty.html" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors">
+                    Browse Properties
+                </a>
+            </div>
+        </section>
                 
                 <div class="group w-full">
                     <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col h-full">

@@ -89,3 +89,104 @@ exports.sendChatMessageNotification = async (req, res) => {
         res.status(500).json({ success: false, message: 'Error sending notification' });
     }
 };
+
+// Website user notifications
+exports.getWebsiteUserNotifications = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) return res.status(400).json({ success: false, message: 'User ID required' });
+
+        const WebsiteNotification = require('../models/WebsiteNotification');
+        const notifications = await WebsiteNotification.find({ userId }).sort({ createdAt: -1 }).lean();
+        res.json({ success: true, notifications });
+    } catch (error) {
+        console.error('Error getting website notifications:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.createWebsiteNotification = async (req, res) => {
+    try {
+        const { userId, title, message, type } = req.body;
+        if (!userId || !title) {
+            return res.status(400).json({ success: false, message: 'userId and title required' });
+        }
+
+        const WebsiteNotification = require('../models/WebsiteNotification');
+        const notification = await WebsiteNotification.create({
+            userId,
+            title,
+            message: message || '',
+            type: type || 'info',
+            read: false,
+            createdAt: new Date()
+        });
+
+        res.status(201).json({ success: true, notification });
+    } catch (error) {
+        console.error('Error creating website notification:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.markWebsiteNotificationRead = async (req, res) => {
+    try {
+        const { notificationId } = req.params;
+        if (!notificationId) return res.status(400).json({ success: false, message: 'Notification ID required' });
+
+        const WebsiteNotification = require('../models/WebsiteNotification');
+        await WebsiteNotification.findByIdAndUpdate(notificationId, { read: true });
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+exports.deleteWebsiteNotification = async (req, res) => {
+    try {
+        const { notificationId } = req.params;
+        if (!notificationId) return res.status(400).json({ success: false, message: 'Notification ID required' });
+
+        const WebsiteNotification = require('../models/WebsiteNotification');
+        await WebsiteNotification.findByIdAndDelete(notificationId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting notification:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Booking accept notifications
+exports.sendBookingAcceptNotification = async (req, res) => {
+    try {
+        const { userId, propertyName, ownerName } = req.body;
+        if (!userId) {
+            return res.status(400).json({ success: false, message: 'User ID required' });
+        }
+
+        // Create in-app notification
+        const WebsiteNotification = require('../models/WebsiteNotification');
+        await WebsiteNotification.create({
+            userId,
+            title: 'Booking Accepted! 🎉',
+            message: `Your booking request for ${propertyName} has been accepted by ${ownerName}`,
+            type: 'booking_accept',
+            read: false
+        });
+
+        // Send email notification
+        const User = require('../models/user');
+        const user = await User.findOne({ _id: userId });
+        
+        if (user && user.email) {
+            const { sendBookingAcceptanceEmail } = require('../utils/emailNotifications');
+            await sendBookingAcceptanceEmail(user.email, user.name, propertyName, ownerName);
+        }
+
+        res.json({ success: true, message: 'Booking acceptance notification sent' });
+    } catch (error) {
+        console.error('Error sending booking accept notification:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};

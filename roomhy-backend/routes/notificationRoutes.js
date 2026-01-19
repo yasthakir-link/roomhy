@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const notificationController = require('../controllers/notificationController');
-const { protect } = require('../middleware/authMiddleware');
 
 // Existing routes
-router.get('/', protect, notificationController.listNotifications);
+router.get('/', notificationController.getNotifications);
 router.post('/chat-message', notificationController.sendChatMessageNotification);
 
 // Website user notifications
