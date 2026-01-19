@@ -7,13 +7,19 @@ exports.submitVisit = async (req, res) => {
     try {
         // Save the full visit data from frontend
         const visitData = req.body;
+        
+        console.log('📝 [submitVisit] Received visit data with _id:', visitData._id);
 
         // Ensure status is submitted
         visitData.status = 'submitted';
         visitData.submittedAt = new Date();
         visitData.submittedToAdmin = true;
+        
+        console.log('📝 [submitVisit] Setting status to: submitted');
 
         const report = await VisitReport.create(visitData);
+        
+        console.log('✅ [submitVisit] Visit created successfully with _id:', report._id, 'Status:', report.status);
 
         // Send email notification to superadmin
         try {
@@ -25,41 +31,62 @@ exports.submitVisit = async (req, res) => {
                     <h2 style="color: #333;">New Enquiry/Visit Report Submitted</h2>
                     <p>A new visit report/enquiry has been submitted and requires your review.</p>
                     <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                        <p><strong>Property:</strong> ${visitData.propertyName || 'N/A'}</p>
-                        <p><strong>Owner:</strong> ${visitData.ownerName || 'N/A'}</p>
-                        <p><strong>City:</strong> ${visitData.city || 'N/A'}</p>
-                        <p><strong>Area:</strong> ${visitData.area || 'N/A'}</p>
-                        <p><strong>Visit Date:</strong> ${visitData.visitDate || 'N/A'}</p>
-                        <p><strong>Submitted By:</strong> ${visitData.areaManagerName || 'Area Manager'}</p>
+                        <p><strong>Property:</strong> ${visitData.propertyInfo?.name || visitData.propertyName || 'N/A'}</p>
+                        <p><strong>Owner:</strong> ${visitData.propertyInfo?.ownerName || visitData.ownerName || 'N/A'}</p>
+                        <p><strong>City:</strong> ${visitData.propertyInfo?.city || visitData.city || 'N/A'}</p>
+                        <p><strong>Area:</strong> ${visitData.propertyInfo?.area || visitData.area || 'N/A'}</p>
+                        <p><strong>Submitted By:</strong> ${visitData.submittedBy || 'Area Manager'}</p>
                         <p><strong>Submitted At:</strong> ${new Date().toLocaleString()}</p>
                     </div>
                     <p>Please review this enquiry in the superadmin enquiry panel.</p>
                 </div>
             `;
             await mailer.sendMail(superadminEmail, subject, '', html);
-            console.log('Enquiry notification email sent successfully');
+            console.log('📧 Enquiry notification email sent successfully');
         } catch (emailError) {
-            console.error('Failed to send enquiry notification email:', emailError);
+            console.error('⚠️ Failed to send enquiry notification email:', emailError.message);
         }
 
-        return res.status(201).json({ success: true, report });
+        return res.status(201).json({ 
+            success: true, 
+            report,
+            message: 'Visit submitted successfully'
+        });
     } catch (err) {
-        console.error("Submit Visit Error:", err);
-        return res.status(500).json({ success: false, message: 'Server error' });
+        console.error("❌ Submit Visit Error:", err);
+        return res.status(500).json({ success: false, message: 'Server error', error: err.message });
     }
 };
 
 // 2. Get Pending Visits (Super Admin)
 exports.getPendingVisits = async (req, res) => {
     try {
+        console.log('🔍 [getPendingVisits] Fetching visits with status: submitted');
+        
         const visits = await VisitReport.find({ status: 'submitted' })
             .populate('areaManager', 'name email') 
-            .sort({ submittedAt: 1 })
+            .sort({ submittedAt: -1 })
             .lean();
-        res.json({ success: true, visits });
+        
+        console.log('✅ [getPendingVisits] Found', visits.length, 'submitted visits');
+        
+        if (visits.length > 0) {
+            console.log('📋 First visit preview:', {
+                _id: visits[0]._id,
+                status: visits[0].status,
+                propertyName: visits[0].propertyInfo?.name || 'N/A',
+                submittedAt: visits[0].submittedAt
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            visits: visits,
+            count: visits.length
+        });
     } catch (err) {
-        console.error("Pending Visits Error:", err);
-        res.status(500).json({ success: false, message: 'Server error' });
+        console.error("❌ Pending Visits Error:", err);
+        res.status(500).json({ success: false, message: 'Server error', error: err.message });
     }
 };
 
@@ -186,6 +213,113 @@ exports.getApprovedPropertiesForWebsite = async (req, res) => {
             success: false, 
             message: 'Error fetching properties',
             error: err.message 
+        });
+    }
+};
+
+// Approve Visit and Create User Account
+exports.approveVisit = async (req, res) => {
+    try {
+        const { visitId, status, isLiveOnWebsite, loginId, tempPassword } = req.body;
+
+        // Update visit status
+        const visit = await VisitReport.findByIdAndUpdate(
+            visitId,
+            {
+                status: 'approved',
+                isLiveOnWebsite: isLiveOnWebsite || false,
+                generatedCredentials: { loginId, tempPassword }
+            },
+            { new: true }
+        );
+
+        if (!visit) {
+            return res.status(404).json({ success: false, message: 'Visit not found' });
+        }
+
+        res.json({
+            success: true,
+            message: 'Visit approved successfully',
+            visit: visit,
+            credentials: { loginId, tempPassword }
+        });
+
+    } catch (err) {
+        console.error('Approve Visit Error:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Error approving visit',
+            error: err.message
+        });
+    }
+};
+
+// Hold Visit
+exports.holdVisit = async (req, res) => {
+    try {
+        const { visitId, holdReason } = req.body;
+
+        const visit = await VisitReport.findByIdAndUpdate(
+            visitId,
+            {
+                status: 'hold',
+                holdReason: holdReason || '',
+                heldAt: new Date()
+            },
+            { new: true }
+        );
+
+        if (!visit) {
+            return res.status(404).json({ success: false, message: 'Visit not found' });
+        }
+
+        res.json({
+            success: true,
+            message: 'Visit held successfully',
+            visit: visit
+        });
+
+    } catch (err) {
+        console.error('Hold Visit Error:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Error holding visit',
+            error: err.message
+        });
+    }
+};
+
+// Reject Visit
+exports.rejectVisit = async (req, res) => {
+    try {
+        const { visitId, rejectReason } = req.body;
+
+        const visit = await VisitReport.findByIdAndUpdate(
+            visitId,
+            {
+                status: 'rejected',
+                rejectReason: rejectReason || '',
+                rejectedAt: new Date()
+            },
+            { new: true }
+        );
+
+        if (!visit) {
+            return res.status(404).json({ success: false, message: 'Visit not found' });
+        }
+
+        res.json({
+            success: true,
+            message: 'Visit rejected successfully',
+            visit: visit
+        });
+
+    } catch (err) {
+        console.error('Reject Visit Error:', err);
+        res.status(500).json({
+            success: false,
+            message: 'Error rejecting visit',
+            error: err.message
         });
     }
 };

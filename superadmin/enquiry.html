@@ -5,13 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Roomhy - Admin Enquiry</title>
     <script>
-        // API Configuration - Smart endpoint selection
-        const getAPIURL = () => {
-            const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-            return isDevelopment ? 'http://localhost:5000' : 'https://roomhy-backend-wqwo.onrender.com';
-        };
-        const API_URL = getAPIURL();
-        console.log('🔗 [Enquiry] API_URL:', API_URL);
+        // API Configuration - Support both local and production
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:5000'
+            : 'https://roomhy-backend.onrender.com';
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -64,6 +61,7 @@
                 <a href="booking.html" class="sidebar-link"><i data-lucide="calendar-check" class="w-5 h-5 mr-3"></i> Bookings</a>
                 <a href="reviews.html" class="sidebar-link"><i data-lucide="star" class="w-5 h-5 mr-3"></i> Reviews</a>
                 <a href="complaint-history.html" class="sidebar-link"><i data-lucide="alert-circle" class="w-5 h-5 mr-3"></i> Complaint History</a>
+                <a href="chat-analytics.html" class="sidebar-link"><i data-lucide="message-circle" class="w-5 h-5 mr-3"></i> All Chats</a>
                 <div class="mt-6 px-6 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Website</div>
                 <a href="website.html" class="sidebar-link"><i data-lucide="globe" class="w-5 h-5 mr-3"></i> Live Properties</a>
                 <div class="mt-6 px-6 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Finance</div>
@@ -203,8 +201,8 @@
             <h3 class="text-lg font-bold text-gray-900">Approve Property</h3>
             <p class="text-sm text-gray-600 mb-6">Would you like to upload this property to the website?</p>
             <div class="flex gap-3">
-                <button onclick="confirmApproval(true)" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium">Yes, Upload to Website</button>
-                <button onclick="confirmApproval(true)" class="flex-1 bg-green-600 text-white py-2 rounded hover:bg-green-700 transition font-medium">Approve & Keep Live</button>
+                <button onclick="confirmApproval(true)" class="flex-1 bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium">Yes, Upload</button>
+                <button onclick="confirmApproval(false)" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400 transition font-medium">No, Keep Offline</button>
             </div>
         </div>
     </div>
@@ -225,7 +223,7 @@
 
     <div id="imageModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[60] backdrop-blur-sm" onclick="closeImageModal()">
         <div class="relative w-full max-w-4xl p-4" onclick="event.stopPropagation()">
-            <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white"><i data-lucide="x" class="w-8 h-8"></i></button>
+            <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white" title="Close"><i data-lucide="x" class="w-8 h-8"></i></button>
             <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[80vh] overflow-y-auto p-4"></div>
         </div>
     </div>
@@ -252,11 +250,11 @@
         }
 
         async function fetchEnquiries() {
-            console.log('🔄 fetchEnquiries() called - Super Admin Enquiry Page');
+            console.log('ðŸ”„ fetchEnquiries() called - Super Admin Enquiry Page');
             const tbody = document.getElementById('enquiryBody');
             
             if (!tbody) {
-                console.error('❌ Table body element not found! ID: enquiryBody');
+                console.error('âŒ Table body element not found! ID: enquiryBody');
                 return;
             }
             
@@ -264,13 +262,14 @@
             
             // Try to fetch from backend API first
             try {
+                const token = sessionStorage.getItem('token') || localStorage.getItem('token');
                 const apiUrl = API_URL + '/api/visits/pending';
                 
-                console.log('🔗 Fetching from API:', apiUrl);
+                console.log('ðŸ”— Fetching from API:', apiUrl);
                 const response = await fetch(apiUrl, {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Authorization': token ? `Bearer ${token}` : ''
                     }
                 });
                 
@@ -279,9 +278,9 @@
                 }
                 
                 const data = await response.json();
-                console.log('📡 API response:', data);
+                console.log('ðŸ“¡ API response:', data);
                 visits = data.visits || data || [];
-                console.log('? Loaded from API:', visits.length, 'visits');
+                console.log('✅ Loaded from API:', visits.length, 'visits');
                 
                 if (visits.length > 0) {
                     console.log('   First visit:', {
@@ -292,16 +291,16 @@
                 }
                 
             } catch (apiErr) {
-                console.warn('⚠️ API fetch failed, falling back to localStorage:', apiErr.message);
+                console.warn('âš ï¸ API fetch failed, falling back to localStorage:', apiErr.message);
                 
                 // Fallback to localStorage
                 try {
                     const raw = localStorage.getItem('roomhy_visits');
-                    console.log('📦 Fallback - localStorage roomhy_visits exists:', !!raw);
+                    console.log('ðŸ“¦ Fallback - localStorage roomhy_visits exists:', !!raw);
                     visits = JSON.parse(raw || '[]');
-                    console.log('📦 Loaded from localStorage:', visits.length, 'visits');
+                    console.log('ðŸ“¦ Loaded from localStorage:', visits.length, 'visits');
                 } catch (err) {
-                    console.error('❌ Failed to parse localStorage visits:', err);
+                    console.error('âŒ Failed to parse localStorage visits:', err);
                     visits = [];
                 }
                 
@@ -309,11 +308,11 @@
                 try {
                     if (visits.length === 0) {
                         const sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
-                        console.log('📦 Supplemented from sessionStorage:', sessionVisits.length, 'visits');
+                        console.log('ðŸ“¦ Supplemented from sessionStorage:', sessionVisits.length, 'visits');
                         visits = sessionVisits;
                     }
                 } catch (err) {
-                    console.error('❌ Failed to parse sessionStorage visits:', err);
+                    console.error('âŒ Failed to parse sessionStorage visits:', err);
                 }
             }
             
@@ -321,22 +320,22 @@
             const filtered = visits.filter(v => {
                 const hasStatus = ['pending', 'submitted'].includes(v.status);
                 if (!hasStatus) {
-                    console.warn('⏭️ Skipping visit (non-pending status):', v._id, 'Status:', v.status);
+                    console.warn('â­ï¸ Skipping visit (non-pending status):', v._id, 'Status:', v.status);
                 }
                 return hasStatus;
             });
             
             visits = filtered;
-            console.log('? Filtered to pending/submitted:', visits.length, 'visits');
+            console.log('✅ Filtered to pending/submitted:', visits.length, 'visits');
 
             if(visits.length === 0) {
-                console.warn('⚠️ No pending visits found. Showing empty message.');
+                console.warn('âš ï¸ No pending visits found. Showing empty message.');
                 tbody.innerHTML = '<tr><td colspan="28" class="px-6 py-12 text-center text-gray-400">No pending reports found. <a href="javascript:location.reload()" class="text-purple-600 underline">Refresh</a></td></tr>';
                 renderStatusCounters();
                 return;
             }
             
-            console.log('📋 Rendering', visits.length, 'visits to table');
+            console.log('ðŸ“‹ Rendering', visits.length, 'visits to table');
 
             tbody.innerHTML = visits.map((v, idx) => {
                 console.log(`   Rendering ${idx + 1}/${visits.length}: ${v._id}`);
@@ -371,15 +370,15 @@
                     <td class="px-4 py-3">${v.gender || '-'}</td>
                     <td class="px-4 py-3 text-center bg-amber-50 border-x border-amber-200">
                         <div class="flex items-center justify-center">
-                            <span class="text-lg font-bold text-amber-600">${v.studentReviewsRating ? `${'★'.repeat(Math.floor(v.studentReviewsRating))}${'☆'.repeat(5-Math.floor(v.studentReviewsRating))}` : '-'}</span>
+                            <span class="text-lg font-bold text-amber-600">${v.studentReviewsRating ? `${'★'.repeat(Math.floor(v.studentReviewsRating))}${`☆`.repeat(5-Math.floor(v.studentReviewsRating))}` : '-'}</span>
                         </div>
                     </td>
                     <td class="px-4 py-3 text-center bg-emerald-50 border-x border-emerald-200">
                         <div class="flex items-center justify-center">
-                            <span class="text-lg font-bold text-emerald-600">${v.employeeRating ? `${'★'.repeat(Math.floor(v.employeeRating))}${'☆'.repeat(5-Math.floor(v.employeeRating))}` : '-'}</span>
+                            <span class="text-lg font-bold text-emerald-600">${v.employeeRating ? `${'★'.repeat(Math.floor(v.employeeRating))}${`☆`.repeat(5-Math.floor(v.employeeRating))}` : '-'}</span>
                         </div>
                     </td>
-                    <td class="px-4 py-3 text-center font-bold">?${v.monthlyRent || prop.monthlyRent || 0}</td>
+                    <td class="px-4 py-3 text-center font-bold">₹${v.monthlyRent || prop.monthlyRent || 0}</td>
                     <td class="px-4 py-3 text-sm">${amenities}</td>
                     <td class="px-4 py-3">${cleanliness}</td>
                     <td class="px-4 py-3">${ownerBehaviour}</td>
@@ -404,15 +403,16 @@
                         <div class="flex items-center justify-center gap-2">
                             <button onclick="approve('${v._id}')" class="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors" title="Approve"><i data-lucide="check" class="w-4 h-4"></i></button>
                             <button onclick="holdVisit('${v._id}')" class="p-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors" title="Hold"><i data-lucide="pause" class="w-4 h-4"></i></button>
+                            <button onclick="rejectVisit('${v._id}')" class="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors" title="Reject"><i data-lucide="x" class="w-4 h-4"></i></button>
                         </div>
                     </td>
                 </tr>`;
             }).join('');
             
-            console.log('? Table rendered successfully with', visits.length, 'rows');
+            console.log('✅ Table rendered successfully with', visits.length, 'rows');
             lucide.createIcons();
             renderStatusCounters();
-            console.log('? fetchEnquiries() completed');
+            console.log('✅ fetchEnquiries() completed');
         }
 
         function toggleWebStatus(id) {
@@ -448,14 +448,14 @@
             try {
                 visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
             } catch (err) {
-                console.error('❌ Failed to parse localStorage visits:', err);
+                console.error('âŒ Failed to parse localStorage visits:', err);
             }
             
             let sessionVisits = [];
             try {
                 sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
             } catch (err) {
-                console.error('❌ Failed to parse sessionStorage visits:', err);
+                console.error('âŒ Failed to parse sessionStorage visits:', err);
             }
             
             // Merge both sources
@@ -497,7 +497,7 @@
                 <tr class="hover:bg-gray-50">
                     <td class="px-6 py-4 text-sm">${owner}</td>
                     <td class="px-6 py-4 text-sm font-mono">${roomNo}</td>
-                    <td class="px-6 py-4 text-right font-bold">?${rent}</td>
+                    <td class="px-6 py-4 text-right font-bold">₹${rent}</td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex items-center justify-end gap-2">
                             <button onclick="approveRoomNotification('${n._id}')" class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm">Approve</button>
@@ -547,7 +547,7 @@
                 try { sessionStorage.setItem('roomhy_visits', JSON.stringify(visits)); } catch(e){}
                 fetchRoomApprovals();
                 fetchEnquiries();
-                alert('? Approved');
+                alert('✅ Approved');
             } catch (err) { console.error('approveRoomNotification error:', err); alert('Error approving notification'); }
         }
 
@@ -568,7 +568,7 @@
                 try { sessionStorage.setItem('roomhy_visits', JSON.stringify(visits)); } catch(e){}
                 fetchRoomApprovals();
                 fetchEnquiries();
-                alert('⛔ Rejected');
+                alert('â›” Rejected');
             } catch (err) { console.error('rejectRoomNotification error:', err); alert('Error rejecting notification'); }
         }
 
@@ -607,99 +607,104 @@
                 visits[idx].isLiveOnWebsite = shouldUpload;
                 visits[idx].generatedCredentials = { loginId, tempPassword: password };
                 if (window.safeStorage) { window.safeStorage.setVisits(visits); } else { localStorage.setItem('roomhy_visits', JSON.stringify(visits)); }
-                
-                // Sync with backend API
+
+                // Always sync with backend API
                 try {
-                    const response = await fetch(API_URL + '/api/admin/approve-visit/' + currentApprovingId, {
+                    const response = await fetch(API_URL + '/api/visits/approve', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
                         },
                         body: JSON.stringify({
+                            visitId: currentApprovingId,
+                            status: 'approved',
+                            isLiveOnWebsite: shouldUpload,
                             loginId: loginId,
-                            tempPassword: password,
-                            isLiveOnWebsite: shouldUpload
+                            tempPassword: password
                         })
                     });
                     const data = await response.json();
-                    console.log('? Visit approved and synced to backend:', data);
+                    console.log('✅ Visit approved and synced to backend:', data);
                 } catch (err) {
-                    console.warn('⚠️ Backend sync failed (continuing with localStorage):', err);
+                    console.warn('âš ï¸ Backend sync failed (continuing with localStorage):', err);
                 }
                 
-                // Send login credentials to owner's Gmail
+                // Send login credentials to owner's Gmail (non-blocking)
                 const ownerGmail = visits[idx].propertyInfo?.ownerGmail || visits[idx].ownerGmail;
                 if (ownerGmail && ownerGmail !== '-') {
-                    try {
-                        const propertyName = visits[idx].propertyInfo?.name || visits[idx].property?.name || 'Your Property';
-                        const emailSubject = `RoomHy Login Credentials - ${propertyName}`;
-                        const emailHtml = `
-                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
-                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; margin-bottom: 20px;">
-                                    <h1 style="color: white; margin: 0; font-size: 24px; text-align: center;">?? RoomHy Property Portal</h1>
-                                    <p style="color: #e0e7ff; margin: 10px 0 0 0; text-align: center; font-size: 16px;">Your property has been approved!</p>
-                                </div>
-                                
-                                <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                                    <h2 style="color: #1f2937; margin-top: 0; font-size: 20px;">Login Credentials</h2>
-                                    <p style="color: #6b7280; margin-bottom: 20px;">Your property <strong>${propertyName}</strong> has been approved and is now live on our platform. Here are your login credentials:</p>
-                                    
-                                    <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
-                                        <div style="margin-bottom: 15px;">
-                                            <strong style="color: #374151;">Login ID:</strong>
-                                            <div style="font-family: monospace; font-size: 16px; color: #667eea; background: white; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #e5e7eb;">${loginId}</div>
+                    // Send email asynchronously without blocking the approval process
+                    setTimeout(async () => {
+                        try {
+                            const propertyName = visits[idx].propertyInfo?.name || visits[idx].property?.name || 'Your Property';
+                            const emailSubject = `RoomHy Login Credentials - ${propertyName}`;
+                            const emailHtml = `
+                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+                                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; margin-bottom: 20px;">
+                                        <h1 style="color: white; margin: 0; font-size: 24px; text-align: center;">🏠 RoomHy Property Portal</h1>
+                                        <p style="color: #e0e7ff; margin: 10px 0 0 0; text-align: center; font-size: 16px;">Your property has been approved!</p>
+                                    </div>
+
+                                    <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                        <h2 style="color: #1f2937; margin-top: 0; font-size: 20px;">Login Credentials</h2>
+                                        <p style="color: #6b7280; margin-bottom: 20px;">Your property <strong>${propertyName}</strong> has been approved and is now live on our platform. Here are your login credentials:</p>
+
+                                        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
+                                            <div style="margin-bottom: 15px;">
+                                                <strong style="color: #374151;">Login ID:</strong>
+                                                <div style="font-family: monospace; font-size: 16px; color: #667eea; background: white; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #e5e7eb;">${loginId}</div>
+                                            </div>
+                                            <div style="margin-bottom: 15px;">
+                                                <strong style="color: #374151;">Password:</strong>
+                                                <div style="font-family: monospace; font-size: 16px; color: #667eea; background: white; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #e5e7eb;">${password}</div>
+                                            </div>
                                         </div>
-                                        <div style="margin-bottom: 15px;">
-                                            <strong style="color: #374151;">Password:</strong>
-                                            <div style="font-family: monospace; font-size: 16px; color: #667eea; background: white; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #e5e7eb;">${password}</div>
+
+                                        <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+                                            <strong style="color: #92400e;">⚠️ Important:</strong>
+                                            <ul style="color: #92400e; margin: 10px 0 0 0; padding-left: 20px;">
+                                                <li>Please change your password after first login for security</li>
+                                                <li>Keep these credentials safe and do not share them</li>
+                                                <li>Contact support if you have any issues logging in</li>
+                                            </ul>
+                                        </div>
+
+                                        <div style="text-align: center; margin-top: 30px;">
+                                            <a href="https://roomhy.com/login" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Login to Your Account</a>
                                         </div>
                                     </div>
-                                    
-                                    <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-                                        <strong style="color: #92400e;">?? Important:</strong>
-                                        <ul style="color: #92400e; margin: 10px 0 0 0; padding-left: 20px;">
-                                            <li>Please change your password after first login for security</li>
-                                            <li>Keep these credentials safe and do not share them</li>
-                                            <li>Contact support if you have any issues logging in</li>
-                                        </ul>
-                                    </div>
-                                    
-                                    <div style="text-align: center; margin-top: 30px;">
-                                        <a href="https://roomhy.com/login" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Login to Your Account</a>
+
+                                    <div style="text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px;">
+                                        <p>Need help? Contact our support team at <a href="mailto:support@roomhy.com" style="color: #667eea;">support@roomhy.com</a></p>
+                                        <p>&copy; 2024 RoomHy. All rights reserved.</p>
                                     </div>
                                 </div>
-                                
-                                <div style="text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px;">
-                                    <p>Need help? Contact our support team at <a href="mailto:support@roomhy.com" style="color: #667eea;">support@roomhy.com</a></p>
-                                    <p>&copy; 2024 RoomHy. All rights reserved.</p>
-                                </div>
-                            </div>
-                        `;
-                        
-                        const emailResponse = await fetch(API_URL + '/api/email/send', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
-                            },
-                            body: JSON.stringify({
-                                to: ownerGmail,
-                                subject: emailSubject,
-                                html: emailHtml
-                            })
-                        });
-                        
-                        if (emailResponse.ok) {
-                            console.log('? Login credentials email sent successfully to:', ownerGmail);
-                        } else {
-                            console.warn('⚠️ Failed to send login credentials email:', emailResponse.status);
+                            `;
+
+                            const emailResponse = await fetch(API_URL + '/api/email/send', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
+                                },
+                                body: JSON.stringify({
+                                    to: ownerGmail,
+                                    subject: emailSubject,
+                                    html: emailHtml
+                                })
+                            });
+
+                            if (emailResponse.ok) {
+                                console.log('✅ Login credentials email sent successfully to:', ownerGmail);
+                            } else {
+                                console.warn('âš ï¸ Failed to send login credentials email:', emailResponse.status);
+                            }
+                        } catch (emailError) {
+                            console.warn('âš ï¸ Error sending login credentials email:', emailError);
                         }
-                    } catch (emailError) {
-                        console.warn('⚠️ Error sending login credentials email:', emailError);
-                    }
+                    }, 100); // Small delay to ensure modal shows first
                 } else {
-                    console.warn('⚠️ No Gmail address found for owner, skipping email notification');
+                    console.warn('âš ï¸ No Gmail address found for owner, skipping email notification');
                 }
                 
                 document.getElementById('modalLoginId').innerText = loginId;
@@ -713,32 +718,67 @@
             currentApprovingId = null;
         }
 
-        function holdVisit(id) {
+        async function holdVisit(id) {
             const reason = prompt("Enter hold reason:");
             if(reason === null) return;
-            let visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
-            let sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
-            
-            // Merge both sources first
-            if (sessionVisits.length > 0) {
-                const merged = [...visits];
-                sessionVisits.forEach(sv => {
-                    const existing = merged.find(v => v._id === sv._id);
-                    if (!existing) {
-                        merged.push(sv);
-                    } else {
-                        Object.assign(existing, sv);
-                    }
+
+            try {
+                const response = await fetch(API_URL + '/api/visits/hold', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
+                    },
+                    body: JSON.stringify({
+                        visitId: id,
+                        holdReason: reason
+                    })
                 });
-                visits = merged;
+
+                const data = await response.json();
+                if (data.success) {
+                    console.log('✅ Visit held successfully:', data);
+                    alert('Visit held successfully');
+                    fetchEnquiries();
+                } else {
+                    console.error('❌ Hold failed:', data.message);
+                    alert('Failed to hold visit: ' + data.message);
+                }
+            } catch (err) {
+                console.error('❌ Hold error:', err);
+                alert('Error holding visit. Please try again.');
             }
-            
-            const idx = visits.findIndex(v => v._id === id);
-            if(idx !== -1) {
-                visits[idx].status = 'hold';
-                visits[idx].holdReason = reason;
-                if (window.safeStorage) { window.safeStorage.setVisits(visits); } else { localStorage.setItem('roomhy_visits', JSON.stringify(visits)); }
-                fetchEnquiries();
+        }
+
+        async function rejectVisit(id) {
+            const reason = prompt("Enter rejection reason:");
+            if(reason === null) return;
+
+            try {
+                const response = await fetch(API_URL + '/api/visits/reject', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
+                    },
+                    body: JSON.stringify({
+                        visitId: id,
+                        rejectReason: reason
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    console.log('✅ Visit rejected successfully:', data);
+                    alert('Visit rejected successfully');
+                    fetchEnquiries();
+                } else {
+                    console.error('❌ Reject failed:', data.message);
+                    alert('Failed to reject visit: ' + data.message);
+                }
+            } catch (err) {
+                console.error('❌ Reject error:', err);
+                alert('Error rejecting visit. Please try again.');
             }
         }
 
@@ -778,8 +818,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('📄 Super Admin Enquiry Page Loaded');
-            console.log('📍 URL:', window.location.href);
+            console.log('ðŸ“„ Super Admin Enquiry Page Loaded');
+            console.log('ðŸ“ URL:', window.location.href);
             fetchEnquiries();
         });
     </script>

@@ -964,8 +964,8 @@
                     return getVisitsFromStorage();
                 }
 
-                // IMPORTANT: Filter only APPROVED properties (status = 'completed')
-                properties = properties.filter(p => p.status === 'completed');
+                // IMPORTANT: Filter only APPROVED properties (status = 'approved')
+                properties = properties.filter(p => p.status === 'approved');
 
                 // Apply client-side filters (area, price, gender, property type)
                 properties = properties.filter(prop => {
@@ -1063,11 +1063,16 @@
                 _id: rawPropertyId,
                 enquiry_id: v.enquiry_id,
                 property_name: title,
+                property_image: img,
                 city: city,
+                location: city,
                 locality: area,
                 rent: rent,
+                price: rent,
                 property_type: badge,
                 photos: photos,
+                bedrooms: v.bedrooms || 0,
+                bathrooms: v.bathrooms || 0,
                 isVerified: v.isVerified,
                 rating: v.rating,
                 reviewsCount: v.reviewsCount
@@ -1908,6 +1913,27 @@
                         closeRequestAllModal();
                     }
                 });
+
+                // Add favorite button click handlers
+                document.addEventListener('click', (e) => {
+                    if (e.target.closest('.favorite-btn')) {
+                        const btn = e.target.closest('.favorite-btn');
+                        const propertyId = btn.dataset.propertyId;
+                        const propertyDataStr = btn.dataset.property;
+                        
+                        if (!propertyDataStr) {
+                            console.error('Property data not found');
+                            return;
+                        }
+                        
+                        try {
+                            const propertyData = JSON.parse(propertyDataStr);
+                            toggleFavorite(e, propertyData);
+                        } catch (err) {
+                            console.error('Error parsing property data:', err);
+                        }
+                    }
+                });
             });
         } else {
             document.getElementById('mobile-request-all')?.addEventListener('click', showRequestAllModal);
@@ -1920,6 +1946,27 @@
             document.getElementById('request-all-modal')?.addEventListener('click', (e) => {
                 if (e.target.id === 'request-all-modal') {
                     closeRequestAllModal();
+                }
+            });
+
+            // Add favorite button click handlers
+            document.addEventListener('click', (e) => {
+                if (e.target.closest('.favorite-btn')) {
+                    const btn = e.target.closest('.favorite-btn');
+                    const propertyId = btn.dataset.propertyId;
+                    const propertyDataStr = btn.dataset.property;
+                    
+                    if (!propertyDataStr) {
+                        console.error('Property data not found');
+                        return;
+                    }
+                    
+                    try {
+                        const propertyData = JSON.parse(propertyDataStr);
+                        toggleFavorite(e, propertyData);
+                    } catch (err) {
+                        console.error('Error parsing property data:', err);
+                    }
                 }
             });
         }
