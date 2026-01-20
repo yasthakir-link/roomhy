@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -920,80 +920,67 @@
             try { return JSON.parse(localStorage.getItem('roomhy_visits') || '[]'); } catch (e) { return []; }
         }
 
-        // Fetch properties from database API
+        // Fetch properties from website-enquiry API (MongoDB)
         async function fetchPropertiesFromAPI(filters = {}) {
             try {
-                // Use the approved properties endpoint from visits
-                let url = `${API_URL}/api/visits/public/approved`;
+                let url = `${API_URL}/api/website-enquiry/all`;
 
-                // Add query parameters for filters
-                const params = new URLSearchParams();
-                if (filters.city) params.append('city', filters.city);
-                if (filters.area) params.append('area', filters.area);
-                if (filters.minPrice) params.append('minPrice', filters.minPrice);
-                if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
-                if (filters.gender) params.append('gender', filters.gender);
-                if (filters.propertyType) params.append('propertyType', filters.propertyType);
+                // If a city filter is provided, use the city-specific endpoint for efficiency
+                if (filters.city) {
+                    url = `${API_URL}/api/website-enquiry/city/${encodeURIComponent(filters.city)}`;
+                }
 
-                if (params.toString()) url += '?' + params.toString();
-                
                 const response = await fetch(url, {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
+                    headers: { 'Content-Type': 'application/json' }
                 });
 
                 if (!response.ok) {
-                    console.error('API Error:', response.status);
-                    // Fallback to localStorage if API fails
+                    console.error('API Error fetching website enquiries:', response.status);
                     return getVisitsFromStorage();
                 }
 
                 const data = await response.json();
-                
-                // Handle both response formats
                 let properties = [];
-                if (data.success && data.enquiries) {
+
+                // API returns { success: true, enquiries: [...] }
+                if (data && data.success && Array.isArray(data.enquiries)) {
                     properties = data.enquiries;
-                } else if (data.success && data.properties) {
-                    properties = data.properties;
                 } else if (Array.isArray(data)) {
                     properties = data;
                 } else {
                     return getVisitsFromStorage();
                 }
 
-                // IMPORTANT: Filter only APPROVED properties (status = 'approved')
-                properties = properties.filter(p => p.status === 'approved');
+                // Keep only completed/approved entries
+                properties = properties.filter(p => (p.status || '').toString().toLowerCase() === 'completed' || (p.status || '').toString().toLowerCase() === 'approved');
 
-                // Apply client-side filters (area, price, gender, property type)
+                // Apply client-side filters for fields available on WebsiteEnquiry
                 properties = properties.filter(prop => {
-                    // Filter by area
+                    // Area
                     if (filters.area) {
-                        const propArea = (prop.propertyInfo?.area || prop.locality || prop.area || '').toLowerCase();
-                        if (!propArea.includes(filters.area.toLowerCase())) return false;
+                        const propArea = (prop.locality || prop.area || '').toString().toLowerCase();
+                        if (!propArea.includes(filters.area.toString().toLowerCase())) return false;
                     }
-                    
-                    // Filter by gender
-                    // Filter by gender
+
+                    // Gender
                     if (filters.gender) {
-                        const propGender = (prop.gender_suitability || prop.propertyInfo?.gender_suitability || prop.gender || '').toLowerCase();
-                        const filterGender = filters.gender.toLowerCase();
-                        if (propGender && !['co-ed', filterGender].includes(propGender)) return false;
+                        const propGender = (prop.gender_suitability || prop.gender || '').toString().toLowerCase();
+                        const filterGender = filters.gender.toString().toLowerCase();
+                        if (propGender && !['co-ed', filterGender, filterGender.replace('-', '')].includes(propGender)) return false;
                     }
-                    
-                    // Filter by property type
+
+                    // Property type
                     if (filters.propertyType) {
-                        const propType = (prop.property_type || prop.propertyInfo?.property_type || prop.type || '').toLowerCase();
-                        if (!propType.includes(filters.propertyType.toLowerCase())) return false;
+                        const propType = (prop.property_type || prop.propertyType || '').toString().toLowerCase();
+                        if (!propType.includes(filters.propertyType.toString().toLowerCase())) return false;
                     }
-                    
-                    // Filter by price range - handle both MongoDB and fallback data structures
-                    const rent = prop.rent || prop.monthlyRent || 0;
+
+                    // Price range
+                    const rent = parseInt(prop.rent || prop.monthlyRent || 0) || 0;
                     if (filters.minPrice && rent < parseInt(filters.minPrice)) return false;
                     if (filters.maxPrice && filters.maxPrice !== '50000_plus' && rent > parseInt(filters.maxPrice)) return false;
-                    
+
                     return true;
                 });
 
@@ -1002,8 +989,7 @@
                 return properties;
 
             } catch (err) {
-                console.error('Error fetching from API:', err);
-                // Fallback to localStorage if API fails
+                console.error('Error fetching website enquiries:', err);
                 return getVisitsFromStorage();
             }
         }

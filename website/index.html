@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -15,8 +15,10 @@
     <script>
         // API Configuration - Support both local and production
         // For local development, use: http://localhost:3000 or http://localhost:10
-        // For production, use: https://roomhy-backend-wqwo.onrender.com
-        const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
+        // For production, use: https://roomhy-backend.onrender.com
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:5000'
+            : 'https://roomhy-backend.onrender.com';
         
         console.log('Using API_URL:', API_URL);
 
@@ -465,6 +467,52 @@
             transition: box-shadow 0.3s ease, transform 0.3s ease;
         }
         
+        /* 3D Flip Card Styles */
+        .city-flip-card {
+            perspective: 1000px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .city-flip-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .city-flip-card.flipped .city-flip-inner {
+            transform: rotateY(180deg);
+        }
+
+        .city-flip-front, .city-flip-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .city-flip-front {
+            background-color: white;
+            z-index: 2;
+        }
+
+        .city-flip-back {
+            background-color: white;
+            transform: rotateY(180deg);
+            z-index: 1;
+        }
+
+        .city-flip-front img, .city-flip-back img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
         /* UNIFIED HOVER/ACTIVE/FOCUS STYLES FOR NEON BORDER */
         .city-filter:hover .neon-border, 
         .city-filter:active .neon-border,
@@ -592,12 +640,40 @@
 
 
     </style>
-
-    <!-- Shared Header and Notifications -->
-    <script src="./js/shared-header.js"></script>
-    <script src="./js/notification-system.js"></script>
 </head>
 <body class="text-gray-800">
+
+    <header class="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-sm shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6">
+            <div class="flex h-20 items-center justify-between">
+                
+                <div class="flex items-center">
+                    <a href="#" class="flex-shrink-0">
+                        <!-- Assuming logo.svg is available -->
+                        <img src="images/logoroomhy.jpg" alt="Roomhy Logo" class="h-10 w-25">
+                    </a>
+                </div>
+                
+                <div class="flex items-center gap-3 sm:gap-6">
+                    <nav class="hidden lg:flex items-center space-x-6">
+                        <a href="about.html" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">About Us</a>
+                        <a href="#faq" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">FAQ</a>
+                        <a href="contact.html" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">Contact</a>
+                    </nav>
+
+                    <a href="list.html" class="flex-shrink-0 flex items-center space-x-1 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                        <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                        <span>Post <span class="hidden sm:inline">Your</span> Property</span>
+                    </a>
+                    
+                    <button id="menu-toggle" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        <i data-lucide="menu" class="w-7 h-7 text-gray-800"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
 
     <section class="relative py-20 md:py-28 text-white">
         <div id="hero-image-wrapper" class="absolute inset-0 w-full h-full overflow-hidden">
@@ -644,7 +720,7 @@
                 <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
                     <i data-lucide="users" class="w-6 h-6 text-gray-600"></i>
                 </div>
-                <span class="text-lg font-semibold text-gray-800">Hi,welcome ??</span>
+                <span class="text-lg font-semibold text-gray-800">Hi,welcome ðŸ‘‹</span>
             </div>
             <a href="profile.html" class="text-sm font-medium text-blue-600 hover:underline">Profile</a>
         </div>
@@ -1040,7 +1116,7 @@
                             <div class="hidden lg:flex absolute -left-16 top-1/2 -translate-y-1/2 step-badge animate-pulse-pop">1</div>
                             <span class="hidden lg:inline text-sm font-bold text-blue-600 bg-blue-100 px-3 py-1 rounded-full">Your Journey Starts Here</span>
                             <h3 class="text-3xl font-bold my-4 text-gray-900 leading-snug">Search, Filter & Shortlist</h3> 
-                            <p class="text-gray-600 text-lg leading-relaxed">Use our smart, student-focused filters to find verified PGs, hostels, or apartments near your college campus. **Compare transparent prices, 360� virtual tours, and essential amenities.**</p>
+                            <p class="text-gray-600 text-lg leading-relaxed">Use our smart, student-focused filters to find verified PGs, hostels, or apartments near your college campus. **Compare transparent prices, 360Â° virtual tours, and essential amenities.**</p>
                         </div>
                     </div>
     
@@ -1157,7 +1233,7 @@
                             </div>
                             <div>
                                 <h3 class="text-xl font-semibold text-gray-900 mb-1">Zero Brokerage Always</h3>
-                                <p class="text-gray-500 leading-relaxed">Tired of paying brokers just to see a room? With Roomhy, you connect directly with verified property owners. No middlemen, no extra charges "? just a clean, commission-free experience.</p>
+                                <p class="text-gray-500 leading-relaxed">Tired of paying brokers just to see a room? With Roomhy, you connect directly with verified property owners. No middlemen, no extra charges "” just a clean, commission-free experience.</p>
                             </div>
                         </div>
 
@@ -1167,7 +1243,7 @@
                             </div>
                             <div>
                                 <h3 class="text-xl font-semibold text-gray-900 mb-1">Only Pay What You Bid</h3>
-                                <p class="text-gray-500 leading-relaxed">No fixed pricing. No pressure. Set your own budget and place a live bid "? the owner picks the best offer. It's fast, fair, and puts you in control from the start.</p>
+                                <p class="text-gray-500 leading-relaxed">No fixed pricing. No pressure. Set your own budget and place a live bid "” the owner picks the best offer. It's fast, fair, and puts you in control from the start.</p>
                             </div>
                         </div>
 
@@ -1177,7 +1253,7 @@
                             </div>
                             <div>
                                 <h3 class="text-xl font-semibold text-gray-900 mb-1">Rooms That Match Your Vibe & Budget</h3>
-                                <p class="text-gray-500 leading-relaxed">Whether you want a solo PG, a shared space with friends, or a budget hostel near college "? Roomhy has it all. Search by location, amenities, and real-time availability to find your perfect stay.</p>
+                                <p class="text-gray-500 leading-relaxed">Whether you want a solo PG, a shared space with friends, or a budget hostel near college "” Roomhy has it all. Search by location, amenities, and real-time availability to find your perfect stay.</p>
                             </div>
                         </div>
                     </div>
@@ -1457,7 +1533,7 @@
         </div>
 
         <div class="footer-bottom">
-            <p>? 2025 <strong>Roomhy</strong>. All Rights Reserved. Made for students, with love.</p>
+            <p>© 2025 <strong>Roomhy</strong>. All Rights Reserved. Made for students, with love.</p>
         </div>
     </footer>
     <!-- END: UPDATED FOOTER -->
@@ -1483,40 +1559,74 @@
             // Initialize with defaults immediately
             window.cityInfo = defaultCities;
 
-            // Fetch approved properties to get unique cities
+            // Fetch cities from MongoDB database
             async function loadCitiesFromProperties() {
                 try {
-                    const response = await fetch('/api/website-enquiry/all');
-                    if (!response.ok) throw new Error('Failed to fetch properties');
+                    // Get API base URL - support both local and production
+                    const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                        ? 'http://localhost:5000'
+                        : 'https://roomhy-backend.onrender.com';
+                    
+                    const response = await fetch(`${apiBase}/api/locations/cities`);
+                    if (!response.ok) throw new Error('Failed to fetch cities from MongoDB');
                     
                     const data = await response.json();
-                    let properties = (data.enquiries || []).filter(p => p.status === 'completed');
-                    
-                    // Extract unique cities from approved properties
-                    const citiesMap = new Map();
-                    properties.forEach(prop => {
-                        const city = prop.city;
-                        if (city && !citiesMap.has(city)) {
-                            // Try to find a matching default city for consistent images/icons
-                            const defaultCity = defaultCities.find(c => c.name.toLowerCase() === city.toLowerCase());
-                            citiesMap.set(city, defaultCity || {
-                                name: city,
-                                img: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?q=80&w=2070&auto:format&fit=crop',
-                                icon: 'map-pin'
-                            });
-                        }
+                    let cities = (data.data || []).map(city => {
+                        // Support both old format (id, image) and new format (_id, imageUrl)
+                        return {
+                            _id: city._id || city.id,
+                            name: city.name || city.cityName,
+                            img: city.imageUrl || city.image || 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?q=80&w=2070&auto:format&fit=crop',
+                            icon: city.icon || 'map-pin'
+                        };
                     });
                     
-                    const cities = Array.from(citiesMap.values());
                     if (cities.length > 0) {
                         window.cityInfo = cities;
                         if (typeof rebuildCityList === 'function') {
                             rebuildCityList(window.cityInfo);
                         }
+                    } else {
+                        window.cityInfo = defaultCities;
                     }
                 } catch (error) {
-                    console.log('Using default cities:', error.message);
-                    window.cityInfo = defaultCities;
+                    console.log('Could not fetch from MongoDB, using default cities:', error.message);
+                    // Fallback: Try to fetch from approved properties
+                    try {
+                        const response = await fetch('/api/website-enquiry/all');
+                        if (!response.ok) throw new Error('Failed to fetch properties');
+                        
+                        const data = await response.json();
+                        let properties = (data.enquiries || []).filter(p => p.status === 'completed');
+                        
+                        // Extract unique cities from approved properties
+                        const citiesMap = new Map();
+                        properties.forEach(prop => {
+                            const city = prop.city;
+                            if (city && !citiesMap.has(city)) {
+                                // Try to find a matching default city for consistent images/icons
+                                const defaultCity = defaultCities.find(c => c.name.toLowerCase() === city.toLowerCase());
+                                citiesMap.set(city, defaultCity || {
+                                    name: city,
+                                    img: 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?q=80&w=2070&auto:format&fit=crop',
+                                    icon: 'map-pin'
+                                });
+                            }
+                        });
+                        
+                        const cities = Array.from(citiesMap.values());
+                        if (cities.length > 0) {
+                            window.cityInfo = cities;
+                            if (typeof rebuildCityList === 'function') {
+                                rebuildCityList(window.cityInfo);
+                            }
+                        } else {
+                            window.cityInfo = defaultCities;
+                        }
+                    } catch (fallbackError) {
+                        console.log('Using default cities:', fallbackError.message);
+                        window.cityInfo = defaultCities;
+                    }
                 }
             }
 
@@ -1731,7 +1841,7 @@
         // ======================================================
         // START: `rebuildCityList` FUNCTION (Replaces the infinite slider logic)
         // ======================================================
-        function rebuildCityList(data) {
+        async function rebuildCityList(data) {
             const slider = document.getElementById('cities-category-slider');
             if (!slider) return;
 
@@ -1745,24 +1855,66 @@
                 ];
             }
 
-            // Function to generate a single city card HTML
-            const generateCityCard = (city) => `
-                <a href="#" class="city-filter group flex flex-col items-center justify-start text-center flex-shrink-0 w-28 space-y-2" data-city="${city.name}">
-                    <div class="w-24 h-24 rounded-full relative overflow-hidden neon-border">
-                        <img src="${city.img || ''}" alt="Photo of ${city.name}" class="absolute inset-0 w-full h-full object-cover city-image">
+            // Fetch areas to get area images for each city
+            let areasByCity = {};
+            try {
+                const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                    ? 'http://localhost:5000'
+                    : 'https://roomhy-backend.onrender.com';
+                const response = await fetch(`${apiBase}/api/locations/areas`);
+                if (response.ok) {
+                    const areaData = await response.json();
+                    (areaData.data || []).forEach(area => {
+                        const cityName = area.city || area.cityName;
+                        if (cityName) {
+                            if (!areasByCity[cityName]) {
+                                areasByCity[cityName] = [];
+                            }
+                            if (area.imageUrl || area.image) {
+                                areasByCity[cityName].push({
+                                    name: area.name,
+                                    img: area.imageUrl || area.image
+                                });
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.log('Could not fetch areas:', error.message);
+            }
+
+            // Function to generate a single city card HTML with carousel
+            const generateCityCard = (city, areaImages) => {
+                const areaList = areaImages || areasByCity[city.name] || [];
+                const carouselId = `carousel-${city.name.replace(/\s+/g, '-')}`;
+                
+                return `
+                <div class="city-filter group flex flex-col items-center justify-start text-center flex-shrink-0 w-28 space-y-2 cursor-pointer" onclick="window.location.href = 'ourproperty.html?city=' + encodeURIComponent('${city.name}')">
+                    <div class="w-24 h-24 rounded-full relative overflow-hidden neon-border" id="${carouselId}" onmouseenter="startAreaCarousel(this);" onmouseleave="stopAreaCarousel(this);">
+                        <!-- City Image (always visible initially) -->
+                        <img src="${city.img || ''}" alt="Photo of ${city.name}" class="absolute inset-0 w-full h-full object-cover city-main-image transition-opacity duration-500" data-index="0">
+                        
+                        <!-- Area Images (carousel, hidden initially) -->
+                        ${areaList.map((area, idx) => `
+                            <img src="${area.img}" alt="Area: ${area.name}" class="absolute inset-0 w-full h-full object-cover city-area-image opacity-0 transition-opacity duration-500" data-index="${idx + 1}" data-area-name="${area.name}">
+                        `).join('')}
+                        
+                        <!-- Fallback avatar -->
                         <div class="absolute inset-0 z-10 flex items-center justify-center bg-gray-100 text-3xl font-bold text-gray-700 city-avatar hidden"></div>
+                        <!-- Icon overlay -->
                         <div class="absolute inset-0 z-20 w-full h-full bg-white flex items-center justify-center transition-opacity duration-500 ease-in-out group-hover:opacity-0 group-focus:opacity-0 city-overlay-icon">
-                            <i data-lucide="${city.icon}" class="w-9 h-9 text-gray-600"></i>
+                            <i data-lucide="${city.icon || 'map-pin'}" class="w-9 h-9 text-gray-600"></i>
                         </div>
                     </div>
                     <h3 class="text-sm font-medium text-gray-800 leading-tight">${city.name}</h3>
-                </a>
-            `;
+                </div>
+                `;
+            };
 
-            // Build the original set of cards (no duplication, static layout)
+            // Build the cards with carousel support
             let cardsHTML = '';
             data.forEach(city => {
-                cardsHTML += generateCityCard(city);
+                cardsHTML += generateCityCard(city, areasByCity[city.name] || []);
             });
 
             slider.innerHTML = cardsHTML;
@@ -1770,54 +1922,143 @@
             // Re-run lucide icons for the new elements
             lucide.createIcons();
 
+            // Setup carousel rotation functions
+            window.startAreaCarousel = function(element) {
+                const carouselId = element.id;
+                const container = document.getElementById(carouselId);
+                if (!container) return;
+                
+                const areaImages = container.querySelectorAll('.city-area-image');
+                if (areaImages.length === 0) return;
+
+                // Start rotating through area images every 1.5 seconds
+                const rotationKey = `carousel-${carouselId}`;
+                if (window[rotationKey]) clearInterval(window[rotationKey]);
+                
+                let currentIndex = 0;
+                window[rotationKey] = setInterval(() => {
+                    // Hide all area images
+                    areaImages.forEach(img => img.classList.add('opacity-0'));
+                    
+                    // Show next area image
+                    currentIndex = (currentIndex + 1) % areaImages.length;
+                    areaImages[currentIndex].classList.remove('opacity-0');
+                }, 1500);
+                
+                // Show first area image immediately
+                areaImages[0].classList.remove('opacity-0');
+            };
+
+            window.stopAreaCarousel = function(element) {
+                const carouselId = element.id;
+                const container = document.getElementById(carouselId);
+                if (!container) return;
+
+                const rotationKey = `carousel-${carouselId}`;
+                if (window[rotationKey]) {
+                    clearInterval(window[rotationKey]);
+                    window[rotationKey] = null;
+                }
+
+                // Hide all area images and show city image
+                const mainImage = container.querySelector('.city-main-image');
+                const areaImages = container.querySelectorAll('.city-area-image');
+                areaImages.forEach(img => img.classList.add('opacity-0'));
+                if (mainImage) mainImage.classList.remove('opacity-0');
+            };
+
             // Show letter-avatar fallback when image missing or fails to load
-            document.querySelectorAll('.city-filter').forEach(card => {
-                const img = card.querySelector('.city-image');
+            document.querySelectorAll('.city-main-image').forEach(img => {
+                const card = img.closest('.city-filter');
+                const name = card.querySelector('h3').textContent.trim();
                 const fallback = card.querySelector('.city-avatar');
                 const overlay = card.querySelector('.city-overlay-icon');
-                const name = (card.dataset.city || '').toString();
 
                 function showFallback(){
                     if(fallback){ fallback.textContent = name ? name[0].toUpperCase() : '?'; fallback.classList.remove('hidden'); }
-                    if(img) img.classList.add('hidden');
-                    if(overlay) overlay.classList.add('hidden');
+                    img.classList.add('hidden');
+                    if(overlay) overlay.classList.remove('hidden');
                 }
 
-                const src = img && (img.getAttribute('src') || img.src || '');
-                // Treat local placeholder images (e.g., paths under `images/`) as missing so avatar is shown
+                const src = img.getAttribute('src') || img.src || '';
                 const isLocalPlaceholder = src && src.toString().toLowerCase().includes('images/');
-                if(!img || !src || isLocalPlaceholder){
+                
+                if(!src || isLocalPlaceholder){
                     showFallback();
                 } else {
                     if(img.complete){
                         if(img.naturalWidth === 0) showFallback();
                     } else {
                         img.addEventListener('error', showFallback);
-                        img.addEventListener('load', () => { if(fallback) fallback.classList.add('hidden'); if(overlay) overlay.classList.remove('hidden'); img.classList.remove('hidden'); });
+                        img.addEventListener('load', () => { 
+                            if(fallback) fallback.classList.add('hidden'); 
+                            img.classList.remove('hidden'); 
+                        });
                     }
                 }
             });
 
-            // Re-attach click listeners to the dynamically created elements
-            document.querySelectorAll('.city-filter').forEach(link => {
-                link.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const city = this.dataset.city;
-                    if (city) {
-                        // Navigate to ourproperty.html with city parameter
-                        window.location.href = `ourproperty.html?city=${encodeURIComponent(city)}`;
-                    }
+            // Re-attach click listeners to navigate to property page
+            document.querySelectorAll('.city-filter h3').forEach(heading => {
+                heading.addEventListener('click', function(e) {
+                    const cityName = this.textContent.trim();
+                    window.location.href = `ourproperty.html?city=${encodeURIComponent(cityName)}`;
                 });
             });
-
-            // The 'enableTouchCityEffects' function was removed in the previous turn.
-            // This ensures that clicking on the card will only trigger the click action,
-            // and the image animation will only occur if the device simulates a hover
-            // or focus event (like pressing and holding, or tabbing to the element).
-
         }
         // ======================================================
         // END: `rebuildCityList` FUNCTION
+        // ======================================================
+
+        // ======================================================
+        // START: AREA CAROUSEL FUNCTIONS
+        // ======================================================
+        let carouselIntervals = new Map();
+
+        function startAreaCarousel(element) {
+            const images = element.querySelectorAll('img');
+            if (images.length <= 1) return; // No area images to carousel
+
+            let currentIndex = 1; // Start from first area image (index 1)
+            const totalAreaImages = images.length - 1; // Exclude city image
+
+            // Clear any existing interval for this element
+            if (carouselIntervals.has(element)) {
+                clearInterval(carouselIntervals.get(element));
+            }
+
+            // Immediately show first area image
+            images.forEach((img, idx) => {
+                img.style.opacity = idx === 1 ? '1' : '0';
+            });
+
+            const interval = setInterval(() => {
+                // Hide all images
+                images.forEach(img => img.style.opacity = '0');
+
+                // Show next area image
+                currentIndex = ((currentIndex - 1 + 1) % totalAreaImages) + 1; // Cycle from 1 to total-1
+                images[currentIndex].style.opacity = '1';
+            }, 2000); // Change image every 2 seconds
+
+            carouselIntervals.set(element, interval);
+        }
+
+        function stopAreaCarousel(element) {
+            // Clear interval
+            if (carouselIntervals.has(element)) {
+                clearInterval(carouselIntervals.get(element));
+                carouselIntervals.delete(element);
+            }
+
+            // Reset to first image (city image)
+            const images = element.querySelectorAll('img');
+            images.forEach((img, index) => {
+                img.style.opacity = index === 0 ? '1' : '0';
+            });
+        }
+        // ======================================================
+        // END: AREA CAROUSEL FUNCTIONS
         // ======================================================
 
         // ======================================================
@@ -1878,7 +2119,7 @@
 
                 let oldPriceHTML = '';
                 if (space.oldPrice) {
-                    oldPriceHTML = `<p class="text-xs text-gray-500 line-through">?${space.oldPrice}</p>`;
+                    oldPriceHTML = `<p class="text-xs text-gray-500 line-through">₹${space.oldPrice}</p>`;
                 }
 
                 newSlidesHTML += `
@@ -1898,7 +2139,7 @@
                                 <div class="flex justify-between items-start">
                                     <h3 class="font-bold text-lg text-gray-900">${space.title}</h3>
                                     <div class="text-right flex-shrink-0 ml-2">
-                                        <p class="font-bold text-blue-600 text-lg">?${space.price}</p>
+                                        <p class="font-bold text-blue-600 text-lg">₹${space.price}</p>
                                         ${oldPriceHTML}
                                         <p class="text-xs text-gray-500">onwards</p>
                                     </div>
@@ -1968,7 +2209,7 @@
 
                 let oldPriceHTML = '';
                 if (space.oldPrice) {
-                    oldPriceHTML = `<p class="text-xs text-gray-500 line-through">?${space.oldPrice}</p>`;
+                    oldPriceHTML = `<p class="text-xs text-gray-500 line-through">₹${space.oldPrice}</p>`;
                 }
 
                 newSlidesHTML += `
@@ -1988,7 +2229,7 @@
                                 <div class="flex justify-between items-start">
                                     <h3 class="font-bold text-lg text-gray-900">${space.title}</h3>
                                     <div class="text-right flex-shrink-0 ml-2">
-                                        <p class="font-bold text-blue-600 text-lg">?${space.price}</p>
+                                        <p class="font-bold text-blue-600 text-lg">₹${space.price}</p>
                                         ${oldPriceHTML}
                                         <p class="text-xs text-gray-500">onwards</p>
                                     </div>
@@ -2031,8 +2272,8 @@
                 return;
             }
 
-            // Fetch approved properties from database
-            fetch(API_URL + '/api/visits/public/approved')
+            // Fetch trending enquiries from MongoDB API
+            fetch(API_URL + '/api/website-enquiry/all')
                 .then(response => {
                     if (!response.ok) throw new Error('Failed to fetch properties');
                     return response.json();
@@ -2116,7 +2357,7 @@
                                         <p class="text-gray-600 text-sm mt-1">${space.location}</p>
                                     </div>
                                     <div class="text-right flex-shrink-0 ml-2">
-                                        <p class="font-bold text-gray-900 text-lg">?${price}</p>
+                                        <p class="font-bold text-gray-900 text-lg">₹${price}</p>
                                         <p class="text-xs text-gray-500">onwards</p>
                                     </div>
                                 </div>
@@ -2179,8 +2420,8 @@
                 }
                 
                 // Find the city with the most properties
-                const promises = customCities.map(city =>
-                    fetch(`${API_URL}/api/visits/public/approved?city=${encodeURIComponent(city)}`)
+                const promises = customCities.map(city => 
+                    fetch(`${API_URL}/api/website-enquiry/city/${encodeURIComponent(city)}`)
                         .then(res => res.json())
                         .then(data => ({
                             city: city,
@@ -2282,8 +2523,8 @@
             
             if (!slider) return;
             
-            // Fetch properties from database for this specific city
-            fetch(`${API_URL}/api/visits/public/approved?city=${encodeURIComponent(city)}`)
+            // Fetch properties from MongoDB API for this specific city
+            fetch(`${API_URL}/api/website-enquiry/city/${encodeURIComponent(city)}`)
                 .then(response => {
                     if (!response.ok) throw new Error('Failed to fetch properties');
                     return response.json();
@@ -2340,7 +2581,7 @@
 
                 let oldPriceHTML = '';
                 if (space.oldPrice) {
-                    oldPriceHTML = `<p class="text-xs text-gray-500 line-through">?${space.oldPrice}</p>`;
+                    oldPriceHTML = `<p class="text-xs text-gray-500 line-through">₹${space.oldPrice}</p>`;
                 }
 
                 html += `
@@ -2360,7 +2601,7 @@
                                 <div class="flex justify-between items-start">
                                     <h3 class="font-bold text-lg text-gray-900">${space.title}</h3>
                                     <div class="text-right flex-shrink-0 ml-2">
-                                        <p class="font-bold text-blue-600 text-lg">?${space.price}</p>
+                                        <p class="font-bold text-blue-600 text-lg">₹${space.price}</p>
                                         ${oldPriceHTML}
                                         <p class="text-xs text-gray-500">onwards</p>
                                     </div>
@@ -2818,4 +3059,3 @@
         }
     </script>
 </html>
-

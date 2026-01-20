@@ -237,6 +237,53 @@ exports.approveVisit = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Visit not found' });
         }
 
+        // If approved for website, create WebsiteEnquiry record
+        if (isLiveOnWebsite) {
+            const WebsiteEnquiry = require('../models/WebsiteEnquiry');
+            
+            // Generate unique enquiry_id
+            const enquiryId = `ENQ${Date.now()}${Math.floor(Math.random() * 1000)}`;
+            
+            // Map VisitReport data to WebsiteEnquiry format
+            const enquiryData = {
+                enquiry_id: enquiryId,
+                property_type: visit.propertyInfo?.propertyType || visit.propertyType || 'PG',
+                property_name: visit.propertyInfo?.name || visit.propertyName || 'Property',
+                city: visit.propertyInfo?.city || visit.city || '',
+                locality: visit.propertyInfo?.area || visit.area || '',
+                address: visit.propertyInfo?.address || visit.address || '',
+                pincode: visit.propertyInfo?.pincode || visit.pincode || '',
+                description: visit.propertyInfo?.description || visit.description || '',
+                amenities: visit.propertyInfo?.amenities || visit.amenities || [],
+                gender_suitability: visit.propertyInfo?.gender || visit.gender || '',
+                rent: visit.propertyInfo?.monthlyRent || visit.monthlyRent || 0,
+                deposit: visit.propertyInfo?.deposit || visit.deposit || '',
+                owner_name: visit.propertyInfo?.ownerName || visit.ownerName || '',
+                owner_email: visit.propertyInfo?.ownerGmail || visit.ownerGmail || '',
+                owner_phone: visit.propertyInfo?.contactPhone || visit.contactPhone || '',
+                photos: [
+                    ...(visit.propertyInfo?.professionalPhotos || []),
+                    ...(visit.propertyInfo?.fieldPhotos || [])
+                ],
+                status: 'accepted' // Set as accepted since it's approved
+            };
+
+            // Check if enquiry already exists
+            const existingEnquiry = await WebsiteEnquiry.findOne({ 
+                property_name: enquiryData.property_name,
+                city: enquiryData.city,
+                owner_email: enquiryData.owner_email
+            });
+
+            if (!existingEnquiry) {
+                const newEnquiry = new WebsiteEnquiry(enquiryData);
+                await newEnquiry.save();
+                console.log('✅ Created WebsiteEnquiry record for approved visit:', enquiryId);
+            } else {
+                console.log('ℹ️ WebsiteEnquiry already exists for this property');
+            }
+        }
+
         res.json({
             success: true,
             message: 'Visit approved successfully',

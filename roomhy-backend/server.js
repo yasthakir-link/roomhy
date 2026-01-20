@@ -47,10 +47,12 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/properties', require('./routes/propertyRoutes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/tenants', require('./routes/tenantRoutes'));
+// app.use('/api/visits', require('./routes/visitRoutes'));
 app.use('/api/visits', require('./routes/visitRoutes'));
 app.use('/api/rooms', require('./routes/roomRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/website-enquiry', require('./routes/websiteEnquiryRoutes'));
+// Temporarily disabled - causes server crash
+// app.use('/api/website-enquiry', require('./routes/websiteEnquiryRoutes'));
 app.use('/api/owners', require('./routes/ownerRoutes'));
 app.use('/api/employees', require('./routes/employeeRoutes'));
 app.use('/api/complaints', require('./routes/complaintRoutes'));
@@ -151,14 +153,17 @@ app.get('/website', (req, res) => {
 });
 
 // Serve static files from public directory (MUST come after API routes but before catch-all)
-app.use(express.static(path.join(__dirname, 'public')));
+// app.use(express.static(path.join(__dirname, 'public')));
 
 // Serve recording files
-app.use('/recordings', express.static(path.join(__dirname, 'public', 'recordings')));
+// app.use('/recordings', express.static(path.join(__dirname, 'public', 'recordings')));
 
 // Serve static website files (MUST come after specific routes)
 app.use('/website', express.static(path.join(__dirname, '..', 'website')));
 app.use('/propertyowner', express.static(path.join(__dirname, '..', 'propertyowner')));
+app.use('/superadmin', express.static(path.join(__dirname, '..', 'superadmin')));
+app.use('/Areamanager', express.static(path.join(__dirname, '..', 'Areamanager')));
+app.use('/tenant', express.static(path.join(__dirname, '..', 'tenant')));
 app.use(express.static(path.join(__dirname, '..', 'website'))); // Default to website for other requests
 app.use(express.static(path.join(__dirname, '..')));
 
@@ -174,11 +179,16 @@ app.use((req, res) => {
       timestamp: new Date()
     });
   }
-  // For non-API routes, serve index.html (SPA fallback)
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+  // Only serve index.html for route-like requests (without file extensions)
+  // If request has a file extension, let it 404 naturally
+  if (!req.path.includes('.')) {
+    return res.sendFile(path.join(__dirname, '..', 'index.html'));
+  }
+  res.status(404).json({ success: false, message: 'File not found', path: req.path });
 });
 
-// Socket.io handlers - Enhanced for room-based subscriptions
+// Socket.io handlers - temporarily disabled
+/*
 io.on('connection', (socket) => {
     console.log('Socket connected:', socket.id);
 
@@ -278,6 +288,7 @@ io.on('connection', (socket) => {
         console.log('Socket disconnected:', socket.id);
     });
 });
+*/
 
 // Start Server
 const PORT = process.env.PORT || 5000;

@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Roomhy - Locations</title>
-    <script>
-        const API_URL = 'https://roomhy-backend.onrender.com';
-    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
@@ -333,76 +330,334 @@
     </div>
 
     <script>
+        const API_URL = 'http://localhost:5000/api'; // Change to your backend URL
+        let currentCityIndex = 0;
+        let citiesData = [];
+        let areasData = [];
+
         lucide.createIcons();
 
-        document.addEventListener('DOMContentLoaded', () => {
-            seedData();
-            loadCities();
-            loadAreas();
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCities();
+            await loadAreas();
+            await loadCarousel();  // Load carousel after both cities and areas are loaded
         });
 
-        // --- Seed Default Data (5 Areas, 3 Cities) ---
-        function seedData() {
-            if (!localStorage.getItem('roomhy_cities')) {
-                const cities = [
-                    { id: 'ct_1', name: 'Bangalore', state: 'Karnataka', status: 'Active', image: null },
-                    { id: 'ct_2', name: 'Chennai', state: 'Tamil Nadu', status: 'Active', image: null },
-                    { id: 'ct_3', name: 'Coimbatore', state: 'Tamil Nadu', status: 'Active', image: null }
-                ];
-                localStorage.setItem('roomhy_cities', JSON.stringify(cities));
-            }
+        // --- API Functions ---
 
-            if (!localStorage.getItem('roomhy_areas')) {
-                const areas = [
-                    { id: 'ar_1', name: 'Koramangala', city: 'Bangalore', photo: null, status: 'Active' },
-                    { id: 'ar_2', name: 'Indiranagar', city: 'Bangalore', photo: null, status: 'Active' },
-                    { id: 'ar_3', name: 'Anna Nagar', city: 'Chennai', photo: null, status: 'Active' },
-                    { id: 'ar_4', name: 'T Nagar', city: 'Chennai', photo: null, status: 'Active' },
-                    { id: 'ar_5', name: 'Gandhipuram', city: 'Coimbatore', photo: null, status: 'Active' }
-                ];
-                localStorage.setItem('roomhy_areas', JSON.stringify(areas));
+        /**
+         * GET ALL CITIES from MongoDB
+         */
+        async function loadCities() {
+            try {
+                const response = await fetch(`${API_URL}/locations/cities`);
+                if (!response.ok) throw new Error('Failed to fetch cities');
+                
+                const result = await response.json();
+                citiesData = (result.data || []).map(city => ({
+                    _id: city._id || city.id,
+                    name: city.name,
+                    state: city.state,
+                    imageUrl: city.imageUrl || city.image,
+                    imagePublicId: city.imagePublicId,
+                    status: city.status,
+                    ...city
+                }));
+                // Sync to localStorage for manager.html compatibility
+                localStorage.setItem('roomhy_cities', JSON.stringify(citiesData));
+                renderCitiesTable();
+            } catch (error) {
+                console.error('Error loading cities:', error);
+                showError('Failed to load cities: ' + error.message);
             }
         }
 
-        // --- Load Tables ---
-        function loadCities() {
-            const cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
+        /**
+         * GET ALL AREAS from MongoDB
+         */
+        async function loadAreas() {
+            try {
+                const response = await fetch(`${API_URL}/locations/areas`);
+                if (!response.ok) throw new Error('Failed to fetch areas');
+                
+                const result = await response.json();
+                areasData = (result.data || []).map(area => ({
+                    _id: area._id || area.id,
+                    name: area.name,
+                    city: area.city,
+                    imageUrl: area.imageUrl || area.image,
+                    imagePublicId: area.imagePublicId,
+                    status: area.status,
+                    ...area
+                }));
+                // Sync to localStorage for manager.html compatibility
+                localStorage.setItem('roomhy_areas', JSON.stringify(areasData));
+                renderAreasTable();
+            } catch (error) {
+                console.error('Error loading areas:', error);
+                showError('Failed to load areas: ' + error.message);
+            }
+        }
+
+        /**
+         * CREATE CITY with image upload to Cloudinary
+         */
+        function saveLocation() {
+            const type = document.getElementById('locationTypeInput').value;
+            const name = document.getElementById('locationName').value.trim();
+            
+            if (type === 'city') {
+                const state = document.getElementById('locationState').value.trim();
+                const photoFile = document.getElementById('locationPhoto').files[0];
+                
+                if (!name || !state) return alert("Please fill all fields");
+
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('state', state);
+                if (photoFile) {
+                    formData.append('image', photoFile);
+                }
+
+                fetch(`${API_URL}/locations/cities`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('City Added Successfully!');
+                        loadCities();
+                        notifyLocationChange();
+                        toggleModal('addLocationModal');
+                        document.getElementById('locationForm').reset();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(err => alert('Error creating city: ' + err.message));
+            } else {
+                const cityId = document.getElementById('parentCitySelect').value;
+                const photoFile = document.getElementById('locationPhoto').files[0];
+                
+                if (!name || !cityId) return alert("Please fill all fields");
+
+                const formData = new FormData();
+                formData.append('name', name);
+                formData.append('cityId', cityId);
+                if (photoFile) {
+                    formData.append('image', photoFile);
+                }
+
+                fetch(`${API_URL}/locations/areas`, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Area Added Successfully!');
+                        loadAreas();
+                        notifyLocationChange();
+                        toggleModal('addLocationModal');
+                        document.getElementById('locationForm').reset();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(err => alert('Error creating area: ' + err.message));
+            }
+        }
+
+        /**
+         * DELETE CITY
+         */
+        async function deleteCity(cityId) {
+            if (!confirm("Delete this city? This will not delete associated areas automatically.")) return;
+
+            try {
+                const response = await fetch(`${API_URL}/locations/cities/${cityId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('City deleted successfully');
+                    loadCities();
+                    notifyLocationChange();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error deleting city: ' + error.message);
+            }
+        }
+
+        /**
+         * DELETE AREA
+         */
+        async function deleteArea(areaId) {
+            if (!confirm("Delete this area?")) return;
+
+            try {
+                const response = await fetch(`${API_URL}/locations/areas/${areaId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    alert('Area deleted successfully');
+                    loadAreas();
+                    notifyLocationChange();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            } catch (error) {
+                alert('Error deleting area: ' + error.message);
+            }
+        }
+
+        /**
+         * EDIT CITY IMAGE
+         */
+        function editCityImage(cityId) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                fetch(`${API_URL}/locations/cities/${cityId}`, {
+                    method: 'PUT',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('City image updated successfully');
+                        loadCities();
+                        notifyLocationChange();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(err => alert('Error updating city image: ' + err.message));
+            };
+            input.click();
+        }
+
+        // --- Render Functions ---
+
+        /**
+         * Render Cities Table
+         */
+        function renderCitiesTable() {
             const tbody = document.getElementById('citiesTableBody');
-            tbody.innerHTML = cities.map(c => `
+            tbody.innerHTML = citiesData.map(city => `
                 <tr class="hover:bg-gray-50">
-                    <td><span class="font-medium text-gray-900">${c.name}</span></td>
-                    <td>${c.state}</td>
+                    <td><span class="font-medium text-gray-900">${city.name}</span></td>
+                    <td>${city.state}</td>
                     <td>
-                        ${c.image ? `<img src="${c.image}" alt="${c.name}" class="h-10 w-16 rounded object-cover">` : '<span class="text-gray-400 text-sm">No image</span>'}
+                        ${city.imageUrl 
+                            ? `<img src="${city.imageUrl}" alt="${city.name}" class="h-10 w-16 rounded object-cover">` 
+                            : '<span class="text-gray-400 text-sm">No image</span>'
+                        }
                     </td>
-                    <td><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">${c.status}</span></td>
+                    <td><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">${city.status}</span></td>
                     <td class="text-right">
-                        <button class="text-blue-400 hover:text-blue-600 mx-1" onclick="editCityImage('${c.id}')"><i data-lucide="image" class="w-4 h-4"></i></button>
-                        <button class="text-gray-400 hover:text-red-600 mx-1" onclick="deleteCity('${c.id}')"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <button class="text-blue-400 hover:text-blue-600 mx-1" onclick="editCityImage('${city._id}')"><i data-lucide="image" class="w-4 h-4"></i></button>
+                        <button class="text-gray-400 hover:text-red-600 mx-1" onclick="deleteCity('${city._id}')"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
                 </tr>
             `).join('');
-            loadCarousel();
             lucide.createIcons();
         }
 
-        function loadAreas() {
-            const areas = JSON.parse(localStorage.getItem('roomhy_areas') || '[]');
+        /**
+         * Render Areas Table
+         */
+        function renderAreasTable() {
             const tbody = document.getElementById('areasTableBody');
-            tbody.innerHTML = areas.map(a => `
+            tbody.innerHTML = areasData.map(area => `
                 <tr class="hover:bg-gray-50">
-                    <td><span class="font-medium text-gray-900">${a.name}</span></td>
-                    <td>${a.city}</td>
+                    <td><span class="font-medium text-gray-900">${area.name}</span></td>
+                    <td>${area.cityName}</td>
                     <td>
-                        ${a.photo ? `<img src="${a.photo}" alt="${a.name}" class="h-10 w-16 rounded object-cover">` : '<span class="text-gray-400 text-sm">No photo</span>'}
+                        ${area.imageUrl 
+                            ? `<img src="${area.imageUrl}" alt="${area.name}" class="h-10 w-16 rounded object-cover">` 
+                            : '<span class="text-gray-400 text-sm">No photo</span>'
+                        }
                     </td>
-                    <td><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">${a.status}</span></td>
+                    <td><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">${area.status}</span></td>
                     <td class="text-right">
-                        <button class="text-gray-400 hover:text-red-600 mx-1" onclick="deleteArea('${a.id}')"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                        <button class="text-gray-400 hover:text-red-600 mx-1" onclick="deleteArea('${area._id}')"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                     </td>
                 </tr>
             `).join('');
             lucide.createIcons();
+        }
+
+        // --- Carousel Functions ---
+        /**
+         * Load carousel with alternating city and area images
+         * 1st image = City
+         * 2nd image = Area from that city
+         * 3rd image = Next city, etc.
+         */
+        async function loadCarousel() {
+            const carousel = document.getElementById('citiesCarousel');
+            
+            // Filter cities with images
+            const citiesToDisplay = citiesData.filter(c => c.imageUrl);
+            
+            if (citiesToDisplay.length === 0) {
+                carousel.innerHTML = '<div class="w-full flex items-center justify-center text-gray-400"><span>No city images added yet</span></div>';
+                return;
+            }
+
+            // Build carousel with alternating city and area images
+            let carouselItems = [];
+
+            for (const city of citiesToDisplay) {
+                // Add city image
+                carouselItems.push(`
+                    <div class="carousel-item min-w-full h-full relative flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity" onclick="viewCityProperties('${city.name}')">
+                        <img src="${city.imageUrl}" alt="${city.name}" class="w-full h-full object-cover">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
+                            <h4 class="text-white text-xl font-bold">${city.name}</h4>
+                            <p class="text-gray-300 text-sm">${city.state}</p>
+                        </div>
+                    </div>
+                `);
+
+                // Add first area image for this city
+                const cityAreas = areasData.filter(a => a.city === city._id && a.imageUrl);
+                if (cityAreas.length > 0) {
+                    const area = cityAreas[0];
+                    carouselItems.push(`
+                        <div class="carousel-item min-w-full h-full relative flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity">
+                            <img src="${area.imageUrl}" alt="${area.name}" class="w-full h-full object-cover">
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
+                                <h4 class="text-white text-xl font-bold">${area.name}</h4>
+                                <p class="text-gray-300 text-sm">${city.name}</p>
+                            </div>
+                        </div>
+                    `);
+                }
+            }
+
+            if (carouselItems.length === 0) {
+                carousel.innerHTML = '<div class="w-full flex items-center justify-center text-gray-400"><span>No images available</span></div>';
+                return;
+            }
+
+            carousel.innerHTML = carouselItems.join('');
+            currentCityIndex = 0;
+            updateCarouselPosition();
         }
 
         // --- Modal Logic ---
@@ -430,18 +685,17 @@
                 title.innerText = 'Add New Area';
                 nameLabel.innerText = 'Area Name';
                 parentField.classList.remove('hidden');
-                photoField.classList.add('hidden');
+                photoField.classList.remove('hidden'); // Show photo for areas too
                 stateField.classList.add('hidden');
                 document.getElementById('locationState').required = false;
 
                 // Populate Parent Cities Dropdown
-                const cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
                 parentSelect.innerHTML = '<option value="">Select City</option>';
-                cities.forEach(c => {
-                    parentSelect.add(new Option(c.name, c.name));
+                citiesData.forEach(c => {
+                    parentSelect.add(new Option(c.name, c._id));
                 });
             }
-            
+
             toggleModal('addLocationModal');
         }
 
@@ -458,68 +712,13 @@
             }
         });
 
-        function saveLocation() {
-            const type = document.getElementById('locationTypeInput').value;
-            const name = document.getElementById('locationName').value.trim();
+        // --- UI Helpers ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
             
-            if (type === 'city') {
-                const state = document.getElementById('locationState').value.trim();
-                const photoFile = document.getElementById('locationPhoto').files[0];
-                if(!name || !state) return alert("Please fill all fields");
-
-                if (photoFile) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        const image = event.target.result;
-                        const cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
-                        cities.push({ id: 'ct_' + Date.now(), name, state, status: 'Active', image });
-                        localStorage.setItem('roomhy_cities', JSON.stringify(cities));
-                        loadCities();
-                        notifyLocationChange();
-                        toggleModal('addLocationModal');
-                        alert('City Added Successfully!');
-                    };
-                    reader.readAsDataURL(photoFile);
-                    return; // Wait for file reading
-                } else {
-                    const cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
-                    cities.push({ id: 'ct_' + Date.now(), name, state, status: 'Active', image: null });
-                    localStorage.setItem('roomhy_cities', JSON.stringify(cities));
-                    loadCities();
-                    notifyLocationChange();
-                }
-
-            } else {
-                const city = document.getElementById('parentCitySelect').value;
-                const photoFile = document.getElementById('locationPhoto').files[0];
-                if(!name || !city) return alert("Please fill all fields");
-
-                let photo = null;
-                if (photoFile) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        photo = event.target.result;
-                        const areas = JSON.parse(localStorage.getItem('roomhy_areas') || '[]');
-                        areas.push({ id: 'ar_' + Date.now(), name, city, photo, status: 'Active' });
-                        localStorage.setItem('roomhy_areas', JSON.stringify(areas));
-                        loadAreas();
-                        notifyLocationChange();
-                        toggleModal('addLocationModal');
-                        alert('Area Added Successfully!');
-                    };
-                    reader.readAsDataURL(photoFile);
-                    return; // Wait for file reading
-                } else {
-                    const areas = JSON.parse(localStorage.getItem('roomhy_areas') || '[]');
-                    areas.push({ id: 'ar_' + Date.now(), name, city, photo: null, status: 'Active' });
-                    localStorage.setItem('roomhy_areas', JSON.stringify(areas));
-                    loadAreas();
-                    notifyLocationChange();
-                }
-            }
-
-            toggleModal('addLocationModal');
-            alert(`${type === 'city' ? 'City' : 'Area'} Added Successfully!`);
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(`${tabName}-content`).classList.add('active');
         }
 
         // Broadcast location change to other tabs and same-tab listeners
@@ -535,73 +734,10 @@
             try{ localStorage.setItem('roomhy_locations_updated_at', Date.now().toString()); }catch(e){}
         }
 
-        function deleteCity(id) {
-            if(!confirm("Delete this city? This will not delete associated areas automatically.")) return;
-            let cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
-            cities = cities.filter(c => c.id !== id);
-            localStorage.setItem('roomhy_cities', JSON.stringify(cities));
-            loadCities();
-            notifyLocationChange();
-        }
-
-        function deleteArea(id) {
-            if(!confirm("Delete this area?")) return;
-            let areas = JSON.parse(localStorage.getItem('roomhy_areas') || '[]');
-            areas = areas.filter(a => a.id !== id);
-            localStorage.setItem('roomhy_areas', JSON.stringify(areas));
-            loadAreas();
-            notifyLocationChange();
-        }
-
-        // Edit City Image
-        function editCityImage(cityId) {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        let cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
-                        const city = cities.find(c => c.id === cityId);
-                        if (city) {
-                            city.image = event.target.result;
-                            localStorage.setItem('roomhy_cities', JSON.stringify(cities));
-                            loadCities();
-                            notifyLocationChange();
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                }
-            };
-            input.click();
-        }
-
-        // Carousel Functions
-        let currentCityIndex = 0;
-
-        function loadCarousel() {
-            const cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]').filter(c => c.image);
-            const carousel = document.getElementById('citiesCarousel');
-            
-            if (cities.length === 0) {
-                carousel.innerHTML = '<div class="w-full flex items-center justify-center text-gray-400"><span>No city images added yet</span></div>';
-                return;
-            }
-
-            carousel.innerHTML = cities.map((city, index) => `
-                <div class="min-w-full h-full relative flex-shrink-0 cursor-pointer hover:opacity-90 transition-opacity" onclick="viewCityProperties('${city.name}')">
-                    <img src="${city.image}" alt="${city.name}" class="w-full h-full object-cover">
-                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
-                        <h4 class="text-white text-xl font-bold">${city.name}</h4>
-                        <p class="text-gray-300 text-sm">${city.state}</p>
-                    </div>
-                </div>
-            `).join('');
-
-            currentCityIndex = 0;
-            updateCarouselPosition();
+        // Utility: Show error message
+        function showError(message) {
+            alert('Error: ' + message);
+            console.error(message);
         }
 
         function viewCityProperties(cityName) {
@@ -611,35 +747,28 @@
 
         function updateCarouselPosition() {
             const carousel = document.getElementById('citiesCarousel');
-            const cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]').filter(c => c.image);
-            if (cities.length > 0) {
+            const carouselItems = carousel.querySelectorAll('.carousel-item');
+            if (carouselItems.length > 0) {
                 carousel.style.transform = `translateX(-${currentCityIndex * 100}%)`;
             }
         }
 
         function nextCity() {
-            const cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]').filter(c => c.image);
-            if (cities.length > 0) {
-                currentCityIndex = (currentCityIndex + 1) % cities.length;
+            const carousel = document.getElementById('citiesCarousel');
+            const carouselItems = carousel.querySelectorAll('.carousel-item');
+            if (carouselItems.length > 0) {
+                currentCityIndex = (currentCityIndex + 1) % carouselItems.length;
                 updateCarouselPosition();
             }
         }
 
         function prevCity() {
-            const cities = JSON.parse(localStorage.getItem('roomhy_cities') || '[]').filter(c => c.image);
-            if (cities.length > 0) {
-                currentCityIndex = (currentCityIndex - 1 + cities.length) % cities.length;
+            const carousel = document.getElementById('citiesCarousel');
+            const carouselItems = carousel.querySelectorAll('.carousel-item');
+            if (carouselItems.length > 0) {
+                currentCityIndex = (currentCityIndex - 1 + carouselItems.length) % carouselItems.length;
                 updateCarouselPosition();
             }
-        }
-
-        // --- UI Helpers ---
-        function switchTab(tabName) {
-            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-            
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            document.getElementById(`${tabName}-content`).classList.add('active');
         }
 
         function toggleModal(modalID){

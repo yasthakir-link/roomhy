@@ -478,13 +478,54 @@
             console.log('Locations updated from location.html');
         }
 
-        // --- 1. LOCATION DATA LOADING (Linked to locations.html) ---
-        function loadLocationsFromStorage() {
-            // Read from roomhy_cities and roomhy_areas (Must match keys from location.html)
-            citiesData = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
-            areasData = JSON.parse(localStorage.getItem('roomhy_areas') || '[]');
+        // --- 1. LOCATION DATA LOADING (Linked to MongoDB via location.html) ---
+        async function loadLocationsFromStorage() {
+            try {
+                // First try to fetch from MongoDB API
+                const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                    ? 'http://localhost:5000'
+                    : 'https://roomhy-backend.onrender.com';
+                
+                // Fetch cities from MongoDB
+                const citiesResponse = await fetch(`${apiBase}/api/locations/cities`);
+                const citiesResult = await citiesResponse.json();
+                citiesData = (citiesResult.data || []).map(city => ({
+                    id: city._id || city.id,
+                    name: city.name || city.cityName,
+                    state: city.state || '',
+                    status: 'Active',
+                    image: city.imageUrl || city.image
+                }));
 
-            // FALLBACK: Ensure defaults exist if location.html hasn't run
+                // Fetch areas from MongoDB
+                const areasResponse = await fetch(`${apiBase}/api/locations/areas`);
+                const areasResult = await areasResponse.json();
+                areasData = (areasResult.data || []).map(area => ({
+                    id: area._id || area.id,
+                    name: area.name || area.areaName,
+                    city: area.city || area.cityName,
+                    cityName: area.cityName || (area.city && area.city.name) || '',
+                    pincode: area.pincode || '',
+                    status: 'Active',
+                    image: area.imageUrl || area.image
+                }));
+
+                // If no data from API, use fallback from localStorage
+                if (citiesData.length === 0) {
+                    citiesData = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
+                }
+                if (areasData.length === 0) {
+                    areasData = JSON.parse(localStorage.getItem('roomhy_areas') || '[]');
+                }
+                
+            } catch (error) {
+                console.log('Error fetching from MongoDB, using fallback:', error.message);
+                // Read from roomhy_cities and roomhy_areas (Must match keys from location.html)
+                citiesData = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
+                areasData = JSON.parse(localStorage.getItem('roomhy_areas') || '[]');
+            }
+
+            // FALLBACK: Ensure defaults exist if no data available
             if (citiesData.length === 0) {
                 citiesData = [
                     { id: 'ct_1', name: 'Bangalore', state: 'Karnataka', status: 'Active' },
@@ -525,10 +566,10 @@
             const city = document.getElementById('filterCity').value;
             const areaSelect = document.getElementById('filterArea');
             areaSelect.innerHTML = '<option value="">All Areas</option>';
-            
-            const relevantAreas = city ? areasData.filter(a => a.city === city) : areasData;
+
+            const relevantAreas = city ? areasData.filter(a => a.cityName === city) : areasData;
             relevantAreas.forEach(a => areaSelect.add(new Option(a.name, a.name)));
-            
+
             applyFilters();
         }
 
@@ -537,8 +578,8 @@
             const city = document.getElementById('modalCity').value;
             const areaSelect = document.getElementById('modalArea');
             areaSelect.innerHTML = '<option value="">Select Area</option>';
-            
-            const relevantAreas = city ? areasData.filter(a => a.city === city) : [];
+
+            const relevantAreas = city ? areasData.filter(a => a.cityName === city) : [];
             relevantAreas.forEach(a => areaSelect.add(new Option(a.name, a.name)));
         }
 

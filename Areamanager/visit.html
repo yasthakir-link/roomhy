@@ -1613,16 +1613,26 @@
                 } else {
                     // Also save to backend database as backup
                     console.log('💾 Attempting to save visit to backend...');
+                    console.log('📤 POST to:', API_URL + '/api/visits/submit');
+                    const visitToSubmit = mode === 'create' ? newVisit : visits[idx];
+                    console.log('📋 Visit data being submitted:', {
+                        _id: visitToSubmit._id,
+                        status: visitToSubmit.status,
+                        propertyName: visitToSubmit.propertyInfo?.name,
+                        submittedBy: visitToSubmit.submittedBy
+                    });
                     try {
                         const backendRes = await fetch(API_URL + '/api/visits/submit', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(mode === 'create' ? newVisit : visits[idx])
+                            body: JSON.stringify(visitToSubmit)
                         });
+                        console.log('📨 Backend response status:', backendRes.status);
                         if (backendRes.ok) {
-                            console.log('? Visit saved to backend database');
+                            console.log('✅ Visit saved to backend database');
                             try {
                                 const data = await backendRes.json();
+                                console.log('📝 Backend response:', data);
                                 if (data.success && data.report && data.report._id) {
                                     if (mode === 'create') {
                                         newVisit._id = data.report._id;
@@ -1631,12 +1641,15 @@
                                         visits[idx]._id = data.report._id;
                                     }
                                     localStorage.setItem('roomhy_visits', JSON.stringify(visits));
+                                    console.log('✅ Local storage updated with backend _id');
                                 }
                             } catch (e) {
-                                console.warn('Could not update _id from backend:', e);
+                                console.warn('⚠️ Could not parse backend response:', e);
                             }
                         } else {
-                            console.warn('⚠️ Backend save failed:', backendRes.status);
+                            console.warn('⚠️ Backend save failed with status:', backendRes.status);
+                            const errorText = await backendRes.text();
+                            console.warn('⚠️ Backend error response:', errorText);
                         }
                     } catch (err) {
                         console.warn('⚠️ Could not save to backend:', err.message);

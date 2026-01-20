@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const WebsiteEnquiry = require('../models/WebsiteEnquiry');
-const Owner = require('../models/Owner');
+// const Owner = require('../models/Owner');
 
 // ============================================================
 // POST: Submit a new website enquiry
@@ -228,17 +228,17 @@ router.get('/', async (req, res) => {
                 // For now, let's assume the owner_id is stored in a way we can query
                 // This might need adjustment based on how enquiries are actually stored
                 // Look up the owner by loginId to get their email
-                const owner = await Owner.findOne({ loginId: owner_id });
-                if (owner && owner.email) {
-                    query.owner_email = owner.email;
-                } else {
+                // const owner = await Owner.findOne({ loginId: owner_id });
+                // if (owner && owner.email) {
+                //     query.owner_email = owner.email;
+                // } else {
                     // If owner not found or no email, return empty result
                     return res.status(200).json({
                         success: true,
                         count: 0,
                         enquiries: []
                     });
-                }
+                // }
             }
         }
         if (status) query.status = status;

@@ -230,6 +230,7 @@
 
     <script>
         lucide.createIcons();
+        let currentApprovingId = null; // holds visit id for approval modal
 
         function navigateTo(path) {
             window.location.href = path;
@@ -579,11 +580,26 @@
         }
 
         async function confirmApproval(shouldUpload) {
-            if(!currentApprovingId) return;
-            
-            let visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
-            let sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
-            
+            console.log('confirmApproval called', { shouldUpload, currentApprovingId });
+            if (!currentApprovingId) return;
+
+            let visits = [];
+            let sessionVisits = [];
+
+            // Safe localStorage access (some browsers block storage in strict tracking-prevention)
+            try {
+                visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
+            } catch (e) {
+                console.warn('localStorage access failed or blocked:', e);
+                visits = [];
+            }
+
+            try {
+                sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
+            } catch (e) {
+                sessionVisits = [];
+            }
+
             // Merge both sources first
             if (sessionVisits.length > 0) {
                 const merged = [...visits];
@@ -597,9 +613,53 @@
                 });
                 visits = merged;
             }
-            
-            const idx = visits.findIndex(v => v._id === currentApprovingId);
-            if(idx !== -1) {
+
+            const idx = visits.findIndex(v => v._1d === currentApprovingId || v._id === currentApprovingId);
+
+            // If we couldn't find the visit in storage (blocked or not present), fall back to backend-only flow
+            if (idx === -1) {
+                console.log('Visit not found in local storage, calling backend approve API directly for', currentApprovingId);
+                const loginId = `ROOMHY${Math.floor(1000 + Math.random() * 9000)}`;
+                const password = Math.random().toString(36).slice(-8);
+                try {
+                    const response = await fetch(API_URL + '/api/visits/approve', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
+                        },
+                        body: JSON.stringify({
+                            visitId: currentApprovingId,
+                            status: 'approved',
+                            isLiveOnWebsite: shouldUpload,
+                            loginId: loginId,
+                            tempPassword: password
+                        })
+                    });
+                    const data = await response.json();
+                    console.log('Backend approve response:', data);
+                    if (response.ok) {
+                        document.getElementById('approveModal').classList.add('hidden');
+                        document.getElementById('modalLoginId').innerText = loginId;
+                        document.getElementById('modalPassword').innerText = password;
+                        document.getElementById('modalGmail').innerText = data.enquiry?.propertyInfo?.ownerGmail || '-';
+                        document.getElementById('successModal').classList.remove('hidden');
+                        document.getElementById('successModal').classList.add('flex');
+                        fetchEnquiries();
+                    } else {
+                        alert('Failed to approve visit: ' + (data.message || response.statusText));
+                    }
+                } catch (err) {
+                    console.error('Error calling approve API:', err);
+                    alert('Error approving visit. See console for details.');
+                }
+
+                currentApprovingId = null;
+                return;
+            }
+
+            // If visit found in storage, continue with previous local flow
+            try {
                 const loginId = `ROOMHY${Math.floor(1000 + Math.random() * 9000)}`;
                 const password = Math.random().toString(36).slice(-8);
 
@@ -608,7 +668,7 @@
                 visits[idx].generatedCredentials = { loginId, tempPassword: password };
                 if (window.safeStorage) { window.safeStorage.setVisits(visits); } else { localStorage.setItem('roomhy_visits', JSON.stringify(visits)); }
 
-                // Always sync with backend API
+                // Sync with backend API
                 try {
                     const response = await fetch(API_URL + '/api/visits/approve', {
                         method: 'POST',
@@ -627,86 +687,29 @@
                     const data = await response.json();
                     console.log('✅ Visit approved and synced to backend:', data);
                 } catch (err) {
-                    console.warn('âš ï¸ Backend sync failed (continuing with localStorage):', err);
+                    console.warn('Backend sync failed (continuing with localStorage):', err);
                 }
-                
+
                 // Send login credentials to owner's Gmail (non-blocking)
                 const ownerGmail = visits[idx].propertyInfo?.ownerGmail || visits[idx].ownerGmail;
                 if (ownerGmail && ownerGmail !== '-') {
-                    // Send email asynchronously without blocking the approval process
                     setTimeout(async () => {
                         try {
                             const propertyName = visits[idx].propertyInfo?.name || visits[idx].property?.name || 'Your Property';
                             const emailSubject = `RoomHy Login Credentials - ${propertyName}`;
-                            const emailHtml = `
-                                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
-                                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px; margin-bottom: 20px;">
-                                        <h1 style="color: white; margin: 0; font-size: 24px; text-align: center;">🏠 RoomHy Property Portal</h1>
-                                        <p style="color: #e0e7ff; margin: 10px 0 0 0; text-align: center; font-size: 16px;">Your property has been approved!</p>
-                                    </div>
-
-                                    <div style="background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                                        <h2 style="color: #1f2937; margin-top: 0; font-size: 20px;">Login Credentials</h2>
-                                        <p style="color: #6b7280; margin-bottom: 20px;">Your property <strong>${propertyName}</strong> has been approved and is now live on our platform. Here are your login credentials:</p>
-
-                                        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #667eea;">
-                                            <div style="margin-bottom: 15px;">
-                                                <strong style="color: #374151;">Login ID:</strong>
-                                                <div style="font-family: monospace; font-size: 16px; color: #667eea; background: white; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #e5e7eb;">${loginId}</div>
-                                            </div>
-                                            <div style="margin-bottom: 15px;">
-                                                <strong style="color: #374151;">Password:</strong>
-                                                <div style="font-family: monospace; font-size: 16px; color: #667eea; background: white; padding: 8px; border-radius: 4px; margin-top: 5px; border: 1px solid #e5e7eb;">${password}</div>
-                                            </div>
-                                        </div>
-
-                                        <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
-                                            <strong style="color: #92400e;">⚠️ Important:</strong>
-                                            <ul style="color: #92400e; margin: 10px 0 0 0; padding-left: 20px;">
-                                                <li>Please change your password after first login for security</li>
-                                                <li>Keep these credentials safe and do not share them</li>
-                                                <li>Contact support if you have any issues logging in</li>
-                                            </ul>
-                                        </div>
-
-                                        <div style="text-align: center; margin-top: 30px;">
-                                            <a href="https://roomhy.com/login" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Login to Your Account</a>
-                                        </div>
-                                    </div>
-
-                                    <div style="text-align: center; margin-top: 20px; color: #6b7280; font-size: 14px;">
-                                        <p>Need help? Contact our support team at <a href="mailto:support@roomhy.com" style="color: #667eea;">support@roomhy.com</a></p>
-                                        <p>&copy; 2024 RoomHy. All rights reserved.</p>
-                                    </div>
-                                </div>
-                            `;
-
-                            const emailResponse = await fetch(API_URL + '/api/email/send', {
+                            const emailHtml = `Credentials: ${loginId} / ${password}`;
+                            await fetch(API_URL + '/api/email/send', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
                                 },
-                                body: JSON.stringify({
-                                    to: ownerGmail,
-                                    subject: emailSubject,
-                                    html: emailHtml
-                                })
+                                body: JSON.stringify({ to: ownerGmail, subject: emailSubject, html: emailHtml })
                             });
-
-                            if (emailResponse.ok) {
-                                console.log('✅ Login credentials email sent successfully to:', ownerGmail);
-                            } else {
-                                console.warn('âš ï¸ Failed to send login credentials email:', emailResponse.status);
-                            }
-                        } catch (emailError) {
-                            console.warn('âš ï¸ Error sending login credentials email:', emailError);
-                        }
-                    }, 100); // Small delay to ensure modal shows first
-                } else {
-                    console.warn('âš ï¸ No Gmail address found for owner, skipping email notification');
+                        } catch (emailError) { console.warn('Error sending email:', emailError); }
+                    }, 100);
                 }
-                
+
                 document.getElementById('modalLoginId').innerText = loginId;
                 document.getElementById('modalPassword').innerText = password;
                 document.getElementById('modalGmail').innerText = visits[idx].propertyInfo?.ownerGmail || visits[idx].ownerGmail || '-';
@@ -714,7 +717,11 @@
                 document.getElementById('successModal').classList.remove('hidden');
                 document.getElementById('successModal').classList.add('flex');
                 fetchEnquiries();
+            } catch (err) {
+                console.error('confirmApproval error:', err);
+                alert('Error during approval process. See console.');
             }
+
             currentApprovingId = null;
         }
 

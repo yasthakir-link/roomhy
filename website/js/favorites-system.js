@@ -37,11 +37,16 @@ class FavoritesSystem {
             _id: property._id || property.enquiry_id,
             enquiry_id: property.enquiry_id || property._id,
             property_name: property.property_name,
+            property_image: property.property_image,
             city: property.city,
+            location: property.location || property.city,
             locality: property.locality,
             rent: property.rent,
+            price: property.price || property.rent,
             property_type: property.property_type,
             photos: property.photos || property.professionalPhotos || [],
+            bedrooms: property.bedrooms || 0,
+            bathrooms: property.bathrooms || 0,
             isVerified: property.isVerified,
             rating: property.rating,
             reviewsCount: property.reviewsCount,
@@ -82,25 +87,28 @@ function toggleFavorite(event, propertyData) {
     event.preventDefault();
     event.stopPropagation();
 
-    const heartIcon = event.currentTarget.querySelector('i[data-lucide="heart"]');
+    const btn = event.currentTarget || event.target.closest('.favorite-btn');
+    const heartIcon = btn.querySelector('i[data-lucide="heart"]');
     const propertyId = propertyData._id || propertyData.enquiry_id;
 
     if (favoritesManager.isFavorited(propertyId)) {
         // Remove from favorites
         favoritesManager.removeFavorite(propertyId);
         if (heartIcon) {
-            heartIcon.classList.remove('fill-red-500', 'text-red-500');
+            heartIcon.classList.remove('fill-current', 'fill-red-500', 'text-red-500');
         }
-        event.currentTarget.classList.remove('text-red-500');
+        btn.classList.remove('bg-red-500', 'text-white');
+        btn.classList.add('bg-white', 'text-gray-600');
         showNotification('Removed from favorites', 'info');
     } else {
         // Add to favorites
         const success = favoritesManager.addFavorite(propertyData);
         if (success) {
             if (heartIcon) {
-                heartIcon.classList.add('fill-red-500', 'text-red-500');
+                heartIcon.classList.add('fill-current');
             }
-            event.currentTarget.classList.add('text-red-500');
+            btn.classList.remove('bg-white', 'text-gray-600');
+            btn.classList.add('bg-red-500', 'text-white');
             showNotification('Added to favorites', 'success');
         }
     }
@@ -116,14 +124,16 @@ function updateHeartIcon(heartButton, propertyId) {
     const heartIcon = heartButton.querySelector('i[data-lucide="heart"]');
     if (favoritesManager.isFavorited(propertyId)) {
         if (heartIcon) {
-            heartIcon.classList.add('fill-red-500', 'text-red-500');
+            heartIcon.classList.add('fill-current');
         }
-        heartButton.classList.add('text-red-500');
+        heartButton.classList.remove('bg-white', 'text-gray-600');
+        heartButton.classList.add('bg-red-500', 'text-white');
     } else {
         if (heartIcon) {
-            heartIcon.classList.remove('fill-red-500', 'text-red-500');
+            heartIcon.classList.remove('fill-current');
         }
-        heartButton.classList.remove('text-red-500');
+        heartButton.classList.remove('bg-red-500', 'text-white');
+        heartButton.classList.add('bg-white', 'text-gray-600');
     }
 }
 

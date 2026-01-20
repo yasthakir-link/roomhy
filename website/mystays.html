@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -91,6 +91,52 @@
         .horizontal-slider {
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
+        }
+
+        /* 3D Flip Card Styles */
+        .city-flip-card {
+            perspective: 1000px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .city-flip-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .city-flip-card.flipped .city-flip-inner {
+            transform: rotateY(180deg);
+        }
+
+        .city-flip-front, .city-flip-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .city-flip-front {
+            background-color: white;
+            z-index: 2;
+        }
+
+        .city-flip-back {
+            background-color: white;
+            transform: rotateY(180deg);
+            z-index: 1;
+        }
+
+        .city-flip-front img, .city-flip-back img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
 
         .offering-card-item {
@@ -769,47 +815,165 @@
     <script>
         lucide.createIcons();
 
-        // Load cities from localStorage and render dynamically
-        function loadDynamicCities() {
-            const citiesData = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
-            
-            // Extract city names - handle both string and object formats
-            const cityNames = citiesData.map(city => {
-                if (typeof city === 'string') return city;
-                if (typeof city === 'object' && city.name) return city.name;
-                return null;
-            }).filter(city => city !== null);
+        // Load cities from MongoDB database with carousel
+        async function loadDynamicCities() {
+            try {
+                // Get API base URL - support both local and production
+                const apiBase = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                    ? 'http://localhost:5000'
+                    : 'https://roomhy-backend.onrender.com';
+                
+                const response = await fetch(`${apiBase}/api/locations/cities`);
+                if (!response.ok) throw new Error('Failed to fetch cities from MongoDB');
+                
+                const data = await response.json();
+                const cities = (data.data || []).map(city => ({
+                    name: city.name || city.cityName,
+                    img: city.imageUrl || city.image || 'https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?q=80&w=2070&auto:format&fit=crop'
+                })).filter(c => c.name);
 
-            if (cityNames.length === 0) {
-                console.log('No cities configured');
-                return;
+                if (cities.length === 0) {
+                    throw new Error('No cities found');
+                }
+
+                // Fetch areas to get area images
+                let areasByCity = {};
+                try {
+                    const areasResponse = await fetch(`${apiBase}/api/locations/areas`);
+                    if (areasResponse.ok) {
+                        const areasData = await areasResponse.json();
+                        (areasData.data || []).forEach(area => {
+                            const cityName = area.city || area.cityName;
+                            if (cityName && (area.imageUrl || area.image)) {
+                                if (!areasByCity[cityName]) {
+                                    areasByCity[cityName] = [];
+                                }
+                                areasByCity[cityName].push({
+                                    name: area.name,
+                                    img: area.imageUrl || area.image
+                                });
+                            }
+                        });
+                    }
+                } catch (areasError) {
+                    console.log('Could not fetch areas:', areasError.message);
+                }
+
+                // Find the cities container
+                const citiesContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
+                if (!citiesContainer) return;
+
+                // Clear existing city filters (except the View All button)
+                const cityFilters = citiesContainer.querySelectorAll('.city-filter');
+                cityFilters.forEach(filter => filter.remove());
+
+                // Add dynamic cities with flip card
+                const viewAllBtn = citiesContainer.querySelector('a:last-child');
+                cities.slice(0, 4).forEach(city => {
+                    const cityElement = document.createElement('div');
+                    cityElement.className = 'city-filter group flex flex-col items-center justify-start text-center flex-shrink-0 w-20 snap-start space-y-2';
+                    
+                    const areaImages = areasByCity[city.name] || [];
+                    const firstAreaImg = areaImages.length > 0 ? areaImages[0].img : city.img;
+                    
+                    cityElement.innerHTML = `
+                        <div class="w-16 h-16 rounded-full relative overflow-hidden border border-gray-200 shadow-sm cursor-pointer city-flip-card" onclick="toggleMystaysFlip(this); event.stopPropagation();">
+                            <div class="city-flip-inner">
+                                <!-- Front: City Image -->
+                                <div class="city-flip-front rounded-full overflow-hidden">
+                                    <img src="${city.img}" alt="Photo of ${city.name}" class="w-full h-full object-cover">
+                                </div>
+                                
+                                <!-- Back: Area Image -->
+                                <div class="city-flip-back rounded-full overflow-hidden">
+                                    <img src="${firstAreaImg}" alt="Area in ${city.name}" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                        </div>
+                        <h3 class="text-sm font-medium text-gray-800 leading-tight cursor-pointer" onclick="window.location.href = \`ourproperty.html?city=\${encodeURIComponent('${city.name}')}\`">${city.name}</h3>
+                    `;
+                    
+                    citiesContainer.insertBefore(cityElement, viewAllBtn);
+                });
+
+                // Setup flip card toggle function
+                window.toggleMystaysFlip = function(element) {
+                    element.classList.toggle('flipped');
+                };
+
+                // Auto-flip on hover
+                document.querySelectorAll('.city-filter').forEach(card => {
+                    let flipInterval;
+                    const flipCard = card.querySelector('.city-flip-card');
+                    
+                    if (flipCard) {
+                        flipCard.addEventListener('mouseenter', function() {
+                            const hasAreaImages = this.querySelectorAll('.city-flip-back img').length > 0;
+                            if (hasAreaImages && !this.classList.contains('flipped')) {
+                                flipInterval = setTimeout(() => {
+                                    this.classList.add('flipped');
+                                }, 2000);
+                            }
+                        });
+
+                        flipCard.addEventListener('mouseleave', function() {
+                            if (flipInterval) {
+                                clearTimeout(flipInterval);
+                                flipInterval = null;
+                            }
+                            this.classList.remove('flipped');
+                        });
+                    }
+                });
+
+                lucide.createIcons();
+            } catch (error) {
+                console.log('Could not load cities from MongoDB:', error.message);
+                // Try fallback from localStorage
+                try {
+                    const citiesData = JSON.parse(localStorage.getItem('roomhy_cities') || '[]');
+                    
+                    // Extract city names - handle both string and object formats
+                    const cityNames = citiesData.map(city => {
+                        if (typeof city === 'string') return city;
+                        if (typeof city === 'object' && city.name) return city.name;
+                        return null;
+                    }).filter(city => city !== null);
+
+                    if (cityNames.length === 0) {
+                        console.log('No cities configured');
+                        return;
+                    }
+
+                    // Find the cities container
+                    const citiesContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
+                    if (!citiesContainer) return;
+
+                    // Clear existing city filters (except the View All button)
+                    const cityFilters = citiesContainer.querySelectorAll('.city-filter');
+                    cityFilters.forEach(filter => filter.remove());
+
+                    // Add dynamic cities
+                    const viewAllBtn = citiesContainer.querySelector('a:last-child');
+                    cityNames.slice(0, 4).forEach(city => {
+                        const cityElement = document.createElement('a');
+                        cityElement.href = '#';
+                        cityElement.className = 'city-filter group flex flex-col items-center justify-start text-center flex-shrink-0 w-20 snap-start space-y-2';
+                        cityElement.dataset.city = city;
+                        cityElement.innerHTML = `
+                            <div class="w-16 h-16 rounded-full relative overflow-hidden border border-gray-200 shadow-sm bg-gray-100 flex items-center justify-center">
+                                <i data-lucide="map-pin" class="w-8 h-8 text-gray-600"></i>
+                            </div>
+                            <h3 class="text-sm font-medium text-gray-800 leading-tight">${city}</h3>
+                        `;
+                        citiesContainer.insertBefore(cityElement, viewAllBtn);
+                    });
+
+                    lucide.createIcons();
+                } catch (fallbackError) {
+                    console.log('Fallback also failed:', fallbackError.message);
+                }
             }
-
-            // Find the cities container
-            const citiesContainer = document.querySelector('.flex.gap-4.overflow-x-auto');
-            if (!citiesContainer) return;
-
-            // Clear existing city filters (except the View All button)
-            const cityFilters = citiesContainer.querySelectorAll('.city-filter');
-            cityFilters.forEach(filter => filter.remove());
-
-            // Add dynamic cities
-            const viewAllBtn = citiesContainer.querySelector('a:last-child');
-            cityNames.slice(0, 4).forEach(city => {
-                const cityElement = document.createElement('a');
-                cityElement.href = '#';
-                cityElement.className = 'city-filter group flex flex-col items-center justify-start text-center flex-shrink-0 w-20 snap-start space-y-2';
-                cityElement.dataset.city = city;
-                cityElement.innerHTML = `
-                    <div class="w-16 h-16 rounded-full relative overflow-hidden border border-gray-200 shadow-sm bg-gray-100 flex items-center justify-center">
-                        <i data-lucide="map-pin" class="w-8 h-8 text-gray-600"></i>
-                    </div>
-                    <h3 class="text-sm font-medium text-gray-800 leading-tight">${city}</h3>
-                `;
-                citiesContainer.insertBefore(cityElement, viewAllBtn);
-            });
-
-            lucide.createIcons();
         }
 
         // Load cities on page load

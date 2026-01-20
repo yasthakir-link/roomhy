@@ -11,10 +11,10 @@ const API_URL = getAPIURL();
 console.log('🔗 [API Config] Environment:', window.location.hostname === 'localhost' ? 'DEVELOPMENT' : 'PRODUCTION');
 console.log('🔗 [API Config] API_URL:', API_URL);
 
-// Test API connectivity
+// Test API connectivity (use a public endpoint that doesn't require auth)
 (async () => {
     try {
-        const testResponse = await fetch(`${API_URL}/api/visits`, {
+        const testResponse = await fetch(`${API_URL}/api/locations/cities`, {
             method: 'GET',
             headers: { 'Content-Type': 'application/json' }
         });
