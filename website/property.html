@@ -5,7 +5,7 @@
         // API Configuration - Support both local and production
         const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
             ? 'http://localhost:5000'
-            : 'https://roomhy-backend-wqwo.onrender.com';
+            : 'https://roomhy-backend.onrender.com';
         console.log('Using API_URL:', API_URL);
     </script>
     <meta charset="UTF-8">
@@ -13,13 +13,6 @@
     <title>Athena House, Hinjawadi - Roomhy</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Shared Header and Notifications -->
-    <script src="./js/shared-header.js"></script>
-    <script src="./js/notification-system.js"></script>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -160,7 +153,7 @@
                 <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
                     <i data-lucide="users" class="w-6 h-6 text-gray-600"></i>
                 </div>
-                <span class="text-lg font-semibold text-gray-800">Hi Yasmine 👋</span>
+                <span class="text-lg font-semibold text-gray-800">Hi Yasmine ðŸ‘‹</span>
             </div>
             <a href="profile.html" class="text-sm font-medium text-blue-600 hover:underline">Profile</a>
         </div>
@@ -211,12 +204,6 @@
                     <i data-lucide="phone" class="w-5 h-5 text-cyan-600"></i>
                 </div>
                 <span>Contact Us</span>
-            </a>
-            <a href="websitechat.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                    <i data-lucide="message-circle" class="w-5 h-5 text-green-600"></i>
-                </div>
-                <span>Chat</span>
             </a>
         </nav>
         
@@ -278,7 +265,7 @@
                     <div class="mb-4">
                         <div class="flex items-center justify-between mb-3">
                             <h4 class="text-sm font-semibold text-gray-800">All Photos</h4>
-                            <span class="text-xs font-medium text-gray-500">← Scroll to browse →</span>
+                            <span class="text-xs font-medium text-gray-500">â† Scroll to browse â†’</span>
                         </div>
                         <div class="flex gap-3 overflow-x-auto pb-2 thumbnail-strip" id="galleryThumbnails">
                             <!-- Thumbnails will be populated dynamically -->
@@ -307,10 +294,10 @@
                     
                     <!-- Zoom Controls -->
                     <div class="zoom-controls">
-                        <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">−</button>
+                        <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">âˆ’</button>
                         <div class="zoom-level" id="zoomLevel">100%</div>
                         <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">+</button>
-                        <button class="zoom-btn" onclick="resetZoom()" title="Reset">⟲</button>
+                        <button class="zoom-btn" onclick="resetZoom()" title="Reset">âŸ²</button>
                     </div>
                     
                     <!-- Image Navigation -->
@@ -383,7 +370,7 @@
                                 </div>
                             </div>
                             <div id="student-reviews-stars" class="flex gap-1 text-3xl text-amber-400 mb-4">
-                                <span>?</span><span>?</span><span>?</span><span>?</span><span>?</span>
+                                <span>★</span><span>★</span><span>★</span><span>★</span><span>☆</span>
                             </div>
                             <p id="student-reviews-comment" class="text-gray-700 text-sm italic border-t border-gray-200 pt-4">No student reviews available yet</p>
                         </div>
@@ -401,7 +388,7 @@
                                 </div>
                             </div>
                             <div id="employee-rating-stars" class="flex gap-1 text-3xl text-emerald-500 mb-4">
-                                <span>?</span><span>?</span><span>?</span><span>?</span><span>?</span>
+                                <span>★</span><span>★</span><span>★</span><span>★</span><span>☆</span>
                             </div>
                             <p id="employee-rating-comment" class="text-gray-700 text-sm italic border-t border-gray-200 pt-4">No employee rating available yet</p>
                         </div>
@@ -477,7 +464,7 @@
                 <div class="light-card p-8 rounded-2xl sticky sticky-booking-card border-l-4 border-teal-500">
                     <!-- Pricing Header -->
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Monthly Budget</p>
-                    <p id="property-budget" class="text-4xl font-bold text-gray-900 mb-8">?10,000 <span class="text-lg font-normal text-gray-500">/ month</span></p>
+                    <p id="property-budget" class="text-4xl font-bold text-gray-900 mb-8">₹10,000 <span class="text-lg font-normal text-gray-500">/ month</span></p>
                     
                     <!-- Tab Navigation -->
                     <div class="flex gap-3 mb-6 border-b border-gray-200">
@@ -536,7 +523,7 @@
                                 <p class="text-sm text-gray-500">Co-Living</p>
                                 <h3 class="font-bold text-lg mt-1 truncate">The Hive</h3>
                                 <p class="text-gray-500 text-sm mt-1 truncate">Koramangala, BLR</p>
-                                <p class="font-bold mt-2">?18,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
+                                <p class="font-bold mt-2">₹18,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
                             </div>
                         </div>
                     </a>
@@ -547,7 +534,7 @@
                                 <p class="text-sm text-gray-500">Private Studio</p>
                                 <h3 class="font-bold text-lg mt-1 truncate">Campus Corner</h3>
                                 <p class="text-gray-500 text-sm mt-1 truncate">North Campus, Delhi</p>
-                                <p class="font-bold mt-2">?13,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
+                                <p class="font-bold mt-2">₹13,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
                             </div>
                         </div>
                     </a>
@@ -558,7 +545,7 @@
                                 <p class="text-sm text-gray-500">Co-Living</p>
                                 <h3 class="font-bold text-lg mt-1 truncate">Prime Student Living</h3>
                                 <p class="text-gray-500 text-sm mt-1 truncate">Saket Nagar, Indore</p>
-                                <p class="font-bold mt-2">?11,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
+                                <p class="font-bold mt-2">₹11,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
                             </div>
                         </div>
                     </a>
@@ -569,7 +556,7 @@
                                 <p class="text-sm text-gray-500">Apartment</p>
                                 <h3 class="font-bold text-lg mt-1 truncate">Modern Loft</h3>
                                 <p class="text-gray-500 text-sm mt-1 truncate">Powai, Mumbai</p>
-                                <p class="font-bold mt-2">?22,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
+                                <p class="font-bold mt-2">₹22,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
                             </div>
                         </div>
                     </a>
@@ -599,8 +586,8 @@
                                     <p class="truncate">Hinjawadi, Pune</p>
                                 </div>
                                 <div class="flex justify-between items-end mt-4 pt-4 border-t border-gray-200">
-                                    <p class="font-bold text-lg text-gray-900">?11,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
-                                    <button class="text-emerald-600 hover:text-emerald-700 font-bold text-sm">View →</button>
+                                    <p class="font-bold text-lg text-gray-900">₹11,000 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
+                                    <button class="text-emerald-600 hover:text-emerald-700 font-bold text-sm">View â†’</button>
                                 </div>
                             </div>
                         </div>
@@ -618,8 +605,8 @@
                                     <p class="truncate">Wakad, Pune</p>
                                 </div>
                                 <div class="flex justify-between items-end mt-4 pt-4 border-t border-gray-200">
-                                    <p class="font-bold text-lg text-gray-900">?14,500 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
-                                    <button class="text-emerald-600 hover:text-emerald-700 font-bold text-sm">View →</button>
+                                    <p class="font-bold text-lg text-gray-900">₹14,500 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
+                                    <button class="text-emerald-600 hover:text-emerald-700 font-bold text-sm">View â†’</button>
                                 </div>
                             </div>
                         </div>
@@ -637,8 +624,8 @@
                                     <p class="truncate">Hinjawadi, Pune</p>
                                 </div>
                                 <div class="flex justify-between items-end mt-4 pt-4 border-t border-gray-200">
-                                    <p class="font-bold text-lg text-gray-900">?10,500 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
-                                    <button class="text-emerald-600 hover:text-emerald-700 font-bold text-sm">View →</button>
+                                    <p class="font-bold text-lg text-gray-900">₹10,500 <span class="text-sm font-normal text-gray-500">/ mo</span></p>
+                                    <button class="text-emerald-600 hover:text-emerald-700 font-bold text-sm">View â†’</button>
                                 </div>
                             </div>
                         </div>
@@ -681,10 +668,10 @@
                         <span>Explore</span>
                     </h4>
                     <ul class="space-y-3">
-                        <li><a href="stays.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>→</span><span>Apartments</span></a></li>
-                        <li><a href="stays.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>→</span><span>Hostels</span></a></li>
-                        <li><a href="stays.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>→</span><span>Co-Living</span></a></li>
-                        <li><a href="stays.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>→</span><span>PGs</span></a></li>
+                        <li><a href="stays.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>â†’</span><span>Apartments</span></a></li>
+                        <li><a href="stays.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>â†’</span><span>Hostels</span></a></li>
+                        <li><a href="stays.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>â†’</span><span>Co-Living</span></a></li>
+                        <li><a href="stays.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>â†’</span><span>PGs</span></a></li>
                     </ul>
                 </div>
                 <div>
@@ -693,10 +680,10 @@
                         <span>Company</span>
                     </h4>
                     <ul class="space-y-3">
-                        <li><a href="about.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>→</span><span>About Us</span></a></li>
-                        <li><a href="list.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>→</span><span>List Your Property</span></a></li>
-                        <li><a href="privacy.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>→</span><span>Privacy Policy</span></a></li>
-                        <li><a href="terms.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>→</span><span>Terms of Service</span></a></li>
+                        <li><a href="about.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>â†’</span><span>About Us</span></a></li>
+                        <li><a href="list.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>â†’</span><span>List Your Property</span></a></li>
+                        <li><a href="privacy.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>â†’</span><span>Privacy Policy</span></a></li>
+                        <li><a href="terms.html" class="text-gray-300 hover:text-white transition-colors flex items-center space-x-2"><span>â†’</span><span>Terms of Service</span></a></li>
                     </ul>
                 </div>
                 <div>
@@ -722,7 +709,7 @@
             </div>
             <div class="mt-12 border-t border-gray-700 pt-8 text-center text-gray-400 text-sm">
                 <p class="flex items-center justify-center space-x-2">
-                    <span>� 2025 Roomhy. All Rights Reserved. Built with</span>
+                    <span>© 2025 Roomhy. All Rights Reserved. Built with</span>
                     <i data-lucide="heart" class="w-4 h-4 text-red-500 fill-red-500"></i>
                     <span>for students.</span>
                 </p>
@@ -740,7 +727,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <button id="gallery-zoom-in" class="p-2 bg-white/10 text-white rounded hover:bg-white/20">+</button>
-                    <button id="gallery-zoom-out" class="p-2 bg-white/10 text-white rounded hover:bg-white/20">−</button>
+                    <button id="gallery-zoom-out" class="p-2 bg-white/10 text-white rounded hover:bg-white/20">âˆ’</button>
                     <button id="gallery-reset" class="p-2 bg-white/10 text-white rounded hover:bg-white/20">Reset</button>
                     <button id="gallery-close" class="p-2 bg-white/10 text-white rounded hover:bg-white/20"><i data-lucide="x" class="w-5 h-5"></i></button>
                 </div>
@@ -806,7 +793,7 @@
                     <div class="space-y-2 text-sm text-gray-600">
                         <div class="flex justify-between">
                             <span>Budget</span>
-                            <span id="payment-budget" class="font-semibold text-gray-900">?0</span>
+                            <span id="payment-budget" class="font-semibold text-gray-900">₹0</span>
                         </div>
                         <div class="flex justify-between">
                             <span>Bid Type</span>
@@ -819,11 +806,11 @@
                 <div class="space-y-3 border-b border-gray-200 pb-4">
                     <div class="flex justify-between items-center text-sm">
                         <label class="text-gray-600">Bid Amount <span class="text-xs text-gray-500">(Refundable)</span></label>
-                        <span class="font-semibold text-gray-900">?500</span>
+                        <span class="font-semibold text-gray-900">₹500</span>
                     </div>
                     <div class="flex justify-between items-center text-sm">
                         <label class="text-gray-600">Processing Fee</label>
-                        <span class="font-semibold text-gray-900">?0</span>
+                        <span class="font-semibold text-gray-900">₹0</span>
                     </div>
                 </div>
 
@@ -831,9 +818,9 @@
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <div class="flex justify-between items-center">
                         <span class="text-lg font-semibold text-gray-900">Total Amount</span>
-                        <span id="payment-total" class="text-2xl font-bold text-yellow-700">?500</span>
+                        <span id="payment-total" class="text-2xl font-bold text-yellow-700">₹500</span>
                     </div>
-                    <p class="text-xs text-gray-600 mt-2">✓ Fully refundable bid amount. If you don't like the place after visits, full refund will be processed.</p>
+                    <p class="text-xs text-gray-600 mt-2">âœ“ Fully refundable bid amount. If you don't like the place after visits, full refund will be processed.</p>
                 </div>
 
                 <!-- Terms & Conditions -->
@@ -853,7 +840,7 @@
                 <!-- Secure Badge -->
                 <div class="text-center text-xs text-gray-500 flex items-center justify-center space-x-1">
                     <i data-lucide="shield-check" class="w-4 h-4 text-green-600"></i>
-                    <span>SSL Secure "� PCI Compliant</span>
+                    <span>SSL Secure "¢ PCI Compliant</span>
                 </div>
             </div>
         </div>
@@ -956,10 +943,7 @@
 
                 if (titleEl) titleEl.textContent = title;
                 if (locEl) locEl.innerHTML = '<i data-lucide="map-pin" class="w-4 h-4 mr-2"></i>' + locationText;
-                // Show gender badge before the property type badge
-                const genderTag = (v.gender_suitability || prop.gender_suitability || v.gender || prop.gender || '').toString().toLowerCase();
-                const genderBadge = genderTag ? `<span class="text-xs text-white ${genderTag === 'girls' ? 'bg-pink-600' : genderTag === 'boys' ? 'bg-blue-600' : 'bg-gray-700'} px-2 py-1 rounded-full font-medium mr-2">${genderTag.charAt(0).toUpperCase()+genderTag.slice(1)}</span>` : '';
-                if (badgeEl) badgeEl.innerHTML = genderBadge + badge;
+                if (badgeEl) badgeEl.textContent = badge;
                 function safeSetImg(el, src){
                     if(!el) return;
                     try{ el.src = src || el.src || 'https://images.unsplash.com/photo-1567016432779-1fee749a1532?q=80&w=1974&auto=format&fit=crop'; }catch(e){}
@@ -997,7 +981,7 @@
                     const commentEl = document.getElementById(commentId);
                     
                     if (!rating || rating === '-' || rating === 0) {
-                        if (starsEl) starsEl.innerHTML = '<span>?</span><span>?</span><span>?</span><span>?</span><span>?</span>';
+                        if (starsEl) starsEl.innerHTML = '<span>★</span><span>★</span><span>★</span><span>★</span><span>☆</span>';
                         if (ratingEl) ratingEl.textContent = '-';
                         if (commentEl) commentEl.textContent = isStudent ? 'No student reviews available yet' : 'No employee rating available yet';
                         return;
@@ -1007,8 +991,8 @@
                     const fullStars = Math.floor(ratingValue);
                     const emptyStars = 5 - fullStars;
                     let starsHtml = '';
-                    for (let i = 0; i < fullStars; i++) starsHtml += '<span>?</span>';
-                    for (let i = 0; i < emptyStars; i++) starsHtml += '<span>?</span>';
+                    for (let i = 0; i < fullStars; i++) starsHtml += '<span>★</span>';
+                    for (let i = 0; i < emptyStars; i++) starsHtml += '<span>☆</span>';
                     
                     if (starsEl) starsEl.innerHTML = starsHtml;
                     if (ratingEl) ratingEl.textContent = ratingValue.toFixed(1);
@@ -1053,8 +1037,8 @@
                     if (v.furnishing) facts.push({k:'Furnishing', v: v.furnishing});
                     if (v.ventilation) facts.push({k:'Ventilation', v: v.ventilation});
                     if (v.minStay) facts.push({k:'Min Stay (months)', v: v.minStay});
-                    if (v.monthlyRent) facts.push({k:'Rent', v: '?' + v.monthlyRent});
-                    if (v.deposit) facts.push({k:'Deposit', v: '?' + v.deposit});
+                    if (v.monthlyRent) facts.push({k:'Rent', v: '₹' + v.monthlyRent});
+                    if (v.deposit) facts.push({k:'Deposit', v: '₹' + v.deposit});
 
                     if (facts.length === 0) {
                         quickFactsGrid.innerHTML = '<div class="text-sm text-gray-500 col-span-2 md:col-span-3">No quick facts available.</div>';
@@ -1298,7 +1282,7 @@
                 const priceCard = document.querySelector('.sticky-booking-card p.text-3xl');
                 if (priceCard) {
                     const rent = v.monthlyRent || v.rent || v.price || prop.monthlyRent || prop.rent || 0;
-                    priceCard.innerHTML = `?${rent} <span class="text-base font-normal text-gray-500">/ bed</span>`;
+                    priceCard.innerHTML = `₹${rent} <span class="text-base font-normal text-gray-500">/ bed</span>`;
                 }
 
                 document.title = `${title} - Roomhy`;
@@ -1493,7 +1477,7 @@
                             const title = p.name || p.title || r.title || 'Property';
                             const loc = p.area || p.locality || r.city || '';
                             const price = r.monthlyRent || r.rent || p.monthlyRent || p.rent || 'N/A';
-                            return `<a href="property.html?id=${r._id||r.id||''}" class="group block flex-shrink-0 snap-start w-80"><div class="light-card rounded-xl overflow-hidden h-full"><img src="${img}" alt="Recommended Property" class="w-full h-48 object-cover"><div class="p-4"><h3 class="font-bold text-lg mt-1 truncate">${title}</h3><p class="text-gray-500 text-sm mt-1 truncate">${loc}</p><p class="font-bold mt-2">?${price} <span class=\"text-sm font-normal text-gray-500\">/ mo</span></p></div></div></a>`;
+                            return `<a href="property.html?id=${r._id||r.id||''}" class="group block flex-shrink-0 snap-start w-80"><div class="light-card rounded-xl overflow-hidden h-full"><img src="${img}" alt="Recommended Property" class="w-full h-48 object-cover"><div class="p-4"><h3 class="font-bold text-lg mt-1 truncate">${title}</h3><p class="text-gray-500 text-sm mt-1 truncate">${loc}</p><p class="font-bold mt-2">₹${price} <span class=\"text-sm font-normal text-gray-500\">/ mo</span></p></div></div></a>`;
                         }).join('');
                     }
                     // Render Similar Properties (only professional photos)
@@ -1505,7 +1489,7 @@
                             const title = p.name || p.title || r.title || 'Property';
                             const loc = p.area || p.locality || r.city || '';
                             const price = r.monthlyRent || r.rent || p.monthlyRent || p.rent || 'N/A';
-                            return `<a href="property.html?id=${r._id||r.id||''}" class="group block flex-shrink-0 snap-start w-80"><div class="light-card rounded-2xl overflow-hidden h-full hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-200"><div class="relative h-48 overflow-hidden"><img src="${img}" alt="Similar Property" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"></div><div class="p-5"><h3 class="font-bold text-lg mt-1 truncate text-gray-900">${title}</h3><div class="flex items-center space-x-1 text-gray-600 text-sm mt-2"><i data-lucide=\"map-pin\" class=\"w-4 h-4\"></i><p class="truncate">${loc}</p></div><div class="flex justify-between items-end mt-4 pt-4 border-t border-gray-200"><p class="font-bold text-lg text-gray-900">?${price} <span class=\"text-sm font-normal text-gray-500\">/ mo</span></p><button class=\"text-emerald-600 hover:text-emerald-700 font-bold text-sm\">View →</button></div></div></div></a>`;
+                            return `<a href="property.html?id=${r._id||r.id||''}" class="group block flex-shrink-0 snap-start w-80"><div class="light-card rounded-2xl overflow-hidden h-full hover:shadow-xl transition-all duration-300 hover:-translate-y-2 border border-gray-200"><div class="relative h-48 overflow-hidden"><img src="${img}" alt="Similar Property" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"></div><div class="p-5"><h3 class="font-bold text-lg mt-1 truncate text-gray-900">${title}</h3><div class="flex items-center space-x-1 text-gray-600 text-sm mt-2"><i data-lucide=\"map-pin\" class=\"w-4 h-4\"></i><p class="truncate">${loc}</p></div><div class="flex justify-between items-end mt-4 pt-4 border-t border-gray-200"><p class="font-bold text-lg text-gray-900">₹${price} <span class=\"text-sm font-normal text-gray-500\">/ mo</span></p><button class=\"text-emerald-600 hover:text-emerald-700 font-bold text-sm\">View â†’</button></div></div></div></a>`;
                         }).join('');
                     }
                 } else {
@@ -1582,9 +1566,9 @@
                         const propertyName = document.getElementById('property-title')?.textContent || 'Property';
                         const area = document.querySelector('[id="property-location"]')?.textContent || 'Unknown';
                         const propertyType = document.querySelector('[data-field="property-type"]')?.textContent || 'PG';
-                        const rentAmount = document.querySelector('[data-field="rent-amount"]')?.textContent?.replace(/?|,/g, '') || 0;
+                        const rentAmount = document.querySelector('[data-field="rent-amount"]')?.textContent?.replace(/₹|,/g, '') || 0;
 
-                        // ? Get property owner ID from approved visit data
+                        // ✅ Get property owner ID from approved visit data
                         // The property must be approved by super admin first - the loginId is generated during approval
                         let propertyOwnerId = null;
                         const visits = getVisitsFromStorage();
@@ -1635,7 +1619,7 @@
                                     property_type: propertyType,
                                     rent_amount: parseInt(rentAmount),
                                     user_id: user.loginId,
-                                    owner_id: propertyOwnerId,  // ? ADD OWNER ID
+                                    owner_id: propertyOwnerId,  // ✅ ADD OWNER ID
                                     name: name,
                                     email: email,
                                     phone: '',
@@ -2036,7 +2020,7 @@
                     propertyId: document.getElementById('property-title')?.textContent || 'Unknown Property',
                     propertyName: document.getElementById('property-title')?.textContent || 'Unknown Property',
                     location: document.getElementById('property-location')?.textContent || 'Unknown Location',
-                    budget: document.getElementById('property-budget')?.textContent || '?0',
+                    budget: document.getElementById('property-budget')?.textContent || '₹0',
                 };
 
                 const enquiryRecord = {
@@ -2059,7 +2043,7 @@
                 ownerEnquiries.unshift(enquiryRecord);
                 localStorage.setItem('owner_enquiries_' + ownerId, JSON.stringify(ownerEnquiries));
 
-                // Chat integration removed � do not emit socket events
+                // Chat integration removed — do not emit socket events
 
                 // Redirect to owner booking requests page filtered by property and owner
                 try {
@@ -2228,4 +2212,3 @@
     </script>
 </body>
 </html>
-
