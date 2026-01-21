@@ -20,7 +20,6 @@ router.post('/', async (req, res) => {
 
         // Process the data to handle type conversions
         const processedData = { ...visitData };
-        delete processedData._id; // Remove _id to let MongoDB auto-generate ObjectId
 
         // Convert boolean fields from strings to booleans
         processedData.visitorsAllowed = stringToBoolean(processedData.visitorsAllowed);
@@ -31,9 +30,10 @@ router.post('/', async (req, res) => {
         // Generate visitId if not provided
         const visitId = processedData.visitId || ('v_' + Date.now());
 
-        // Create new visit document
+        // Create new visit document with visitId as _id to ensure consistency across frontend and backend
         const newVisit = new VisitData({
             ...processedData,
+            _id: visitId,  // Use visitId as MongoDB _id for consistency
             visitId: visitId,
             submittedAt: new Date(),
             status: processedData.status || 'submitted'
