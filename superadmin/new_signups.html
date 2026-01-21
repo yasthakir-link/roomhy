@@ -620,6 +620,9 @@
                     return;
                 }
 
+                // Get user data before updating
+                const userData = signupUsers[userIndex];
+
                 // Update user status to verified
                 signupUsers[userIndex].status = 'verified';
                 signupUsers[userIndex].verifiedAt = new Date().toISOString();
@@ -636,11 +639,86 @@
                     localStorage.setItem('roomhy_tenants', JSON.stringify(tenants));
                 }
 
-                alert('✓ User verified successfully!');
+                // Send verification email with credentials
+                sendSignupVerificationEmail(userData);
+
+                alert('✓ User verified successfully! Confirmation email sent.');
                 loadSignupRecordsFromKYC(); // Refresh table
             } catch (e) {
                 console.error('approveSignup error:', e);
                 alert('Error verifying user');
+            }
+        }
+
+        /**
+         * SEND SIGNUP VERIFICATION EMAIL
+         * Sends verification confirmation to the user
+         */
+        function sendSignupVerificationEmail(userData) {
+            try {
+                fetch(`${API_URL}/api/email/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: userData.email,
+                        subject: '✅ Your Account is Now Verified! Welcome to Roomhy',
+                        html: `
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <meta charset="UTF-8">
+                                <style>
+                                    body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; }
+                                    .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+                                    .header { background: linear-gradient(135deg, #10b981 0%, #34d399 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                                    .header h1 { margin: 0; font-size: 28px; }
+                                    .content { padding: 30px; background: #f8fafc; }
+                                    .credentials { background: white; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                                    .credentials p { margin: 10px 0; }
+                                    .label { font-weight: bold; color: #10b981; }
+                                    .footer { text-align: center; padding: 20px; font-size: 12px; color: #999; border-top: 1px solid #eee; }
+                                    .button { display: inline-block; background: #10b981; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin-top: 15px; }
+                                </style>
+                            </head>
+                            <body>
+                                <div class="container">
+                                    <div class="header">
+                                        <h1>✅ Welcome to Roomhy!</h1>
+                                    </div>
+                                    <div class="content">
+                                        <p>Hi <strong>${userData.firstName}</strong>,</p>
+                                        <p>Congratulations! Your account has been verified and approved. You can now start exploring properties, making bookings, and connecting with property owners on Roomhy.</p>
+                                        
+                                        <div class="credentials">
+                                            <p><span class="label">Your User ID:</span> <strong>${userData.id}</strong></p>
+                                            <p><span class="label">Email:</span> <strong>${userData.email}</strong></p>
+                                            <p style="margin-top: 15px; font-size: 14px; color: #666;">You can use your email and password to log in to your account.</p>
+                                        </div>
+
+                                        <p>You're all set to start your journey with Roomhy! Browse thousands of verified properties, connect with owners, and find your perfect accommodation.</p>
+
+                                        <p style="margin-top: 30px;">Questions? Our support team is here to help at <strong>hello@roomhy.com</strong></p>
+                                    </div>
+                                    <div class="footer">
+                                        <p>&copy; 2025 Roomhy. All rights reserved. | Made for students, with love</p>
+                                    </div>
+                                </div>
+                            </body>
+                            </html>
+                        `,
+                        text: `Welcome to Roomhy!\n\nHi ${userData.firstName},\n\nCongratulations! Your account has been verified and approved.\n\nYour User ID: ${userData.id}\nEmail: ${userData.email}\n\nYou can now start exploring properties and connecting with owners.\n\nQuestions? Contact us at hello@roomhy.com\n\n© 2025 Roomhy. All rights reserved.`
+                    })
+                }).then(res => {
+                    if (res.ok) {
+                        console.log('✅ Verification email sent successfully');
+                    } else {
+                        console.warn('⚠️ Failed to send verification email');
+                    }
+                }).catch(err => {
+                    console.warn('⚠️ Email sending error:', err.message);
+                });
+            } catch (e) {
+                console.warn('sendSignupVerificationEmail error:', e);
             }
         }
 

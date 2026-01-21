@@ -594,6 +594,75 @@
             document.getElementById('approveModal').classList.add('flex');
         }
 
+        /**
+         * SEND OWNER CREDENTIALS EMAIL
+         * Sends generated login credentials to the property owner
+         */
+        async function sendOwnerCredentialsEmail(email, name, loginId, password) {
+            try {
+                const response = await fetch(API_URL + '/api/email/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: email,
+                        subject: '🎉 Your Property Approved! Login Credentials Inside',
+                        html: `
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <meta charset="UTF-8">
+                                <style>
+                                    body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; }
+                                    .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+                                    .header { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+                                    .header h1 { margin: 0; font-size: 28px; }
+                                    .content { padding: 30px; background: #f8fafc; }
+                                    .credentials { background: white; border-left: 4px solid #2563eb; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                                    .credentials p { margin: 10px 0; }
+                                    .label { font-weight: bold; color: #2563eb; }
+                                    .footer { text-align: center; padding: 20px; font-size: 12px; color: #999; border-top: 1px solid #eee; }
+                                </style>
+                            </head>
+                            <body>
+                                <div class="container">
+                                    <div class="header">
+                                        <h1>🏠 Your Property is Approved!</h1>
+                                    </div>
+                                    <div class="content">
+                                        <p>Hi <strong>${name}</strong>,</p>
+                                        <p>Great news! Your property has been approved and is now live on Roomhy. Here are your login credentials to manage your property:</p>
+                                        
+                                        <div class="credentials">
+                                            <p><span class="label">Login ID:</span> <strong>${loginId}</strong></p>
+                                            <p><span class="label">Temporary Password:</span> <strong>${password}</strong></p>
+                                        </div>
+
+                                        <p style="color: #d32f2f; font-weight: bold;">⚠️ Important: Please change your password on first login for security.</p>
+
+                                        <p>You can now log in to your property owner dashboard to manage bookings, view inquiries, and track your property performance.</p>
+
+                                        <p style="margin-top: 30px;">If you have any questions, feel free to contact our support team at <strong>hello@roomhy.com</strong></p>
+                                    </div>
+                                    <div class="footer">
+                                        <p>&copy; 2025 Roomhy. All rights reserved. | Made for property owners</p>
+                                    </div>
+                                </div>
+                            </body>
+                            </html>
+                        `,
+                        text: `Your Property Approved!\n\nHi ${name},\n\nYour property has been approved and is now live on Roomhy.\n\nLogin Credentials:\nLogin ID: ${loginId}\nTemporary Password: ${password}\n\nPlease change your password on first login for security.\n\nQuestions? Contact us at hello@roomhy.com\n\n© 2025 Roomhy. All rights reserved.`
+                    })
+                });
+                if (response.ok) {
+                    console.log('✅ Owner credentials email sent successfully');
+                } else {
+                    console.warn('⚠️ Failed to send owner credentials email');
+                }
+            } catch (err) {
+                console.warn('⚠️ Email sending error:', err.message);
+            }
+        }
+
         async function confirmApproval(shouldUpload) {
             if(!currentApprovingId) return;
             
@@ -650,6 +719,14 @@
                 
                 document.getElementById('modalLoginId').innerText = loginId;
                 document.getElementById('modalPassword').innerText = password;
+                
+                // Send email with owner credentials
+                const ownerEmail = visits[idx].ownerEmail || visits[idx].email;
+                const ownerName = visits[idx].ownerName || visits[idx].name || 'Owner';
+                if (ownerEmail) {
+                    sendOwnerCredentialsEmail(ownerEmail, ownerName, loginId, password);
+                }
+                
                 document.getElementById('approveModal').classList.add('hidden');
                 document.getElementById('successModal').classList.remove('hidden');
                 document.getElementById('successModal').classList.add('flex');
