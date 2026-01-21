@@ -128,7 +128,7 @@
                 
                 <div class="flex items-center">
                     <a href="index.html" class="flex-shrink-0">
-                        <img src="images/logoroomhy.jpg" alt="Roomhy Logo" class="h-10 w-25">
+                        <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" class="h-10 w-25">
                     </a>
                 </div>
                 
@@ -192,7 +192,7 @@
 
         <div class="px-6 py-4">
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 relative overflow-hidden">
-                <img src="images/post-property-bg.svg" alt="Illustartion of people with house" class="absolute right-0 bottom-0 opacity-80 w-32 h-auto" style="pointer-events: none;">
+                <img src="https://res.cloudinary.com/dpwgvcibj/raw/upload/v1768990265/roomhy/website/post-property-bg" alt="Illustartion of people with house" class="absolute right-0 bottom-0 opacity-80 w-32 h-auto" style="pointer-events: none;">
                 <p class="font-semibold text-gray-800 mb-3 relative z-10">Looking to Sell/Rent your Property?</p>
                 <a href="list.html" class="block text-center w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg text-sm hover:bg-blue-700 transition-colors relative z-10">
                     Post Property for Free
@@ -532,7 +532,7 @@
     <footer class="bg-gray-800 text-gray-300">
         <div class="container mx-auto px-6 py-16">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
-                <div class="md:col-span-1"><a href="index.html" class="mb-4 inline-block"><img src="images/logoroomhy.jpg" alt="Roomhy Logo" class="h-10 w-25"></a><p class="text-gray-400 text-sm">Your trusted partner in finding the perfect student accommodation. Live, learn, and grow with us.</p><div class="flex space-x-5 mt-6"><a href="#" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="facebook" class="w-5 h-5"></i></a><a href="#" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="instagram" class="w-5 h-5"></i></a><a href="#" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="twitter" class="w-5 h-5"></i></a></div></div>
+                <div class="md:col-span-1"><a href="index.html" class="mb-4 inline-block"><img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" class="h-10 w-25"></a><p class="text-gray-400 text-sm">Your trusted partner in finding the perfect student accommodation. Live, learn, and grow with us.</p><div class="flex space-x-5 mt-6"><a href="#" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="facebook" class="w-5 h-5"></i></a><a href="#" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="instagram" class="w-5 h-5"></i></a><a href="#" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="twitter" class="w-5 h-5"></i></a></div></div>
                 <div><h4 class="font-semibold text-lg mb-5 text-white">Explore</h4><ul class="space-y-3"><li><a href="#" class="text-gray-300 hover:text-white transition-colors">Apartments</a></li><li><a href="#" class="text-gray-300 hover:text-white transition-colors">Hostels</a></li><li><a href="#" class="text-gray-300 hover:text-white transition-colors">Co-Living</a></li><li><a href="#" class="text-gray-300 hover:text-white transition-colors">PGs</a></li></ul></div>
                 <div><h4 class="font-semibold text-lg mb-5 text-white">Company</h4><ul class="space-y-3"><li><a href="about.html" class="text-gray-300 hover:text-white transition-colors">About Us</a></li><li><a href="list.html" class="text-gray-300 hover:text-white transition-colors">List Your Property</a></li><li><a href="privacy.html" class="text-gray-300 hover:text-white transition-colors">Privacy Policy</a></li><li><a href="terms.html" class="text-gray-300 hover:text-white transition-colors">Terms of Service</a></li></ul></div>
                 
@@ -920,15 +920,11 @@
             try { return JSON.parse(localStorage.getItem('roomhy_visits') || '[]'); } catch (e) { return []; }
         }
 
-        // Fetch properties from website-enquiry API (MongoDB)
+        // Fetch properties from approval API (MongoDB) - only approved properties
         async function fetchPropertiesFromAPI(filters = {}) {
             try {
-                let url = `${API_URL}/api/website-enquiry/all`;
-
-                // If a city filter is provided, use the city-specific endpoint for efficiency
-                if (filters.city) {
-                    url = `${API_URL}/api/website-enquiry/city/${encodeURIComponent(filters.city)}`;
-                }
+                // Fetch only approved properties from MongoDB
+                const url = `${API_URL}/api/approved-properties/public/approved`;
 
                 const response = await fetch(url, {
                     method: 'GET',
@@ -936,48 +932,50 @@
                 });
 
                 if (!response.ok) {
-                    console.error('API Error fetching website enquiries:', response.status);
+                    console.error('API Error fetching approved properties:', response.status);
                     return getVisitsFromStorage();
                 }
 
                 const data = await response.json();
                 let properties = [];
 
-                // API returns { success: true, enquiries: [...] }
-                if (data && data.success && Array.isArray(data.enquiries)) {
-                    properties = data.enquiries;
-                } else if (Array.isArray(data)) {
+                // API returns array of properties
+                if (Array.isArray(data)) {
                     properties = data;
+                } else if (data && data.properties && Array.isArray(data.properties)) {
+                    properties = data.properties;
                 } else {
                     return getVisitsFromStorage();
                 }
 
-                // Keep only completed/approved entries
-                properties = properties.filter(p => (p.status || '').toString().toLowerCase() === 'completed' || (p.status || '').toString().toLowerCase() === 'approved');
+                // Keep only live properties (isLiveOnWebsite = true)
+                properties = properties.filter(p => p.isLiveOnWebsite === true);
 
-                // Apply client-side filters for fields available on WebsiteEnquiry
+                // Apply client-side filters
                 properties = properties.filter(prop => {
+                    const propInfo = prop.propertyInfo || {};
+                    
                     // Area
                     if (filters.area) {
-                        const propArea = (prop.locality || prop.area || '').toString().toLowerCase();
+                        const propArea = (propInfo.area || '').toString().toLowerCase();
                         if (!propArea.includes(filters.area.toString().toLowerCase())) return false;
                     }
 
                     // Gender
                     if (filters.gender) {
-                        const propGender = (prop.gender_suitability || prop.gender || '').toString().toLowerCase();
+                        const propGender = (prop.gender || propInfo.gender || '').toString().toLowerCase();
                         const filterGender = filters.gender.toString().toLowerCase();
                         if (propGender && !['co-ed', filterGender, filterGender.replace('-', '')].includes(propGender)) return false;
                     }
 
                     // Property type
                     if (filters.propertyType) {
-                        const propType = (prop.property_type || prop.propertyType || '').toString().toLowerCase();
+                        const propType = (propInfo.propertyType || '').toString().toLowerCase();
                         if (!propType.includes(filters.propertyType.toString().toLowerCase())) return false;
                     }
 
                     // Price range
-                    const rent = parseInt(prop.rent || prop.monthlyRent || 0) || 0;
+                    const rent = parseInt(prop.monthlyRent || propInfo.monthlyRent || 0) || 0;
                     if (filters.minPrice && rent < parseInt(filters.minPrice)) return false;
                     if (filters.maxPrice && filters.maxPrice !== '50000_plus' && rent > parseInt(filters.maxPrice)) return false;
 
@@ -1000,13 +998,9 @@
                 const areas = new Set();
                 
                 visits.forEach(v => {
-                    // Handle WebsiteEnquiry data structure from MongoDB
-                    let area = v.locality || v.area || '';
-                    
-                    // Also check propertyInfo if it exists (fallback for VisitReport)
-                    if (!area && v.propertyInfo) {
-                        area = v.propertyInfo.area || v.propertyInfo.locality || '';
-                    }
+                    // Handle ApprovedProperty data structure from MongoDB
+                    const propInfo = v.propertyInfo || {};
+                    let area = propInfo.area || '';
                     
                     if (area) areas.add(area);
                 });
@@ -1747,13 +1741,13 @@
             });
         };
 
-        // Request on all button handlers
+        // Request on all button handlers - works exactly like property.html request button
         function showRequestAllModal() {
             if (currentFilteredProperties.length === 0) {
                 alert('No properties to request. Please apply filters and try again.');
                 return;
             }
-            
+
             const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null');
             if (!user || !user.loginId) {
                 alert('Please login to submit requests');
@@ -1776,7 +1770,7 @@
             console.log('Submit request all clicked');
             const submitBtn = document.getElementById('submit-request-all');
             const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null');
-            
+
             if (!user || !user.loginId) {
                 alert('Please login to submit requests');
                 return;
@@ -1788,14 +1782,15 @@
 
             console.log('Form values:', { name, phone, message });
 
-            if (!name || !phone) {
-                alert('Please fill in name and phone number');
+            if (!name) {
+                alert('Please fill in your name');
                 return;
             }
 
-            const phoneRegex = /^\d{10}$/;
-            if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
-                alert('Please enter a valid 10-digit phone number');
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(user.email || '')) {
+                alert('Please ensure you have a valid email address in your profile');
                 return;
             }
 
@@ -1812,15 +1807,51 @@
 
                 console.log('Submitting requests for', currentFilteredProperties.length, 'properties');
 
-                // Submit request for each property
+                // Submit request for each property - exactly like property.html request button
                 for (const property of currentFilteredProperties) {
                     try {
-                        const propertyName = property.property_name || 'Property';
+                        const propertyName = property.property_name || property.propertyInfo?.name || 'Property';
                         const area = property.locality || property.propertyInfo?.area || 'Unknown';
-                        const propertyType = property.property_type || property.propertyInfo?.property_type || 'PG';
-                        const rentAmount = property.rent || 0;
+                        const propertyType = property.property_type || property.propertyInfo?.propertyType || 'PG';
+                        const rentAmount = property.rent || property.monthlyRent || property.propertyInfo?.monthlyRent || 0;
 
-                        console.log('Submitting for property:', propertyName);
+                        // Get property owner ID from approved visit data - exactly like property.html
+                        let propertyOwnerId = null;
+                        let propertyOwnerName = null;
+                        const visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
+                        const propertyId_str = String(property._id || property.enquiry_id);
+
+                        if (visits && visits.length > 0) {
+                            const foundVisit = visits.find(x =>
+                                String(x._id) === propertyId_str ||
+                                String(x.id) === propertyId_str ||
+                                String(x.visitId) === propertyId_str
+                            );
+
+                            if (foundVisit) {
+                                if (foundVisit.status !== 'approved') {
+                                    console.warn('Skipping unapproved property:', propertyName);
+                                    continue;
+                                }
+
+                                propertyOwnerId = (foundVisit.generatedCredentials && foundVisit.generatedCredentials.loginId) ||
+                                               foundVisit.ownerLoginId ||
+                                               foundVisit.createdBy ||
+                                               foundVisit.owner ||
+                                               foundVisit.propertyOwnerId ||
+                                               (foundVisit.propertyInfo && foundVisit.propertyInfo.ownerId);
+
+                                propertyOwnerName = foundVisit.ownerName || foundVisit.propertyInfo?.ownerName || 'Property Owner';
+                            }
+                        }
+
+                        if (!propertyOwnerId) {
+                            console.warn('Could not identify property owner for:', propertyName);
+                            failureCount++;
+                            continue;
+                        }
+
+                        console.log('Submitting request for property:', propertyName, 'to owner:', propertyOwnerId);
 
                         const response = await fetch(`${API_URL}/api/booking/create`, {
                             method: 'POST',
@@ -1832,10 +1863,11 @@
                                 property_type: propertyType,
                                 rent_amount: parseInt(rentAmount),
                                 user_id: user.loginId,
+                                owner_id: propertyOwnerId,  // ✅ ADD OWNER ID - exactly like property.html
                                 name: name,
                                 email: user.email || user.loginId,
                                 phone: phone,
-                                request_type: 'bulk_request',
+                                request_type: 'request',  // Changed from 'bulk_request' to 'request' like property.html
                                 message: message || ''
                             })
                         });
@@ -1854,17 +1886,17 @@
                     }
                 }
 
-                // Show result
+                // Show result - exactly like property.html
                 console.log('Final result - Success:', successCount, 'Failures:', failureCount);
-                
+
                 if (successCount > 0) {
-                    alert(`Success! ${successCount} booking request(s) sent to property managers.${failureCount > 0 ? ' ' + failureCount + ' request(s) failed.' : ''}`);
+                    alert(`Thank you ${name}! Your request has been sent to ${successCount} property owner(s). We'll contact you soon.${failureCount > 0 ? ' ' + failureCount + ' request(s) failed.' : ''}`);
                     closeRequestAllModal();
-                    
+
                     // Close mobile drawer if open
                     document.getElementById('mobile-filter-drawer')?.classList.add('translate-x-full');
                     document.getElementById('filter-overlay')?.classList.add('hidden');
-                    
+
                     // Reset form
                     document.getElementById('request-all-form')?.reset();
                 } else {
@@ -2013,4 +2045,3 @@
 </body>
 
 </html>
-

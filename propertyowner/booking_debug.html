@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -129,10 +129,10 @@
                 if (response.ok) {
                     log('statusOutput', 'success', 'âœ“ API is reachable', `Status: ${response.status}`);
                 } else {
-                    log('statusOutput', 'error', 'âœ— API returned error', `Status: ${response.status} ${response.statusText}`);
+                    log('statusOutput', 'error', '✗ API returned error', `Status: ${response.status} ${response.statusText}`);
                 }
             } catch (error) {
-                log('statusOutput', 'error', 'âœ— API connection failed', error.message);
+                log('statusOutput', 'error', '✗ API connection failed', error.message);
             }
         }
 
@@ -157,7 +157,7 @@
             }
 
             if (!ownerId) {
-                log('bookingsOutput', 'error', 'âœ— No owner ID found', 'Cannot fetch bookings without owner ID. Check "Owner Identification" section.');
+                log('bookingsOutput', 'error', '✗ No owner ID found', 'Cannot fetch bookings without owner ID. Check "Owner Identification" section.');
                 return;
             }
 
@@ -173,7 +173,7 @@
                 });
 
                 if (!response.ok) {
-                    log('bookingsOutput', 'error', `âœ— API error: ${response.status}`, response.statusText);
+                    log('bookingsOutput', 'error', `✗ API error: ${response.status}`, response.statusText);
                     return;
                 }
 
@@ -200,7 +200,7 @@
                     });
                 });
             } catch (error) {
-                log('bookingsOutput', 'error', 'âœ— Error fetching bookings', error.message);
+                log('bookingsOutput', 'error', '✗ Error fetching bookings', error.message);
             }
         }
 

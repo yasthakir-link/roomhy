@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -160,7 +160,7 @@
                     <button class="text-slate-400 hover:text-slate-600"><i data-lucide="bell" class="w-5 h-5"></i></button>
                     <div class="relative group">
                         <button class="flex items-center gap-3 hover:bg-gray-50 p-1.5 rounded-full transition-colors">
-                            <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-semibold text-xs">SP</div>
+                            <div class="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-semibold text-xs">SA</div>
                         </button>
                     </div>
                 </div>
@@ -434,7 +434,7 @@
                     tr.innerHTML = `
                         <td><span class="font-mono text-xs text-gray-700 font-medium">${user.id}</span></td>
                         <td><span class="text-sm font-medium text-gray-900">${fullName}</span></td>
-                        <td><span class="text-sm text-gray-700">${user.phone || '"”'}</span></td>
+                        <td><span class="text-sm text-gray-700">${user.phone || '"�'}</span></td>
                         <td><span class="text-sm text-gray-700">${user.email}</span></td>
                         <td><span class="font-mono text-xs text-gray-500">${maskedPassword}</span></td>
                         <td>
@@ -584,7 +584,7 @@
                 const response = await fetch(`${API_URL}/api/signups`);
                 if (response.ok) {
                     const signupUsers = await response.json();
-                    console.log(`âœ“ Loaded ${signupUsers.length} signup records from MongoDB API`);
+                    console.log(`✓ Loaded ${signupUsers.length} signup records from MongoDB API`);
                     // Store in localStorage as backup
                     localStorage.setItem('roomhy_kyc_verification', JSON.stringify(signupUsers));
                     displayAllSignups(signupUsers);
@@ -595,7 +595,7 @@
                 console.warn('Failed to load from API, falling back to localStorage:', e);
                 const kycTableKey = 'roomhy_kyc_verification'; // Central New Signups table
                 const signupUsers = JSON.parse(localStorage.getItem(kycTableKey) || '[]');
-                console.log(`âœ“ Loaded ${signupUsers.length} signup records from localStorage`);
+                console.log(`✓ Loaded ${signupUsers.length} signup records from localStorage`);
                 displayAllSignups(signupUsers);
             }
         }
@@ -633,7 +633,7 @@
                     localStorage.setItem('roomhy_tenants', JSON.stringify(tenants));
                 }
 
-                alert('âœ“ User verified successfully!');
+                alert('✓ User verified successfully!');
                 loadSignupRecordsFromKYC(); // Refresh table
             } catch (e) {
                 console.error('approveSignup error:', e);
@@ -674,7 +674,7 @@
                     localStorage.setItem('roomhy_tenants', JSON.stringify(tenants));
                 }
 
-                alert('âœ— User rejected!');
+                alert('✗ User rejected!');
                 loadSignupRecordsFromKYC(); // Refresh table
             } catch (e) {
                 console.error('rejectSignup error:', e);
@@ -706,7 +706,7 @@
             // Set up sidebar active state
             const currentPage = 'new_signups.html';
             document.querySelectorAll('.sidebar-link').forEach(link => {
-                if (link.href.includes(currentPage)) {
+                if (link.href && typeof link.href === 'string' && link.href.includes(currentPage)) {
                     link.classList.add('active');
                 }
             });
@@ -764,7 +764,7 @@
                     tr.innerHTML = `
                         <td><span class="font-mono text-xs text-gray-700 font-medium">${user.id}</span></td>
                         <td><span class="text-sm font-medium text-gray-900">${fullName}</span></td>
-                        <td><span class="text-sm text-gray-700">${user.phone || '"”'}</span></td>
+                        <td><span class="text-sm text-gray-700">${user.phone || '"�'}</span></td>
                         <td><span class="text-sm text-gray-700">${user.email}</span></td>
                         <td><span class="font-mono text-xs text-gray-500">${maskedPassword}</span></td>
                         <td>
@@ -800,9 +800,9 @@
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><span class="font-mono text-xs text-gray-500">${t.requestId || t.id || ''}</span></td>
-                        <td><div class="flex items-center"><div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs mr-3">${(t.name||'').split(' ').map(n=>n[0]||'').slice(0,2).join('')}</div><div><p class="text-sm font-medium text-gray-900">${t.name}</p><p class="text-xs text-gray-500">${t.property || ''} Â· ${t.roomNo || ''}</p></div></div></td>
-                        <td class="font-mono text-xs text-gray-600">${t.aadhaar || '"”'}</td>
-                        <td class="font-mono text-xs text-gray-600">${t.pan || '"”'}</td>
+                        <td><div class="flex items-center"><div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs mr-3">${(t.name||'').split(' ').map(n=>n[0]||'').slice(0,2).join('')}</div><div><p class="text-sm font-medium text-gray-900">${t.name}</p><p class="text-xs text-gray-500">${t.property || ''} · ${t.roomNo || ''}</p></div></div></td>
+                        <td class="font-mono text-xs text-gray-600">${t.aadhaar || '"�'}</td>
+                        <td class="font-mono text-xs text-gray-600">${t.pan || '"�'}</td>
                         <td><span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">${(t.documents||[]).length} Files</span></td>
                         <td><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span></td>
                         <td class="text-right">

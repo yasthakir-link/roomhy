@@ -1,73 +1,21 @@
 const mongoose = require('mongoose');
 
 const VisitReportSchema = new mongoose.Schema({
-    _id: { type: mongoose.Schema.Types.Mixed },
     areaManager: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     
     // Property Information (Extended for website display)
     propertyInfo: {
-        propertyId: { type: String },
-        propertyType: { type: String }, // PG, Hostel, Apartment, etc.
         name: { type: String },
-        ownerName: { type: String },
-        contactPhone: { type: String },
-        ownerGmail: { type: String },
-        area: { type: String },
-        landmark: { type: String },
-        locationCode: { type: String },
-        nearbyLocation: { type: String },
         city: { type: String },
+        area: { type: String },
         locality: { type: String },
         address: { type: String },
+        locationCode: { type: String },
+        contactPhone: { type: String },
+        propertyType: { type: String }, // PG, Hostel, Apartment, etc.
         gender: { type: String }, // Male, Female, Co-ed
         description: { type: String }
     },
-    
-    // Location
-    latitude: { type: String },
-    longitude: { type: String },
-    
-    // Ratings and Reviews
-    cleanlinessRating: { type: String },
-    ownerBehaviourPublic: { type: String },
-    studentReviewsRating: { type: String },
-    studentReviews: { type: String },
-    employeeRating: { type: String },
-    
-    // Property Details
-    gender: { type: String },
-    furnishing: { type: String },
-    ventilation: { type: String },
-    amenities: [{ type: String }],
-    monthlyRent: { type: Number },
-    deposit: { type: String },
-    electricityCharges: { type: String },
-    foodCharges: { type: String },
-    maintenanceCharges: { type: String },
-    minStay: { type: String },
-    entryExit: { type: String },
-    visitorsAllowed: { type: String },
-    cookingAllowed: { type: String },
-    smokingAllowed: { type: String },
-    petsAllowed: { type: String },
-    
-    // Notes
-    internalRemarks: { type: String },
-    cleanlinessNote: { type: String },
-    ownerBehaviour: { type: String },
-    
-    // Media
-    photos: [{ type: String }],
-    professionalPhotos: [{ type: String }],
-    
-    // Staff Info
-    submittedBy: { type: String },
-    submittedById: { type: String },
-    staffName: { type: String },
-    staffId: { type: String },
-    ownerLoginId: { type: String },
-    propertyArea: { type: String },
-    verifiedByCompany: { type: Boolean, default: true },
     
     // Room/Occupancy Information
     roomInfo: {
@@ -76,7 +24,13 @@ const VisitReportSchema = new mongoose.Schema({
     },
     
     // Financial Info
+    monthlyRent: { type: Number, default: 0 },
     rent: { type: Number, default: 0 },
+    deposit: { type: String },
+    
+    // Media
+    photos: [{ type: String }],
+    professionalPhotos: [{ type: String }],
     
     // Website Listing Info
     isLiveOnWebsite: { type: Boolean, default: false },

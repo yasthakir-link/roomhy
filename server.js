@@ -1,14 +1,17 @@
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
+const { Server } = require('socket.io');
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+const io = new Server(server, {
+    cors: { origin: "*", methods: ["GET", "POST"] }
+});
 
 // Middleware (JSON parsing & Security)
 app.use(express.json());
@@ -24,40 +27,17 @@ app.use('/images', express.static('./images'));
 app.use('/js', express.static('./js'));
 
 // Database Connection
-const mongoOptions = {
-    serverSelectionTimeoutMS: 15000,
-    socketTimeoutMS: 45000,
-    connectTimeoutMS: 10000,
-    maxPoolSize: 10,
-    minPoolSize: 2
-};
-
-mongoose.connect(process.env.MONGO_URI, mongoOptions)
-    .then(() => {
-        console.log('✅ MongoDB Connected (root server)');
-        startServer();
-    })
-    .catch(err => {
-        console.error('❌ MongoDB connection error:', err.message);
-        console.warn('Starting server anyway; API calls may fail until DB reconnects');
-        startServer();
-    });
-
-mongoose.connection.on('connected', () => console.log('Mongoose event: connected'));
-mongoose.connection.on('error', (err) => console.error('Mongoose event: error', err && err.message));
-mongoose.connection.on('disconnected', () => console.warn('Mongoose event: disconnected'));
-mongoose.connection.on('reconnected', () => console.log('Mongoose event: reconnected'));
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('MongoDB Connected'))
+    .catch(err => console.log(err));
 
 // Run seeder (creates a default superadmin) - best effort, non-blocking
-// Disabled for debugging - uncomment if needed
-/*
 try {
     const seed = require('./roomhy-backend/seeder');
     seed().catch(err => console.error('Seeder error:', err));
 } catch (err) {
     console.warn('Seeder not available or failed to load:', err.message);
 }
-*/
 
 // Routes (Endpoints)
 // Routes live under the `roomhy-backend/routes` folder
@@ -76,7 +56,6 @@ app.use('/api/favorites', require('./roomhy-backend/routes/favoritesRoutes'));
 app.use('/api/bids', require('./roomhy-backend/routes/bidsRoutes'));
 app.use('/api/kyc', require('./roomhy-backend/routes/kycRoutes'));
 app.use('/api/cities', require('./roomhy-backend/routes/citiesRoutes'));
-app.use('/api/locations', require('./roomhy-backend/routes/locationRoutes'));
 app.use('/api', require('./roomhy-backend/routes/uploadRoutes'));
 
 // NEW: Website Enquiry Routes (for property enquiries from website form)
@@ -85,8 +64,8 @@ app.use('/api/website-enquiry', require('./roomhy-backend/routes/websiteEnquiryR
 // NEW: Data Sync Routes (for MongoDB Atlas integration)
 app.use('/api/data', require('./roomhy-backend/routes/dataSync'));
 
-// Email API Routes
-app.use('/api/email', require('./roomhy-backend/routes/emailRoutes'));
+// Chat API Routes
+app.use('/api/chat', require('./roomhy-backend/routes/chatRoutes'));
 
 // Test endpoint: seed a test owner for development
 app.post('/api/test/seed-owner', async (req, res) => {
@@ -111,24 +90,157 @@ app.post('/api/test/seed-owner', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 5000;
+// Import Chat Models
+const ChatRoom = require('./roomhy-backend/models/ChatRoom');
+const ChatMessage = require('./roomhy-backend/models/ChatMessage');
+const BookingRequest = require('./roomhy-backend/models/BookingRequest');
 
-// Global error handlers
-process.on('uncaughtException', (err) => {
-    console.error('❌ Uncaught Exception:', err);
-});
+// Socket.IO Logic
+io.on('connection', (socket) => {
+    console.log('🔌 User Connected:', socket.id);
 
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-});
+    // Join Room
+    socket.on('join_room', async (data) => {
+        const { room_id, user_id, user_role, booking_id } = data;
+        socket.join(room_id);
+        console.log(`👤 ${user_id} (${user_role}) joined room: ${room_id}`);
 
-app.use((err, req, res, next) => {
-    console.error('Express Error:', err);
-    res.status(500).json({
-        success: false,
-        message: err.message || 'Internal Server Error'
+        try {
+            // Add or update participant in room
+            await ChatRoom.findOneAndUpdate(
+                { room_id },
+                {
+                    $addToSet: { 
+                        participants: { loginId: user_id, role: user_role, joined_at: new Date() }
+                    },
+                    updated_at: new Date()
+                },
+                { upsert: true, new: true }
+            );
+        } catch (error) {
+            console.error('Error updating room participants:', error);
+        }
+    });
+
+    // Send Message
+    socket.on('send_message', async (data) => {
+        const { room_id, sender_id, sender_login_id, sender_role, sender_name, message, booking_id } = data;
+
+        try {
+            // Save message to database
+            const newMessage = await ChatMessage.create({
+                room_id,
+                sender_id: sender_login_id || sender_id,
+                sender_login_id: sender_login_id || sender_id,
+                sender_name: sender_name || sender_id,
+                sender_role,
+                message,
+                booking_id: booking_id || null,
+                message_type: 'text',
+                is_read: false,
+                created_at: new Date(),
+                updated_at: new Date()
+            });
+
+            // Update room last message
+            await ChatRoom.findOneAndUpdate(
+                { room_id },
+                {
+                    last_message_at: new Date(),
+                    updated_at: new Date()
+                }
+            );
+
+            // Emit to room
+            io.to(room_id).emit('receive_message', newMessage);
+
+            // If owner sends, also emit to website user's room
+            if (sender_role === 'property_owner' && booking_id) {
+                const booking = await BookingRequest.findById(booking_id);
+                if (booking && booking.user_id) {
+                    io.to(booking.user_id).emit('receive_message', newMessage);
+                }
+            }
+
+            // If website user sends, also emit to owner's room
+            if (sender_role === 'website_user' && booking_id) {
+                const booking = await BookingRequest.findById(booking_id);
+                if (booking && booking.owner_id) {
+                    io.to(booking.owner_id).emit('receive_message', newMessage);
+                }
+            }
+
+            console.log(`📤 Message sent in room ${room_id} by ${sender_role}`);
+        } catch (error) {
+            console.error('❌ Send Message Error:', error);
+            socket.emit('message_error', { error: error.message });
+        }
+    });
+
+    // Accept Booking (Owner)
+    socket.on('owner_accept_booking', async (data) => {
+        try {
+            const { booking_id, owner_id } = data;
+            const BookingRequest = require('./roomhy-backend/models/BookingRequest');
+
+            const booking = await BookingRequest.findByIdAndUpdate(
+                booking_id,
+                { status: 'confirmed', updated_at: new Date() },
+                { new: true }
+            );
+
+            if (booking) {
+                // Create or get chat room
+                const ownerRoomId = owner_id; 
+                const websiteUserRoomId = booking.user_id;
+
+                let chatRoom = await ChatRoom.findOne({ room_id: ownerRoomId });
+                if (!chatRoom) {
+                    chatRoom = await ChatRoom.create({
+                        room_id: ownerRoomId,
+                        booking_id: booking_id,
+                        owner_id: owner_id,
+                        website_user_id: booking.user_id,
+                        website_user_name: booking.name,
+                        property_name: booking.property_name,
+                        participants: [
+                            { loginId: owner_id, role: 'property_owner' },
+                            { loginId: booking.user_id, role: 'website_user' }
+                        ],
+                        created_at: new Date(),
+                        updated_at: new Date()
+                    });
+                }
+
+                // Notify both users
+                io.to(ownerRoomId).emit('booking_accepted', {
+                    booking_id,
+                    owner_id,
+                    website_user_id: booking.user_id,
+                    property_name: booking.property_name
+                });
+
+                io.to(websiteUserRoomId).emit('booking_accepted', {
+                    booking_id,
+                    owner_id,
+                    website_user_id: booking.user_id,
+                    property_name: booking.property_name
+                });
+
+                console.log(`✅ Booking ${booking_id} accepted, chat room created`);
+            }
+        } catch (error) {
+            console.error('Error accepting booking:', error);
+            socket.emit('booking_error', { error: error.message });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log('🔌 User Disconnected');
     });
 });
+
+const PORT = process.env.PORT || 5000;
 
 // Fallback middleware: serve index.html for any unmatched route (SPA fallback)
 // Must come AFTER all other routes and static middleware
@@ -146,8 +258,5 @@ app.use((req, res, next) => {
     return res.status(404).send('Not Found');
 });
 
-function startServer() {
-    if (server.listening) return;
-    server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
-}
+server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
 

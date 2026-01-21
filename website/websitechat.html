@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -61,40 +61,111 @@
 </head>
 <body class="bg-gray-50 text-slate-800 flex flex-col min-h-screen">
 
-    <!-- Header (Matching index.html) -->
-    <header class="glass-header sticky top-0 z-50 w-full">
-        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <div class="flex items-center gap-2 cursor-pointer" onclick="window.location.href='index.html'">
-                <div class="bg-indigo-600 p-2 rounded-xl shadow-lg shadow-indigo-200">
-                    <i data-lucide="home" class="w-6 h-6 text-white"></i>
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="#" class="flex-shrink-0">
+                        <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" class="h-10 w-25">
+                    </a>
                 </div>
-                <span class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600">Roomhy</span>
-            </div>
-            
-            <div class="hidden md:flex items-center gap-8">
-                <a href="index.html" class="text-slate-600 font-medium hover:text-indigo-600 transition-colors">Home</a>
-                <a href="ourproperty.html" class="text-slate-600 font-medium hover:text-indigo-600 transition-colors">Properties</a>
-                <a href="about.html" class="text-slate-600 font-medium hover:text-indigo-600 transition-colors">About</a>
-                <a href="contact.html" class="text-slate-600 font-medium hover:text-indigo-600 transition-colors">Contact</a>
-                <button id="profile-btn" class="bg-indigo-600 text-white px-6 py-2.5 rounded-full font-semibold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">My Account</button>
-            </div>
 
-            <button id="mobile-menu-btn" class="md:hidden p-2 text-slate-600"><i data-lucide="menu" class="w-7 h-7"></i></button>
-        </nav>
+                <div class="flex items-center gap-3 sm:gap-6">
+                    <nav class="hidden lg:flex items-center space-x-6">
+                        <a href="about.html" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">About Us</a>
+                        <a href="#faq" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">FAQ</a>
+                        <a href="contact.html" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">Contact</a>
+                    </nav>
+
+                    <a href="list.html" class="flex-shrink-0 flex items-center justify-center px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-colors w-10 h-10 sm:w-auto sm:h-auto sm:px-4">
+                        <span class="text-3xl font-bold">+</span>
+                    </a>
+
+                    <button id="menu-toggle" class="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                        <i data-lucide="menu" class="w-7 h-7 text-gray-800"></i>
+                    </button>
+                </div>
+
+            </div>
+        </div>
     </header>
 
-    <!-- Mobile Menu Overlay -->
-    <div id="mobile-overlay" class="fixed inset-0 bg-black/50 z-[60] hidden backdrop-blur-sm"></div>
-    <div id="mobile-sidebar" class="fixed inset-y-0 right-0 w-72 bg-white z-[70] translate-x-full transition-transform duration-300 p-6 flex flex-col gap-6 shadow-2xl">
-        <div class="flex justify-between items-center mb-4">
-            <span class="font-bold text-indigo-600 text-xl">Menu</span>
-            <button id="close-mobile-menu"><i data-lucide="x" class="w-6 h-6 text-slate-400"></i></button>
+    <div id="menu-overlay" class="fixed inset-0 bg-black/50 z-40 hidden"></div>
+
+    <div id="mobile-menu" class="fixed top-0 right-0 w-80 h-full bg-white z-50 shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        <div class="flex justify-end p-4 flex-shrink-0">
+            <button id="menu-close" class="p-2">
+                <i data-lucide="x" class="w-6 h-6 text-gray-700"></i>
+            </button>
         </div>
-        <a href="index.html" class="text-lg font-semibold text-slate-700 flex items-center gap-3"><i data-lucide="home" class="w-5 h-5"></i> Home</a>
-        <a href="ourproperty.html" class="text-lg font-semibold text-slate-700 flex items-center gap-3"><i data-lucide="search" class="w-5 h-5"></i> Properties</a>
-        <a href="contact.html" class="text-lg font-semibold text-slate-700 flex items-center gap-3"><i data-lucide="phone" class="w-5 h-5"></i> Contact</a>
-        <hr>
-        <button class="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">Account</button>
+
+        <div class="flex justify-between items-center px-6 py-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                    <i data-lucide="users" class="w-6 h-6 text-gray-600"></i>
+                </div>
+                <span class="text-lg font-semibold text-gray-800">Hi,welcome</span>
+            </div>
+            <a href="profile.html" class="text-sm font-medium text-blue-600 hover:underline">Profile</a>
+        </div>
+
+        <div class="px-6 py-4">
+            <div class="border border-blue-200 rounded-lg p-4 relative overflow-hidden">
+                <p class="font-semibold text-gray-800 mb-3 relative z-10">Looking to Sell/Rent your Property?</p>
+                <a href="list.html" class="block text-center w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-4 rounded-lg text-sm transition-colors relative z-10">
+                    Post Property for Free
+                </a>
+            </div>
+        </div>
+
+        <nav class="flex-grow p-4 space-y-1 overflow-y-auto">
+            <a href="ourproperty.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="home" class="w-5 h-5 text-blue-600"></i>
+                </div>
+                <span>Our Properties</span>
+            </a>
+            <a href="fav.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="heart" class="w-5 h-5 text-red-600"></i>
+                </div>
+                <span>Favorites</span>
+            </a>
+            <a href="mystays.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="building" class="w-5 h-5 text-purple-600"></i>
+                </div>
+                <span>My Stays</span>
+            </a>
+            <a href="about.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="info" class="w-5 h-5 text-yellow-600"></i>
+                </div>
+                <span>About Us</span>
+            </a>
+            <a href="contact.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="phone" class="w-5 h-5 text-cyan-600"></i>
+                </div>
+                <span>Contact Us</span>
+            </a>
+            <a href="websitechat.html" class="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
+                <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="message-circle" class="w-5 h-5 text-green-600"></i>
+                </div>
+                <span>Chat</span>
+            </a>
+        </nav>
+
+        <div class="p-4 border-t flex-shrink-0">
+            <a href="#" class="flex items-center space-x-4 p-3 rounded-lg text-red-600 hover:bg-red-50">
+                <div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="log-out" class="w-5 h-5 text-gray-600"></i>
+                </div>
+                <span>Logout</span>
+            </a>
+        </div>
     </div>
 
     <!-- Hero Section Content -->
@@ -212,7 +283,9 @@
                     <li><a href="index.html" class="hover:text-indigo-400 transition-colors">Find a Room</a></li>
                     <li><a href="about.html" class="hover:text-indigo-400 transition-colors">Our Story</a></li>
                     <li><a href="contact.html" class="hover:text-indigo-400 transition-colors">Contact Support</a></li>
+                    <li><a href="terms.html" class="hover:text-indigo-400 transition-colors">Terms and Conditions</a></li>
                     <li><a href="privacy.html" class="hover:text-indigo-400 transition-colors">Privacy Policy</a></li>
+                    <li><a href="cancellation.html" class="hover:text-indigo-400 transition-colors">Cancellation Policy</a></li>
                 </ul>
             </div>
 
@@ -251,6 +324,31 @@
 
     <script>
         lucide.createIcons();
+
+        // Mobile menu functionality
+        const menuToggle = document.getElementById('menu-toggle');
+        const menuClose = document.getElementById('menu-close');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuOverlay = document.getElementById('menu-overlay');
+
+        if (menuToggle && mobileMenu && menuClose && menuOverlay) {
+            menuToggle.addEventListener('click', () => {
+                mobileMenu.classList.remove('translate-x-full');
+                menuOverlay.classList.remove('hidden');
+            });
+
+            const closeMenu = () => {
+                mobileMenu.classList.add('translate-x-full');
+                menuOverlay.classList.add('hidden');
+            };
+
+            menuClose.addEventListener('click', closeMenu);
+            menuOverlay.addEventListener('click', closeMenu);
+
+            mobileMenu.querySelectorAll('a').forEach(link => {
+                link.addEventListener('click', closeMenu);
+            });
+        }
 
         let currentUser = null;
         let currentChat = null;
@@ -456,7 +554,7 @@
             
             try {
                 await window.addDoc(messagesRef, {
-                    text: type === 'like' ? '👍' : '👎',
+                    text: type === 'like' ? '??' : '??',
                     sender: 'user',
                     senderId: currentUser.loginId,
                     timestamp: window.serverTimestamp(),

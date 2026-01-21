@@ -1,4 +1,4 @@
-Ôªø<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -244,7 +244,7 @@
             container.innerHTML = complaints.map(c => {
                 const statusClass = c.status === 'Open' ? 'status-open' : (c.status === 'Taken' ? 'status-taken' : (c.status === 'Resolved' ? 'status-resolved' : 'status-rejected'));
                 const createdDate = new Date(c.createdAt).toLocaleDateString();
-                const resolvedDate = c.resolvedAt ? new Date(c.resolvedAt).toLocaleDateString() : '"‚Äù';
+                const resolvedDate = c.resolvedAt ? new Date(c.resolvedAt).toLocaleDateString() : '"î';
 
                 return `
                     <div class="complaint-row">
@@ -260,7 +260,7 @@
                             <div><strong>Priority:</strong> ${c.priority}</div>
                             <div><strong>Tenant:</strong> ${c.tenantName}</div>
                             <div><strong>Property:</strong> ${c.property}</div>
-                            <div><strong>Room:</strong> ${c.roomNo}${c.bedNo ? ' ('+c.bedNo+')' : '"‚Äù'}</div>
+                            <div><strong>Room:</strong> ${c.roomNo}${c.bedNo ? ' ('+c.bedNo+')' : '"î'}</div>
                             <div><strong>Reported:</strong> ${createdDate}</div>
                             ${c.resolvedAt ? '<div><strong>Resolved:</strong> ' + resolvedDate + '</div>' : ''}
                         </div>

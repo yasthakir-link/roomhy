@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -132,7 +132,7 @@
                     document.getElementById('serverStatus').innerHTML = '<span class="text-yellow-600">âš  Server Running (may need auth)</span>';
                 }
             } catch (error) {
-                document.getElementById('serverStatus').innerHTML = '<span class="text-red-600 font-bold">âœ— Not Connected</span>';
+                document.getElementById('serverStatus').innerHTML = '<span class="text-red-600 font-bold">✗ Not Connected</span>';
                 showStatus('error', 'Server Connection Failed', `Cannot connect to ${getApiBase()}\n\nMake sure your Node.js server is running.`);
             }
         }

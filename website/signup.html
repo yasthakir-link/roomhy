@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -319,7 +319,7 @@
                                 </div>
                                 <div class="space-y-1.5">
                                     <label class="text-xs md:text-sm font-bold text-slate-700 ml-1">Password</label>
-                                    <input type="password" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-50/50 outline-none transition-all" placeholder=""�"�"�"�"�"�"�"�">
+                                    <input type="password" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:border-blue-600 focus:ring-2 focus:ring-blue-50/50 outline-none transition-all" placeholder=""?"?"?"?"?"?"?"?">
                                     <a href="#" class="text-xs text-blue-600 font-bold block text-right mt-1.5 hover:underline">Forgot Password?</a>
                                 </div>
                                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-100 transition-all active:scale-[0.98]">Log in</button>
@@ -454,7 +454,7 @@
       </div>
     
       <div class="py-6 border-t border-slate-100 text-center text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest px-4">
-        � 2025 Roomhy Housing Solutions. All Rights Reserved.
+        ? 2025 Roomhy Housing Solutions. All Rights Reserved.
       </div>
     </footer>
 
@@ -552,28 +552,28 @@
                 );
 
                 if (!user) {
-                    showToast('❌ Account not found. Please sign up first!', 'error');
+                    showToast('? Account not found. Please sign up first!', 'error');
                     return;
                 }
 
                 // Check if user is verified by KYC admin
                 if (user.status !== 'verified') {
                     if (user.status === 'rejected') {
-                        showToast('❌ Your account was rejected. Please contact support.', 'error');
+                        showToast('? Your account was rejected. Please contact support.', 'error');
                     } else {
-                        showToast('⏳ Your account is pending verification. Check back later!', 'error');
+                        showToast('? Your account is pending verification. Check back later!', 'error');
                     }
                     return;
                 }
 
                 // Verify password (simple check - in production, use hashing)
                 if (user.password !== password) {
-                    showToast('❌ Incorrect password!', 'error');
+                    showToast('? Incorrect password!', 'error');
                     return;
                 }
 
                 // Login successful!
-                showToast('✓ Login successful! Redirecting...', 'success');
+                showToast('? Login successful! Redirecting...', 'success');
 
                 // Store user session
                 const loggedInUser = {
@@ -614,8 +614,10 @@
                     return;
                 }
 
-                // Generate unique user ID
-                const userId = 'roomhyweb' + String(Date.now()).slice(-6); // Use last 6 digits of timestamp
+                // Generate sequential user ID
+                let counter = parseInt(localStorage.getItem('userIdCounter') || '0') + 1;
+                localStorage.setItem('userIdCounter', counter.toString());
+                const userId = 'roomhyweb' + String(counter).padStart(6, '0');
 
                 const signupData = {
                     id: userId,
@@ -651,6 +653,10 @@
                         }
                         // SAVE TO KYC VERIFICATION TABLE
                         saveToKYCVerification(signupData);
+                        
+                        // Send email with username and password
+                        sendSignupEmail(email, firstName, userId, password);
+                        
                         // Always redirect to website index after signup
                         setTimeout(() => { location.href = 'index.html'; }, 900);
                         return;
@@ -661,13 +667,46 @@
 
                 // Fallback: save to KYC verification table so superadmin can view
                 saveToKYCVerification(signupData);
-                showToast('Account created! Please verify via KYC.', 'success');
+                
+                // Send email with username and password
+                sendSignupEmail(email, firstName, userId, password);
+                
+                showToast('Account created! Verification email sent.', 'success');
                 // create local user and redirect to website index
                 const localUser = { name: firstName + (lastName ? ' ' + lastName : ''), email, loginId: email, role: 'tenant', id: userId };
                 localStorage.setItem('user', JSON.stringify(localUser));
                 localStorage.setItem('sessionStorage', JSON.stringify(localUser));
                 setTimeout(() => { window.location.href = 'index.html'; }, 800);
             });
+        }
+
+        /**
+         * SEND SIGNUP EMAIL
+         * Sends username and password to the user's email
+         */
+        function sendSignupEmail(email, firstName, userId, password) {
+            try {
+                fetch(`${API_URL}/api/email/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: email,
+                        firstName: firstName,
+                        userId: userId,
+                        password: password
+                    })
+                }).then(res => {
+                    if (res.ok) {
+                        console.log('✅ Signup email sent successfully');
+                    } else {
+                        console.warn('⚠️ Failed to send signup email');
+                    }
+                }).catch(err => {
+                    console.warn('⚠️ Email sending error:', err.message);
+                });
+            } catch (e) {
+                console.warn('sendSignupEmail error:', e);
+            }
         }
 
         /**
@@ -695,7 +734,7 @@
                     body: JSON.stringify(signupData)
                 }).then(res => {
                     if (res.ok) {
-                        console.log('✓ Signup saved to MongoDB via API');
+                        console.log('? Signup saved to MongoDB via API');
                     } else {
                         throw new Error('API failed');
                     }
@@ -704,7 +743,7 @@
                     // Add new signup to KYC table
                     existing.unshift(signupData);
                     localStorage.setItem(kycTableKey, JSON.stringify(existing));
-                    console.log('✓ Signup saved to localStorage as fallback');
+                    console.log('? Signup saved to localStorage as fallback');
                 });
 
                 // Add new signup to KYC table (localStorage for offline support)
@@ -714,7 +753,7 @@
                 // Also maintain tenant list for backward compatibility
                 saveLocalSignup(signupData);
 
-                console.log('✓ Signup saved to KYC Verification table');
+                console.log('? Signup saved to KYC Verification table');
             } catch (e) { 
                 console.error('saveToKYCVerification error:', e); 
             }

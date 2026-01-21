@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -134,7 +134,7 @@
                             <table class="w-full text-left border-collapse">
                                 <thead class="bg-gray-50 text-gray-500 text-[10px] uppercase border-b">
                                     <tr>
-                                        <th class="px-4 py-3">Visit ID</th>
+                                        <th class="px-4 py-3">Property ID</th>
                                         <th class="px-4 py-3">Date</th>
                                         <th class="px-4 py-3">Property Name</th>
                                         <th class="px-4 py-3">Type</th>
@@ -149,7 +149,7 @@
                                     </tr>
                                 </thead>
                                 <tbody id="websiteBody" class="divide-y divide-gray-100">
-                                    <tr><td colspan="11" class="px-6 py-12 text-center text-gray-400">Loading properties...</td></tr>
+                                    <tr><td colspan="12" class="px-6 py-12 text-center text-gray-400">Loading properties...</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -172,6 +172,9 @@
 
     <script>
         lucide.createIcons();
+
+        // Change API_URL to your backend URL
+        const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
 
         function toggleSubmenu(id, element) {
             const submenu = document.getElementById(id);
@@ -196,69 +199,68 @@
             loadWebsite();
         }
 
-        function loadWebsite() {
+        async function loadWebsite() {
             const tbody = document.getElementById('websiteBody');
-            
-            // ðŸ“Š Load from both localStorage and sessionStorage
-            let visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
-            let sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
-            
-            // ðŸ”„ If sessionStorage has more data (localStorage quota exceeded), use that
-            if (sessionVisits.length > visits.length) {
-                visits = sessionVisits;
-            } else if (sessionVisits.length > 0) {
-                // Merge both sources to avoid data loss
-                const ids = new Set(visits.map(v => v._id));
-                visits = [...visits, ...sessionVisits.filter(v => !ids.has(v._id))];
+
+            try {
+                const response = await fetch(`${API_URL}/api/approved-properties/public/approved`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                let visits = await response.json();
+
+                // Filter for online/offline based on current filter
+                visits = visits.filter(v => (currentWebsiteFilter === 'online' && v.isLiveOnWebsite === true) || (currentWebsiteFilter === 'offline' && v.isLiveOnWebsite === false));
+
+                if(visits.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="12" class="px-6 py-12 text-center text-gray-400">No live properties found.</td></tr>';
+                    updateStats([]);
+                    return;
+                }
+
+                tbody.innerHTML = visits.map(v => {
+                    const prop = v.propertyInfo || {};
+                    const profPhotos = v.professionalPhotos || [];
+                    const fieldPhotos = v.photos || [];
+                    const allPhotos = [...profPhotos, ...fieldPhotos];
+
+                    return `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-4 py-3 font-mono text-xs text-gray-600">${v.propertyId ? v.propertyId.slice(-8).toUpperCase() : '-'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">${v.submittedAt ? new Date(v.submittedAt).toLocaleDateString() : '-'}</td>
+                        <td class="px-4 py-3 font-semibold text-gray-800">${prop.name || '-'}</td>
+                        <td class="px-4 py-3">${prop.propertyType || '-'}</td>
+                        <td class="px-4 py-3">${prop.area || '-'}</td>
+                        <td class="px-4 py-3">${v.gender || '-'}</td>
+                        <td class="px-4 py-3">${prop.ownerName || '-'}</td>
+                        <td class="px-4 py-3 text-sm">${prop.contactPhone || '-'}</td>
+                        <td class="px-4 py-3 font-bold">₹${v.monthlyRent || 0}</td>
+                        <td class="px-4 py-3">
+                            <span class="text-[10px] font-bold ${profPhotos.length ? 'text-green-600 bg-green-50' : 'text-orange-600 bg-orange-50'} px-2 py-1 rounded">
+                                ${profPhotos.length ? 'Yes (' + profPhotos.length + ')' : 'Pending'}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <button onclick="toggleWebStatus('${v.propertyId}')" class="px-3 py-1 rounded text-xs font-medium transition-all ${v.isLiveOnWebsite ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}">
+                                ${v.isLiveOnWebsite ? '● ONLINE' : '● OFFLINE'}
+                            </button>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                ${allPhotos.length > 0 ? `<button onclick='viewGallery(${JSON.stringify(allPhotos)})' class="p-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition" title="View Photos"><i data-lucide="images" class="w-4 h-4"></i></button>` : ''}
+                                <button onclick="deleteProperty('${v.propertyId}')" class="p-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition" title="Delete Property"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }).join('');
+                lucide.createIcons();
+                updateStats(visits);
+                updateTabCounts();
+            } catch (error) {
+                console.error('Error loading website properties:', error);
+                tbody.innerHTML = '<tr><td colspan="12" class="px-6 py-12 text-center text-red-500">Error loading properties. Please check the server connection.</td></tr>';
             }
-            
-            // ðŸ” Filter for approved and online/offline based on current filter
-            visits = visits.filter(v => v.status === 'approved' && ((currentWebsiteFilter === 'online' && v.isLiveOnWebsite === true) || (currentWebsiteFilter === 'offline' && v.isLiveOnWebsite === false)));
-
-            if(visits.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" class="px-6 py-12 text-center text-gray-400">No live properties found.</td></tr>';
-                updateStats([]);
-                return;
-            }
-
-            tbody.innerHTML = visits.map(v => {
-                const prop = v.propertyInfo || {};
-                const profPhotos = v.professionalPhotos || [];
-                const fieldPhotos = v.photos || [];
-                const allPhotos = [...profPhotos, ...fieldPhotos];
-
-                return `
-                <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="px-4 py-3 font-mono text-xs text-gray-600">${v._id ? v._id.slice(-8).toUpperCase() : '-'}</td>
-                    <td class="px-4 py-3 text-sm text-gray-600">${v.submittedAt ? new Date(v.submittedAt).toLocaleDateString() : '-'}</td>
-                    <td class="px-4 py-3 font-semibold text-gray-800">${prop.name || '-'}</td>
-                    <td class="px-4 py-3">${prop.propertyType || '-'}</td>
-                    <td class="px-4 py-3">${prop.area || '-'}</td>
-                    <td class="px-4 py-3">${v.gender || '-'}</td>
-                    <td class="px-4 py-3">${prop.ownerName || '-'}</td>
-                    <td class="px-4 py-3 text-sm">${prop.contactPhone || '-'}</td>
-                    <td class="px-4 py-3 font-bold">₹${v.monthlyRent || 0}</td>
-                    <td class="px-4 py-3">
-                        <span class="text-[10px] font-bold ${profPhotos.length ? 'text-green-600 bg-green-50' : 'text-orange-600 bg-orange-50'} px-2 py-1 rounded">
-                            ${profPhotos.length ? 'Yes (' + profPhotos.length + ')' : 'Pending'}
-                        </span>
-                    </td>
-                    <td class="px-4 py-3">
-                        <button onclick="toggleWebStatus('${v._id}')" class="px-3 py-1 rounded text-xs font-medium transition-all ${v.isLiveOnWebsite ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}">
-                            ${v.isLiveOnWebsite ? 'â— ONLINE' : 'â— OFFLINE'}
-                        </button>
-                    </td>
-                    <td class="px-4 py-3 text-center">
-                        <div class="flex items-center justify-center gap-2">
-                            ${allPhotos.length > 0 ? `<button onclick='viewGallery(${JSON.stringify(allPhotos)})' class="p-2 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition" title="View Photos"><i data-lucide="images" class="w-4 h-4"></i></button>` : ''}
-                            <button onclick="deleteProperty('${v._id}')" class="p-2 bg-red-50 text-red-600 rounded hover:bg-red-100 transition" title="Delete Property"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
-                        </div>
-                    </td>
-                </tr>`;
-            }).join('');
-            lucide.createIcons();
-            updateStats(visits);
-            updateTabCounts();
         }
 
         function updateStats(visits) {
@@ -268,26 +270,22 @@
             document.getElementById('noProfCount').innerText = visits.length - withProf;
         }
 
-        function updateTabCounts() {
-            // ðŸ“Š Load from both sources
-            let visitsAll = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
-            let sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
-            
-            // ðŸ”„ Merge if needed
-            if (sessionVisits.length > visitsAll.length) {
-                visitsAll = sessionVisits;
-            } else if (sessionVisits.length > 0) {
-                const ids = new Set(visitsAll.map(v => v._id));
-                visitsAll = [...visitsAll, ...sessionVisits.filter(v => !ids.has(v._id))];
+        async function updateTabCounts() {
+            try {
+                const response = await fetch(`${API_URL}/api/website-property-data/all`);
+                if (!response.ok) return;
+                
+                let visitsAll = (await response.json()).properties || [];
+                visitsAll = visitsAll.filter(v => v.status === 'approved');
+                const online = visitsAll.filter(v => v.isLiveOnWebsite === true).length;
+                const offline = visitsAll.filter(v => !v.isLiveOnWebsite).length;
+                const onlineBtn = document.getElementById('tabOnline');
+                const offlineBtn = document.getElementById('tabOffline');
+                if (onlineBtn) onlineBtn.innerText = `Online (${online})`;
+                if (offlineBtn) offlineBtn.innerText = `Offline (${offline})`;
+            } catch (error) {
+                console.error('Error updating tab counts:', error);
             }
-            
-            visitsAll = visitsAll.filter(v => v.status === 'approved');
-            const online = visitsAll.filter(v => v.isLiveOnWebsite === true).length;
-            const offline = visitsAll.filter(v => !v.isLiveOnWebsite).length;
-            const onlineBtn = document.getElementById('tabOnline');
-            const offlineBtn = document.getElementById('tabOffline');
-            if (onlineBtn) onlineBtn.innerText = `Online (${online})`;
-            if (offlineBtn) offlineBtn.innerText = `Offline (${offline})`;
         }
 
         // === WEBSITE PHOTO FUNCTIONS ===
@@ -316,12 +314,16 @@
                 // Upload to Cloudinary
                 const cloudinaryUrl = await uploadToCloudinary(file, 'website');
                 
-                // Store the Cloudinary URL in localStorage
-                storeImageUrl('roomhy_website_photo', cloudinaryUrl);
+                // Save to database
+                await fetch(`${API_URL}/api/website-property-data/banner/photo`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ websiteBannerPhoto: cloudinaryUrl })
+                });
                 
                 // Show preview
                 displayWebsitePhotoPreview(cloudinaryUrl);
-                alert('Website banner photo uploaded to Cloudinary successfully!');
+                alert('Website banner photo uploaded successfully!');
             } catch (err) {
                 alert('Error uploading photo: ' + err.message);
                 console.error('Error uploading website photo:', err);
@@ -333,26 +335,30 @@
             const img = document.getElementById('websitePhotoImg');
             img.src = imageUrl;
             preview.classList.remove('hidden');
-            console.log('Website photo uploaded and saved to Cloudinary');
+            console.log('Website photo uploaded and saved to database');
         }
 
-        function removeWebsitePhoto() {
-            localStorage.removeItem('roomhy_website_photo');
-            document.getElementById('websitePhotoPreview').classList.add('hidden');
-            document.getElementById('websitePhotoInput').value = '';
+        async function removeWebsitePhoto() {
+            try {
+                document.getElementById('websitePhotoPreview').classList.add('hidden');
+                document.getElementById('websitePhotoInput').value = '';
+            } catch (error) {
+                console.error('Error removing photo:', error);
+            }
         }
 
         // Load existing website photo on page load
-        function loadWebsitePhoto() {
-            const storedData = localStorage.getItem('roomhy_website_photo');
-            if (storedData) {
-                try {
-                    const data = JSON.parse(storedData);
-                    displayWebsitePhotoPreview(data.url);
-                } catch (e) {
-                    // Fallback for old format (direct URL or data URL)
-                    displayWebsitePhotoPreview(storedData);
+        async function loadWebsitePhoto() {
+            try {
+                const response = await fetch(`${API_URL}/api/website-property-data/banner/photo`);
+                if (!response.ok) return;
+                
+                const data = await response.json();
+                if (data.photo) {
+                    displayWebsitePhotoPreview(data.photo);
                 }
+            } catch (error) {
+                console.error('Error loading website photo:', error);
             }
         }
 
@@ -367,74 +373,69 @@
             document.getElementById('imageModal').classList.add('hidden'); 
         }
 
-        function toggleWebStatus(id) {
-            const visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
-            const idx = visits.findIndex(v => v._id === id);
-            if(idx !== -1) {
-                visits[idx].isLiveOnWebsite = !visits[idx].isLiveOnWebsite;
-                if (window.safeStorage) { window.safeStorage.setVisits(visits); } else { localStorage.setItem('roomhy_visits', JSON.stringify(visits)); }
-                // reload current tab
+        async function toggleWebStatus(propertyId) {
+            try {
+                const response = await fetch(`${API_URL}/api/website-property-data/${propertyId}/toggle-live`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (!response.ok) throw new Error('Failed to toggle status');
+                
+                const data = await response.json();
+                alert(data.message);
                 loadWebsite();
-                const msg = visits[idx].isLiveOnWebsite ? "Property is now ONLINE." : "Property is now OFFLINE.";
-                alert(msg);
+            } catch (error) {
+                console.error('Error toggling web status:', error);
+                alert('Error toggling property status');
             }
         }
 
-        function deleteProperty(id) {
+        async function deleteProperty(propertyId) {
             if(!confirm("Are you sure you want to delete this property permanently? This action cannot be undone.")) return;
-            const visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
-            const idx = visits.findIndex(v => v._id === id);
-            if(idx !== -1) {
-                const prop = visits[idx].propertyInfo || {};
-                visits.splice(idx, 1);
-                if (window.safeStorage) { window.safeStorage.setVisits(visits); } else { localStorage.setItem('roomhy_visits', JSON.stringify(visits)); }
+            
+            try {
+                const response = await fetch(`${API_URL}/api/website-property-data/${propertyId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) throw new Error('Failed to delete property');
+                
                 loadWebsite();
-                alert(`Property "${prop.name}" has been deleted.`);
+                alert('Property has been deleted.');
+            } catch (error) {
+                console.error('Error deleting property:', error);
+                alert('Error deleting property');
             }
         }
 
-        function takeOffline(id) {
-            if(!confirm("Are you sure you want to take this property offline?")) return;
-            const visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
-            const idx = visits.findIndex(v => v._id === id);
-            if(idx !== -1) {
-                visits[idx].isLiveOnWebsite = false;
-                if (window.safeStorage) { window.safeStorage.setVisits(visits); } else { localStorage.setItem('roomhy_visits', JSON.stringify(visits)); }
-                loadWebsite();
-                alert('Property taken offline.');
+        async function exportToExcel() {
+            try {
+                const response = await fetch(`${API_URL}/api/website-property-data/all`);
+                if (!response.ok) throw new Error('Failed to fetch data');
+                
+                let visits = (await response.json()).properties || [];
+                visits = visits.filter(v => v.status === 'approved' && ((currentWebsiteFilter === 'online' && v.isLiveOnWebsite === true) || (currentWebsiteFilter === 'offline' && v.isLiveOnWebsite === false)));
+                
+                if(!visits.length) return alert('No data to export');
+                
+                let csv = 'Property ID,Date,Property Name,Type,Area,Owner,Contact,Rent,Prof Photos,Status\n';
+                visits.forEach(v => {
+                    const prop = v.propertyInfo || {};
+                    const profPhotos = (v.professionalPhotos || []).length;
+                    csv += `"${v.propertyId}","${v.submittedAt}","${prop.name}","${prop.propertyType}","${prop.area}","${prop.ownerName}","${prop.contactPhone}","${v.monthlyRent}","${profPhotos}","${v.isLiveOnWebsite ? 'ONLINE' : 'OFFLINE'}"\n`;
+                });
+                
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'website-properties.csv';
+                a.click();
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                alert('Error exporting data');
             }
-        }
-
-        function exportToExcel() {
-            // ðŸ“Š Load from both sources
-            let visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
-            let sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
-            
-            // ðŸ”„ Merge if needed
-            if (sessionVisits.length > visits.length) {
-                visits = sessionVisits;
-            } else if (sessionVisits.length > 0) {
-                const ids = new Set(visits.map(v => v._id));
-                visits = [...visits, ...sessionVisits.filter(v => !ids.has(v._id))];
-            }
-            
-            visits = visits.filter(v => v.status === 'approved' && ((currentWebsiteFilter === 'online' && v.isLiveOnWebsite === true) || (currentWebsiteFilter === 'offline' && v.isLiveOnWebsite === false)));
-            
-            if(!visits.length) return alert('No data to export');
-            
-            let csv = 'Visit ID,Date,Property Name,Type,Area,Owner,Contact,Rent,Prof Photos,Status\n';
-            visits.forEach(v => {
-                const prop = v.propertyInfo || {};
-                const profPhotos = (v.professionalPhotos || []).length;
-                csv += `"${v._id}","${v.submittedAt}","${prop.name}","${prop.propertyType}","${prop.area}","${prop.ownerName}","${prop.contactPhone}","${v.monthlyRent}","${profPhotos}","ONLINE"\n`;
-            });
-            
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'website-properties.csv';
-            a.click();
         }
 
         document.addEventListener('DOMContentLoaded', function(){ 
@@ -460,7 +461,5 @@
 
         document.getElementById('mobile-menu-open').addEventListener('click', toggleMobileMenu);
     </script>
-    <script src="../website/js/safe-storage.js"></script>
 </body>
 </html>
-

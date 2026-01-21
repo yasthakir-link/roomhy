@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -17,6 +17,12 @@
     </script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        // API Configuration
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:5000'
+            : 'https://roomhy-backend.onrender.com';
+    </script>
     <script src="seeder.js"></script>
     <style>
         body { 
@@ -176,26 +182,46 @@
         }
 
         // SuperAdmin Login
-        function loginSuperAdmin(email, password, errorMsg) {
-            const db = JSON.parse(localStorage.getItem('roomhy_superadmin_db') || 'null');
-            // Seeder fallback
-            if (!db && email === 'roomhyadmin@gmail.com' && password === 'admin@123') {
-                 const user = { id: 'SUPER_ADMIN', loginId: 'SUPER_ADMIN', email, name: 'Super Admin', role: 'superadmin' };
-                 // Set in both storages for cross-environment compatibility (esp. Render)
-                 sessionStorage.setItem('user', JSON.stringify(user));
-                 localStorage.setItem('user', JSON.stringify(user));
-                 window.location.href = 'superadmin/superadmin.html';
-                 return;
-            }
+        async function loginSuperAdmin(email, password, errorMsg) {
+            try {
+                const response = await fetch(API_URL + '/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ identifier: email, password })
+                });
 
-            if (db && db.email === email && db.password === password) {
-                const user = { ...db, loginId: db.loginId || db.id || 'SUPER_ADMIN', role: 'superadmin' };
-                // Set in both storages for cross-environment compatibility (esp. Render)
-                sessionStorage.setItem('user', JSON.stringify(user));
-                localStorage.setItem('user', JSON.stringify(user));
-                window.location.href = 'superadmin/superadmin.html';
-            } else {
-                showError('Invalid credentials.', errorMsg);
+                const data = await response.json();
+
+                if (response.ok && data.token && data.user) {
+                    // Store user and token
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('token', data.token);
+                    sessionStorage.setItem('token', data.token);
+                    window.location.href = 'superadmin/superadmin.html';
+                    return;
+                }
+
+                // Fallback to local login if API fails
+                const db = JSON.parse(localStorage.getItem('roomhy_superadmin_db') || 'null');
+                if (!db && email === 'roomhyadmin@gmail.com' && password === 'admin@123') {
+                     const user = { id: 'SUPER_ADMIN', loginId: 'SUPER_ADMIN', email, name: 'Super Admin', role: 'superadmin' };
+                     sessionStorage.setItem('user', JSON.stringify(user));
+                     localStorage.setItem('user', JSON.stringify(user));
+                     window.location.href = 'superadmin/superadmin.html';
+                     return;
+                }
+
+                if (db && db.email === email && db.password === password) {
+                    const user = { ...db, loginId: db.loginId || db.id || 'SUPER_ADMIN', role: 'superadmin' };
+                    sessionStorage.setItem('user', JSON.stringify(user));
+                    localStorage.setItem('user', JSON.stringify(user));
+                    window.location.href = 'superadmin/superadmin.html';
+                } else {
+                    showError('Invalid credentials.', errorMsg);
+                }
+            } catch (err) {
+                console.error('Login error:', err);
+                showError('Login failed. Please try again.', errorMsg);
             }
         }
 

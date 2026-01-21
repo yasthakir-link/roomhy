@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Roomhy - Admin Enquiry</title>
     <script>
-        // API Configuration - Support both local and production
+        // API Configuration
         const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
             ? 'http://localhost:5000'
             : 'https://roomhy-backend.onrender.com';
@@ -143,7 +143,6 @@
                                             <th class="px-4 py-3">Nearby Location</th>
                                             <th class="px-4 py-3">Owner Name</th>
                                             <th class="px-4 py-3">Owner Contact</th>
-                                            <th class="px-4 py-3">Owner Gmail</th>
                                             <th class="px-4 py-3">Gender</th>
                                             <th class="px-4 py-3">Student Reviews</th>
                                             <th class="px-4 py-3">Employee Rating</th>
@@ -162,7 +161,7 @@
                                         </tr>
                                     </thead>
                                     <tbody id="enquiryBody" class="divide-y divide-gray-100">
-                                        <tr><td colspan="28" class="px-6 py-12 text-center text-gray-400">Syncing database...</td></tr>
+                                        <tr><td colspan="8" class="px-6 py-12 text-center text-gray-400">Syncing database...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -215,7 +214,6 @@
             <div class="bg-gray-50 p-3 rounded text-left mb-4 border border-gray-200">
                 <div class="text-xs text-gray-500">Login ID:</div><div class="font-mono font-bold text-purple-600" id="modalLoginId">--</div>
                 <div class="text-xs text-gray-500 mt-2">Password:</div><div class="font-mono font-bold text-slate-600" id="modalPassword">--</div>
-                <div class="text-xs text-gray-500 mt-2">Gmail:</div><div class="font-mono font-bold text-blue-600" id="modalGmail">--</div>
             </div>
             <button onclick="closeModal()" class="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 transition">Close</button>
         </div>
@@ -223,14 +221,16 @@
 
     <div id="imageModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center z-[60] backdrop-blur-sm" onclick="closeImageModal()">
         <div class="relative w-full max-w-4xl p-4" onclick="event.stopPropagation()">
-            <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white" title="Close"><i data-lucide="x" class="w-8 h-8"></i></button>
+            <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-white"><i data-lucide="x" class="w-8 h-8"></i></button>
             <div id="galleryGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[80vh] overflow-y-auto p-4"></div>
         </div>
     </div>
 
     <script>
         lucide.createIcons();
-        let currentApprovingId = null; // holds visit id for approval modal
+        
+        // Global variables
+        let currentApprovingId = null;
 
         function navigateTo(path) {
             window.location.href = path;
@@ -265,28 +265,29 @@
             try {
                 const token = sessionStorage.getItem('token') || localStorage.getItem('token');
                 const apiUrl = API_URL + '/api/visits/pending';
-                
+
                 console.log('ðŸ”— Fetching from API:', apiUrl);
                 const response = await fetch(apiUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': token ? `Bearer ${token}` : ''
-                    }
+                    method: 'GET'
                 });
-                
+
                 if (!response.ok) {
                     throw new Error(`API responded with ${response.status}: ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
                 console.log('ðŸ“¡ API response:', data);
-                visits = data.visits || data || [];
-                console.log('✅ Loaded from API:', visits.length, 'visits');
-                
+                const allVisits = data.visits || data || [];
+                console.log('✅ Loaded from API:', allVisits.length, 'visits');
+
+                // Filter for pending/submitted visits
+                visits = allVisits.filter(v => ['submitted', 'pending', 'pending_review'].includes(v.status));
+                console.log('✅ Filtered to pending/submitted:', visits.length, 'visits');
+
                 if (visits.length > 0) {
                     console.log('   First visit:', {
-                        id: visits[0]._id, 
-                        status: visits[0].status, 
+                        id: visits[0]._id,
+                        status: visits[0].status,
                         property: visits[0].propertyInfo?.name || visits[0].property?.name || 'Unknown'
                     });
                 }
@@ -331,7 +332,7 @@
 
             if(visits.length === 0) {
                 console.warn('âš ï¸ No pending visits found. Showing empty message.');
-                tbody.innerHTML = '<tr><td colspan="28" class="px-6 py-12 text-center text-gray-400">No pending reports found. <a href="javascript:location.reload()" class="text-purple-600 underline">Refresh</a></td></tr>';
+                tbody.innerHTML = '<tr><td colspan="25" class="px-6 py-12 text-center text-gray-400">No pending reports found. <a href="javascript:location.reload()" class="text-purple-600 underline">Refresh</a></td></tr>';
                 renderStatusCounters();
                 return;
             }
@@ -340,7 +341,23 @@
 
             tbody.innerHTML = visits.map((v, idx) => {
                 console.log(`   Rendering ${idx + 1}/${visits.length}: ${v._id}`);
-                const prop = v.propertyInfo || {};
+                
+                // Get propertyInfo or build it from flat fields
+                const prop = v.propertyInfo || {
+                    staffName: v.staffName,
+                    staffId: v.staffId,
+                    name: v.propertyName,
+                    propertyType: v.propertyType,
+                    address: v.address,
+                    area: v.area,
+                    landmark: v.landmark,
+                    nearbyLocation: v.nearbyLocation,
+                    ownerName: v.ownerName,
+                    contactPhone: v.contactPhone,
+                    monthlyRent: v.monthlyRent,
+                    amenities: v.amenities
+                };
+                
                 const fieldPhotos = v.photos || [];
                 const profPhotos = v.professionalPhotos || [];
                 const isLive = v.isLiveOnWebsite || false;
@@ -355,19 +372,18 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="px-4 py-3 text-xs font-mono text-gray-600">${v._id ? v._id.slice(-8).toUpperCase() : '-'}</td>
                     <td class="px-4 py-3 text-sm text-gray-600">${v.submittedAt ? new Date(v.submittedAt).toLocaleString() : '-'}</td>
-                    <td class="px-4 py-3 text-sm font-semibold text-slate-700">${prop.staffName || v.staffName || '-'}</td>
-                    <td class="px-4 py-3 text-sm">${prop.staffId || v.staffId || '-'}</td>
+                    <td class="px-4 py-3 text-sm font-semibold text-slate-700">${v.staffName || prop.staffName || '-'}</td>
+                    <td class="px-4 py-3 text-sm">${v.staffId || prop.staffId || '-'}</td>
                     <td class="px-4 py-3">
-                        <div class="text-sm font-bold text-slate-700">${prop.name || '-'}</div>
+                        <div class="text-sm font-bold text-slate-700">${v.propertyName || prop.name || '-'}</div>
                     </td>
-                    <td class="px-4 py-3">${prop.propertyType || v.propertyType || '-'}</td>
-                    <td class="px-4 py-3">${prop.address || v.address || '-'}</td>
-                    <td class="px-4 py-3">${prop.area || v.area || prop.areaLocality || '-'}</td>
-                    <td class="px-4 py-3">${prop.landmark || v.landmark || '-'}</td>
-                    <td class="px-4 py-3">${prop.nearbyLocation || v.nearbyLocation || '-'}</td>
-                    <td class="px-4 py-3">${prop.ownerName || v.ownerName || '-'}</td>
-                    <td class="px-4 py-3">${prop.contactPhone || v.contactPhone || '-'}</td>
-                    <td class="px-4 py-3">${prop.ownerGmail || v.propertyInfo?.ownerGmail || '-'}</td>
+                    <td class="px-4 py-3">${v.propertyType || prop.propertyType || '-'}</td>
+                    <td class="px-4 py-3">${v.address || prop.address || '-'}</td>
+                    <td class="px-4 py-3">${v.area || prop.area || '-'}</td>
+                    <td class="px-4 py-3">${v.landmark || prop.landmark || '-'}</td>
+                    <td class="px-4 py-3">${v.nearbyLocation || prop.nearbyLocation || '-'}</td>
+                    <td class="px-4 py-3">${v.ownerName || prop.ownerName || '-'}</td>
+                    <td class="px-4 py-3">${v.contactPhone || prop.contactPhone || '-'}</td>
                     <td class="px-4 py-3">${v.gender || '-'}</td>
                     <td class="px-4 py-3 text-center bg-amber-50 border-x border-amber-200">
                         <div class="flex items-center justify-center">
@@ -404,7 +420,6 @@
                         <div class="flex items-center justify-center gap-2">
                             <button onclick="approve('${v._id}')" class="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors" title="Approve"><i data-lucide="check" class="w-4 h-4"></i></button>
                             <button onclick="holdVisit('${v._id}')" class="p-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors" title="Hold"><i data-lucide="pause" class="w-4 h-4"></i></button>
-                            <button onclick="rejectVisit('${v._id}')" class="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors" title="Reject"><i data-lucide="x" class="w-4 h-4"></i></button>
                         </div>
                     </td>
                 </tr>`;
@@ -580,26 +595,11 @@
         }
 
         async function confirmApproval(shouldUpload) {
-            console.log('confirmApproval called', { shouldUpload, currentApprovingId });
-            if (!currentApprovingId) return;
-
-            let visits = [];
-            let sessionVisits = [];
-
-            // Safe localStorage access (some browsers block storage in strict tracking-prevention)
-            try {
-                visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
-            } catch (e) {
-                console.warn('localStorage access failed or blocked:', e);
-                visits = [];
-            }
-
-            try {
-                sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
-            } catch (e) {
-                sessionVisits = [];
-            }
-
+            if(!currentApprovingId) return;
+            
+            let visits = JSON.parse(localStorage.getItem('roomhy_visits') || '[]');
+            let sessionVisits = JSON.parse(sessionStorage.getItem('roomhy_visits') || '[]');
+            
             // Merge both sources first
             if (sessionVisits.length > 0) {
                 const merged = [...visits];
@@ -613,53 +613,9 @@
                 });
                 visits = merged;
             }
-
-            const idx = visits.findIndex(v => v._1d === currentApprovingId || v._id === currentApprovingId);
-
-            // If we couldn't find the visit in storage (blocked or not present), fall back to backend-only flow
-            if (idx === -1) {
-                console.log('Visit not found in local storage, calling backend approve API directly for', currentApprovingId);
-                const loginId = `ROOMHY${Math.floor(1000 + Math.random() * 9000)}`;
-                const password = Math.random().toString(36).slice(-8);
-                try {
-                    const response = await fetch(API_URL + '/api/visits/approve', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
-                        },
-                        body: JSON.stringify({
-                            visitId: currentApprovingId,
-                            status: 'approved',
-                            isLiveOnWebsite: shouldUpload,
-                            loginId: loginId,
-                            tempPassword: password
-                        })
-                    });
-                    const data = await response.json();
-                    console.log('Backend approve response:', data);
-                    if (response.ok) {
-                        document.getElementById('approveModal').classList.add('hidden');
-                        document.getElementById('modalLoginId').innerText = loginId;
-                        document.getElementById('modalPassword').innerText = password;
-                        document.getElementById('modalGmail').innerText = data.enquiry?.propertyInfo?.ownerGmail || '-';
-                        document.getElementById('successModal').classList.remove('hidden');
-                        document.getElementById('successModal').classList.add('flex');
-                        fetchEnquiries();
-                    } else {
-                        alert('Failed to approve visit: ' + (data.message || response.statusText));
-                    }
-                } catch (err) {
-                    console.error('Error calling approve API:', err);
-                    alert('Error approving visit. See console for details.');
-                }
-
-                currentApprovingId = null;
-                return;
-            }
-
-            // If visit found in storage, continue with previous local flow
-            try {
+            
+            const idx = visits.findIndex(v => v._id === currentApprovingId);
+            if(idx !== -1) {
                 const loginId = `ROOMHY${Math.floor(1000 + Math.random() * 9000)}`;
                 const password = Math.random().toString(36).slice(-8);
 
@@ -667,61 +623,38 @@
                 visits[idx].isLiveOnWebsite = shouldUpload;
                 visits[idx].generatedCredentials = { loginId, tempPassword: password };
                 if (window.safeStorage) { window.safeStorage.setVisits(visits); } else { localStorage.setItem('roomhy_visits', JSON.stringify(visits)); }
-
-                // Sync with backend API
-                try {
-                    const response = await fetch(API_URL + '/api/visits/approve', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
-                        },
-                        body: JSON.stringify({
-                            visitId: currentApprovingId,
-                            status: 'approved',
-                            isLiveOnWebsite: shouldUpload,
-                            loginId: loginId,
-                            tempPassword: password
-                        })
-                    });
-                    const data = await response.json();
-                    console.log('✅ Visit approved and synced to backend:', data);
-                } catch (err) {
-                    console.warn('Backend sync failed (continuing with localStorage):', err);
+                
+                // Sync with backend API if should upload
+                if (shouldUpload) {
+                    try {
+                        const response = await fetch(API_URL + '/api/visits/approve', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
+                            },
+                            body: JSON.stringify({
+                                visitId: currentApprovingId,
+                                status: 'approved',
+                                isLiveOnWebsite: true,
+                                loginId: loginId,
+                                tempPassword: password
+                            })
+                        });
+                        const data = await response.json();
+                        console.log('✅ Visit approved and synced to backend:', data);
+                    } catch (err) {
+                        console.warn('âš ï¸ Backend sync failed (continuing with localStorage):', err);
+                    }
                 }
-
-                // Send login credentials to owner's Gmail (non-blocking)
-                const ownerGmail = visits[idx].propertyInfo?.ownerGmail || visits[idx].ownerGmail;
-                if (ownerGmail && ownerGmail !== '-') {
-                    setTimeout(async () => {
-                        try {
-                            const propertyName = visits[idx].propertyInfo?.name || visits[idx].property?.name || 'Your Property';
-                            const emailSubject = `RoomHy Login Credentials - ${propertyName}`;
-                            const emailHtml = `Credentials: ${loginId} / ${password}`;
-                            await fetch(API_URL + '/api/email/send', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
-                                },
-                                body: JSON.stringify({ to: ownerGmail, subject: emailSubject, html: emailHtml })
-                            });
-                        } catch (emailError) { console.warn('Error sending email:', emailError); }
-                    }, 100);
-                }
-
+                
                 document.getElementById('modalLoginId').innerText = loginId;
                 document.getElementById('modalPassword').innerText = password;
-                document.getElementById('modalGmail').innerText = visits[idx].propertyInfo?.ownerGmail || visits[idx].ownerGmail || '-';
                 document.getElementById('approveModal').classList.add('hidden');
                 document.getElementById('successModal').classList.remove('hidden');
                 document.getElementById('successModal').classList.add('flex');
                 fetchEnquiries();
-            } catch (err) {
-                console.error('confirmApproval error:', err);
-                alert('Error during approval process. See console.');
             }
-
             currentApprovingId = null;
         }
 
@@ -743,49 +676,16 @@
                 });
 
                 const data = await response.json();
+
                 if (data.success) {
-                    console.log('✅ Visit held successfully:', data);
                     alert('Visit held successfully');
                     fetchEnquiries();
                 } else {
-                    console.error('❌ Hold failed:', data.message);
-                    alert('Failed to hold visit: ' + data.message);
+                    alert('Error holding visit: ' + data.message);
                 }
-            } catch (err) {
-                console.error('❌ Hold error:', err);
-                alert('Error holding visit. Please try again.');
-            }
-        }
-
-        async function rejectVisit(id) {
-            const reason = prompt("Enter rejection reason:");
-            if(reason === null) return;
-
-            try {
-                const response = await fetch(API_URL + '/api/visits/reject', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
-                    },
-                    body: JSON.stringify({
-                        visitId: id,
-                        rejectReason: reason
-                    })
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    console.log('✅ Visit rejected successfully:', data);
-                    alert('Visit rejected successfully');
-                    fetchEnquiries();
-                } else {
-                    console.error('❌ Reject failed:', data.message);
-                    alert('Failed to reject visit: ' + data.message);
-                }
-            } catch (err) {
-                console.error('❌ Reject error:', err);
-                alert('Error rejecting visit. Please try again.');
+            } catch (error) {
+                console.error('Error holding visit:', error);
+                alert('Error holding visit: ' + error.message);
             }
         }
 

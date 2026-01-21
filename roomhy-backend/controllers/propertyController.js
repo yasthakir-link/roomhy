@@ -98,31 +98,6 @@ exports.submitEnquiry = async (req, res) => {
             await notification.save();
         }
 
-        // Send email notification to superadmin
-        try {
-            const mailer = require('../utils/mailer');
-            const superadminEmail = 'roomhy01@gmail.com';
-            const subject = 'New Property Enquiry Submitted';
-            const html = `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2 style="color: #333;">New Property Enquiry</h2>
-                    <p>A new property enquiry has been submitted.</p>
-                    <div style="background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 15px 0;">
-                        <p><strong>Property:</strong> ${enquiryData.property_name || 'N/A'}</p>
-                        <p><strong>Owner:</strong> ${enquiryData.owner_name || 'N/A'}</p>
-                        <p><strong>City:</strong> ${city || 'N/A'}</p>
-                        <p><strong>Phone:</strong> ${enquiryData.owner_phone || 'N/A'}</p>
-                        <p><strong>Email:</strong> ${enquiryData.owner_email || 'N/A'}</p>
-                        <p><strong>Assigned To:</strong> ${assignedManager ? assignedManager.name : 'No area manager'}</p>
-                    </div>
-                    <p>Please review this enquiry in the superadmin panel.</p>
-                </div>
-            `;
-            await mailer.sendMail(superadminEmail, subject, '', html);
-        } catch (emailError) {
-            console.error('Failed to send property enquiry notification email:', emailError);
-        }
-
         res.json({
             success: true,
             message: 'Property enquiry submitted successfully',

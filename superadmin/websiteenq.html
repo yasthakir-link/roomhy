@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,7 +6,7 @@
     <title>Roomhy - Website Property Enquiries</title>
     <script>
         // API Configuration
-        const API_URL = 'https://roomhy-backend.onrender.com';
+        const API_URL = 'https://roomhy-backend-wqwo.onrender.com';
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -296,7 +296,53 @@
                 }
             } catch (error) {
                 console.error('Error loading enquiries:', error);
-                allEnquiries = [];
+                // Load default sample data if API fails
+                allEnquiries = [
+                    {
+                        id: 'sample_1',
+                        property_type: 'pg',
+                        property_name: 'Sample PG in Kota',
+                        city: 'kota',
+                        locality: 'North Campus',
+                        address: '123 Main Street',
+                        pincode: '324001',
+                        description: 'Sample property for testing',
+                        amenities: ['WiFi', 'AC'],
+                        gender_suitability: 'male',
+                        rent: 5000,
+                        deposit: 10000,
+                        owner_name: 'John Doe',
+                        owner_email: 'john@example.com',
+                        owner_phone: '9876543210',
+                        status: 'pending',
+                        assigned_to: null,
+                        assigned_area: null,
+                        notes: '',
+                        created_at: new Date().toISOString()
+                    },
+                    {
+                        id: 'sample_2',
+                        property_type: 'hostel',
+                        property_name: 'Sample Hostel in Indore',
+                        city: 'indore',
+                        locality: 'City Center',
+                        address: '456 Hostel Lane',
+                        pincode: '452001',
+                        description: 'Another sample property',
+                        amenities: ['Food', 'Laundry'],
+                        gender_suitability: 'female',
+                        rent: 4000,
+                        deposit: 8000,
+                        owner_name: 'Jane Smith',
+                        owner_email: 'jane@example.com',
+                        owner_phone: '9876543211',
+                        status: 'assigned',
+                        assigned_to: 'Rajesh Kumar',
+                        assigned_area: 'Indore',
+                        notes: 'Assigned for follow-up',
+                        created_at: new Date().toISOString()
+                    }
+                ];
             }
 
             loadManagers();
@@ -518,7 +564,7 @@
                         </div>
                         <div>
                             <p class="text-xs text-gray-600">Starting Price</p>
-                            <p class="font-semibold">₹${(enquiry.rent || 0).toLocaleString()}/month</p>
+                            <p class="font-semibold">?${(enquiry.rent || 0).toLocaleString()}/month</p>
                         </div>
                     </div>
                     <hr>

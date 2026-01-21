@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "npm install && npm --prefix roomhy-backend install && node server.js",
-    "dev": "npm install && npm --prefix roomhy-backend install && npx nodemon server.js"
+    "start": "npm install && npm --prefix roomhy-backend install && npm run build:css && node server.js",
+    "dev": "npm install && npm --prefix roomhy-backend install && npm run build:css && npx nodemon server.js",
+    "build:css": "npx postcss src/css/styles.css -o public/css/styles.css"
   },
   "dependencies": {
     "agora-access-token": "^2.0.4",

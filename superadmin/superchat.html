@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -86,12 +86,12 @@
             if (!user || !user.loginId) {
                 // Allow for demo/testing - generate a default super admin ID
                 superAdminLoginId = 'superadmin_system';
-                console.warn('⚠️ No super admin user found, using demo ID');
+                console.warn('?? No super admin user found, using demo ID');
             } else {
                 superAdminLoginId = user.loginId;
             }
 
-            console.log('✓ Super Admin initialized:', superAdminLoginId);
+            console.log('? Super Admin initialized:', superAdminLoginId);
 
             initSocket();
             loadAllMessages();
@@ -104,7 +104,7 @@
             socket = io(API_URL);
 
             socket.on('connect', () => {
-                console.log('✓ Connected to chat');
+                console.log('? Connected to chat');
                 updateStatus('Connected', 'green');
                 socket.emit('join_room', {
                     login_id: superAdminLoginId,
@@ -114,7 +114,7 @@
             });
 
             socket.on('receive_message', (msg) => {
-                console.log('📨 New message received:', msg);
+                console.log('?? New message received:', msg);
                 displayMessage(msg);
             });
 
@@ -163,7 +163,7 @@
 
                 // Display each message
                 messages.forEach(msg => displayMessage(msg));
-                console.log(`✓ Loaded ${messages.length} messages`);
+                console.log(`? Loaded ${messages.length} messages`);
             } catch (error) {
                 console.error('Error loading messages:', error);
                 document.getElementById('messagesContainer').innerHTML = `
@@ -231,7 +231,7 @@
                 </div>
                 <div class="flex justify-between items-center mt-2 text-xs text-gray-400">
                     <span>ID: ${msg._id ? msg._id.toString().substring(0, 12) : 'N/A'}</span>
-                    <span>${msg.is_read ? '✓ Read' : '○ Unread'}</span>
+                    <span>${msg.is_read ? '? Read' : '? Unread'}</span>
                 </div>
             `;
 

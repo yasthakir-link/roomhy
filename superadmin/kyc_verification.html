@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -677,8 +677,8 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="font-mono text-xs text-gray-600">"”</td>
-                        <td class="font-mono text-xs text-gray-600">"”</td>
+                        <td class="font-mono text-xs text-gray-600">"�</td>
+                        <td class="font-mono text-xs text-gray-600">"�</td>
                         <td>
                             <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">
                                 <i data-lucide="user" class="w-3 h-3 mr-1"></i> Signup
@@ -700,7 +700,7 @@
                 });
                 
                 lucide.createIcons();
-                console.log(`âœ“ Loaded ${signupUsers.length} signup records from KYC table`);
+                console.log(`✓ Loaded ${signupUsers.length} signup records from KYC table`);
             } catch (e) { 
                 console.error('loadSignupRecordsFromKYC error:', e); 
             }
@@ -739,7 +739,7 @@
                     localStorage.setItem('roomhy_tenants', JSON.stringify(tenants));
                 }
 
-                alert('âœ“ User verified successfully!');
+                alert('✓ User verified successfully!');
                 loadSignupRecordsFromKYC(); // Refresh table
             } catch (e) {
                 console.error('approveSignup error:', e);
@@ -780,7 +780,7 @@
                     localStorage.setItem('roomhy_tenants', JSON.stringify(tenants));
                 }
 
-                alert('âœ— User rejected!');
+                alert('✗ User rejected!');
                 loadSignupRecordsFromKYC(); // Refresh table
             } catch (e) {
                 console.error('rejectSignup error:', e);
@@ -799,9 +799,9 @@
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><span class="font-mono text-xs text-gray-500">${t.requestId || t.id || ''}</span></td>
-                        <td><div class="flex items-center"><div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs mr-3">${(t.name||'').split(' ').map(n=>n[0]||'').slice(0,2).join('')}</div><div><p class="text-sm font-medium text-gray-900">${t.name}</p><p class="text-xs text-gray-500">${t.property || ''} Â· ${t.roomNo || ''}</p></div></div></td>
-                        <td class="font-mono text-xs text-gray-600">${t.aadhaar || '"”'}</td>
-                        <td class="font-mono text-xs text-gray-600">${t.pan || '"”'}</td>
+                        <td><div class="flex items-center"><div class="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-xs mr-3">${(t.name||'').split(' ').map(n=>n[0]||'').slice(0,2).join('')}</div><div><p class="text-sm font-medium text-gray-900">${t.name}</p><p class="text-xs text-gray-500">${t.property || ''} · ${t.roomNo || ''}</p></div></div></td>
+                        <td class="font-mono text-xs text-gray-600">${t.aadhaar || '"�'}</td>
+                        <td class="font-mono text-xs text-gray-600">${t.pan || '"�'}</td>
                         <td><span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-700">${(t.documents||[]).length} Files</span></td>
                         <td><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Pending</span></td>
                         <td class="text-right">

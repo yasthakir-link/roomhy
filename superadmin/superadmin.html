@@ -1,4 +1,4 @@
-﻿    <script>
+    <script>
     // Debug: Log auth info at page load
     console.log('[SuperAdmin] Page loading...');
     console.log('[SuperAdmin] Storage - User:', localStorage.getItem('user') ? 'YES' : 'NO');
@@ -149,7 +149,7 @@
                     </h2>
                 </div>
                 <div class="flex items-center gap-4">
-                    <img id="admin-avatar-header" src="https://i.pravatar.cc/150?u=superadmin" class="w-8 h-8 rounded-full border border-slate-200">
+                    <span class="w-8 h-8 rounded-full border border-slate-200 bg-purple-600 text-white flex items-center justify-center font-bold">SA</span>
                 </div>
             </header>
 
@@ -409,9 +409,10 @@
         // --- Header Population ---
         function populateHeader() {
             const user = JSON.parse(localStorage.getItem('user') || localStorage.getItem('admin_user') || '{}');
-            
-            if (user.name) {
-                document.getElementById('admin-avatar-header').src = `https://i.pravatar.cc/150?u=${encodeURIComponent(user.name)}`;
+
+            const avatarElement = document.getElementById('admin-avatar-header');
+            if (user.name && avatarElement) {
+                avatarElement.src = `https://i.pravatar.cc/150?u=${encodeURIComponent(user.name)}`;
             }
         }
 
