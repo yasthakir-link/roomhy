@@ -438,33 +438,6 @@ router.get('/all', async (req, res) => {
 });
 
 // ============================================================
-// GET: Get pending visits (for enquiry.html)
-// ============================================================
-router.get('/pending', async (req, res) => {
-    try {
-        console.log('📥 [visits/pending/GET] Fetching pending visits...');
-        const visits = await VisitData.find({ 
-            status: { $in: ['submitted', 'pending_review'] }
-        }).sort({ submittedAt: -1 });
-        
-        console.log(`✅ [visits/pending/GET] Found ${visits.length} pending visits`);
-        
-        res.json({
-            success: true,
-            count: visits.length,
-            visits: visits
-        });
-    } catch (error) {
-        console.error('Error fetching pending visits:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching pending visits',
-            error: error.message
-        });
-    }
-});
-
-// ============================================================
 // GET: Get approved visits
 // ============================================================
 // GET: Get approved visits (for public display on ourproperty.html)
