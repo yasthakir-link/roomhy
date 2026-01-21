@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Roomhy - New Signups</title>
     <script>
-        const API_URL = 'https://roomhy-backend.onrender.com';
+        const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+            ? 'http://localhost:5000'
+            : 'https://roomhy-backend.onrender.com';
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -581,9 +583,10 @@
         async function loadSignupRecordsFromKYC() {
             try {
                 // Try to fetch from MongoDB API first
-                const response = await fetch(`${API_URL}/api/signups`);
+                const response = await fetch(`${API_URL}/api/kyc`);
                 if (response.ok) {
-                    const signupUsers = await response.json();
+                    const result = await response.json();
+                    const signupUsers = result.data || result || [];
                     console.log(`✓ Loaded ${signupUsers.length} signup records from MongoDB API`);
                     // Store in localStorage as backup
                     localStorage.setItem('roomhy_kyc_verification', JSON.stringify(signupUsers));

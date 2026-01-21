@@ -2,6 +2,15 @@ const express = require('express');
 const router = express.Router();
 const VisitData = require('../models/VisitData');
 
+// Helper function to convert string to boolean
+function stringToBoolean(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+        return value.toLowerCase() === 'yes';
+    }
+    return false;
+}
+
 // ============================================================
 // POST: Save visit data (used by visit.html)
 // ============================================================
@@ -9,15 +18,25 @@ router.post('/', async (req, res) => {
     try {
         const visitData = req.body;
 
+        // Process the data to handle type conversions
+        const processedData = { ...visitData };
+        delete processedData._id; // Remove _id to let MongoDB auto-generate ObjectId
+
+        // Convert boolean fields from strings to booleans
+        processedData.visitorsAllowed = stringToBoolean(processedData.visitorsAllowed);
+        processedData.cookingAllowed = stringToBoolean(processedData.cookingAllowed);
+        processedData.smokingAllowed = stringToBoolean(processedData.smokingAllowed);
+        processedData.petsAllowed = stringToBoolean(processedData.petsAllowed);
+
         // Generate visitId if not provided
-        const visitId = visitData.visitId || visitData._id || ('v_' + Date.now());
+        const visitId = processedData.visitId || ('v_' + Date.now());
 
         // Create new visit document
         const newVisit = new VisitData({
-            ...visitData,
+            ...processedData,
             visitId: visitId,
             submittedAt: new Date(),
-            status: visitData.status || 'submitted'
+            status: processedData.status || 'submitted'
         });
 
         await newVisit.save();
@@ -368,10 +387,10 @@ router.post('/submit', async (req, res) => {
             ...(ventilation && { ventilation }),
             ...(minStay && { minStay }),
             ...(entryExit && { entryExit }),
-            ...(visitorsAllowed && { visitorsAllowed }),
-            ...(cookingAllowed && { cookingAllowed }),
-            ...(smokingAllowed && { smokingAllowed }),
-            ...(petsAllowed && { petsAllowed }),
+            ...(visitorsAllowed !== undefined && { visitorsAllowed: stringToBoolean(visitorsAllowed) }),
+            ...(cookingAllowed !== undefined && { cookingAllowed: stringToBoolean(cookingAllowed) }),
+            ...(smokingAllowed !== undefined && { smokingAllowed: stringToBoolean(smokingAllowed) }),
+            ...(petsAllowed !== undefined && { petsAllowed: stringToBoolean(petsAllowed) }),
             ...(internalRemarks && { internalRemarks }),
             ...(cleanlinessNote && { cleanlinessNote }),
             ...(ownerBehaviour && { ownerBehaviour })
