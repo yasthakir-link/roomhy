@@ -1585,8 +1585,8 @@
             console.log('Is Logged In:', isLoggedIn);
             
             if (isLoggedIn) {
-                // User is logged in, redirect to property page
-                window.location.href = 'ourproperty.html?city=' + encodeURIComponent(cityName);
+                // User is logged in, redirect to index.html
+                window.location.href = 'index.html';
             } else {
                 // User is not logged in, show signup modal
                 showSignupModal(cityName);
