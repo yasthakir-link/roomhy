@@ -1570,129 +1570,123 @@
                             // User found in new_signups with user ID
                             userId = userSignup.id;
                             console.log('✅ User found in new_signups with ID:', userId);
+                            // Proceed directly with booking
+                            await submitBookingRequest(user, name, email, userId, scheduleForm);
                         } else {
-                            // User not found - show signup popup
-                            const shouldSignup = confirm(
-                                `Your email (${email}) is not registered in our system yet.\n\n` +
-                                `Would you like to sign up first?\n\n` +
-                                `Click OK to go to signup page, or Cancel to proceed as guest.`
-                            );
+                            // User not found - show attractive modal popup
+                            console.warn('⚠️ Email not found in new_signups, showing signup modal');
                             
-                            if (shouldSignup) {
-                                // Redirect to signup page
-                                window.location.href = '../signup.html?email=' + encodeURIComponent(email) + '&return=' + encodeURIComponent(window.location.href);
+                            // Show modal with callback for guest proceed
+                            showSignupModal(email, async () => {
+                                // Guest proceed callback - continue with booking request without signup user ID
+                                await submitBookingRequest(user, name, email, null, scheduleForm);
+                            });
+                        }
+                    });
+                }
+
+                // ✅ HELPER FUNCTION: Submit booking request
+                async function submitBookingRequest(user, name, email, userId, scheduleForm) {
+                    // Get property details from page
+                    const propertyId = getParam('id') || '1';
+                    const propertyName = document.getElementById('property-title')?.textContent || 'Property';
+                    const area = document.querySelector('[id="property-location"]')?.textContent || 'Unknown';
+                    const propertyType = document.querySelector('[data-field="property-type"]')?.textContent || 'PG';
+                    const rentAmount = document.querySelector('[data-field="rent-amount"]')?.textContent?.replace(/₹|,/g, '') || 0;
+
+                    // ✅ Get property owner ID from approved visit data
+                    let propertyOwnerId = null;
+                    const visits = getVisitsFromStorage();
+                    const propertyId_str = String(propertyId);
+                    
+                    if (visits && visits.length > 0) {
+                        const foundVisit = visits.find(x => 
+                            String(x._id) === propertyId_str || 
+                            String(x.id) === propertyId_str || 
+                            String(x.visitId) === propertyId_str
+                        );
+                        
+                        if (foundVisit) {
+                            if (foundVisit.status !== 'approved') {
+                                alert('Error: This property has not been approved by admin yet. Please contact support.');
                                 return;
                             }
-                            // User chose to proceed without signup
-                            console.warn('⚠️ User proceeding without signup registration');
-                        }
-
-                        // Get property details from page
-                        const propertyId = getParam('id') || '1';
-                        const propertyName = document.getElementById('property-title')?.textContent || 'Property';
-                        const area = document.querySelector('[id="property-location"]')?.textContent || 'Unknown';
-                        const propertyType = document.querySelector('[data-field="property-type"]')?.textContent || 'PG';
-                        const rentAmount = document.querySelector('[data-field="rent-amount"]')?.textContent?.replace(/₹|,/g, '') || 0;
-
-                        // ✅ Get property owner ID from approved visit data
-                        // The property must be approved by super admin first - the loginId is generated during approval
-                        let propertyOwnerId = null;
-                        const visits = getVisitsFromStorage();
-                        const propertyId_str = String(propertyId);
-                        
-                        if (visits && visits.length > 0) {
-                            // Find the visit by ID (visit ID is the property ID)
-                            const foundVisit = visits.find(x => 
-                                String(x._id) === propertyId_str || 
-                                String(x.id) === propertyId_str || 
-                                String(x.visitId) === propertyId_str
-                            );
                             
-                            // Extract owner login ID from approved visit
-                            // Priority: use generatedCredentials.loginId (from super admin approval)
-                            if (foundVisit) {
-                                // First, check if property is approved
-                                if (foundVisit.status !== 'approved') {
-                                    alert('Error: This property has not been approved by admin yet. Please contact support.');
-                                    return;
-                                }
-                                
-                                // Get the loginId generated during approval
-                                propertyOwnerId = (foundVisit.generatedCredentials && foundVisit.generatedCredentials.loginId) || 
-                                               foundVisit.ownerLoginId || 
-                                               foundVisit.createdBy || 
-                                               foundVisit.owner || 
-                                               foundVisit.propertyOwnerId ||
-                                               (foundVisit.propertyInfo && foundVisit.propertyInfo.ownerId);
-                            }
+                            propertyOwnerId = (foundVisit.generatedCredentials && foundVisit.generatedCredentials.loginId) || 
+                                           foundVisit.ownerLoginId || 
+                                           foundVisit.createdBy || 
+                                           foundVisit.owner || 
+                                           foundVisit.propertyOwnerId ||
+                                           (foundVisit.propertyInfo && foundVisit.propertyInfo.ownerId);
+                        }
+                    }
+
+                    if (!propertyOwnerId) {
+                        alert('Error: Could not identify property owner. Property must be approved by admin first.');
+                        return;
+                    }
+
+                    try {
+                        const apiUrl = API_URL;
+
+                        // ✅ ADD USER ID TO BOOKING REQUEST
+                        const bookingData = {
+                            property_id: propertyId,
+                            property_name: propertyName,
+                            area: area,
+                            property_type: propertyType,
+                            rent_amount: parseInt(rentAmount),
+                            user_id: user.loginId,
+                            owner_id: propertyOwnerId,
+                            name: name,
+                            email: email,
+                            phone: '',
+                            request_type: 'request',
+                            message: ''
+                        };
+
+                        // ✅ INCLUDE NEW_SIGNUPS USER ID IF AVAILABLE
+                        if (userId) {
+                            bookingData.signup_user_id = userId;
+                            console.log('📋 Adding signup user ID to booking request:', userId);
                         }
 
-                        if (!propertyOwnerId) {
-                            alert('Error: Could not identify property owner. Property must be approved by admin first.');
-                            return;
-                        }
+                        const response = await fetch(`${apiUrl}/api/booking/create`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(bookingData)
+                        });
 
-                        try {
-                            const apiUrl = API_URL;
-
-                            // ✅ ADD USER ID TO BOOKING REQUEST
-                            const bookingData = {
-                                property_id: propertyId,
-                                property_name: propertyName,
-                                area: area,
-                                property_type: propertyType,
-                                rent_amount: parseInt(rentAmount),
-                                user_id: user.loginId,
-                                owner_id: propertyOwnerId,  // ✅ ADD OWNER ID
-                                name: name,
-                                email: email,
-                                phone: '',
-                                request_type: 'request',
-                                message: ''
-                            };
-
-                            // ✅ INCLUDE NEW_SIGNUPS USER ID IF AVAILABLE
+                        if (response.ok) {
+                            const result = await response.json();
+                            const bookingId = result.bookingId || result._id || result.id;
+                            
+                            // ✅ INITIALIZE CHAT WITH USER ID
                             if (userId) {
-                                bookingData.signup_user_id = userId;
-                                console.log('📋 Adding signup user ID to booking request:', userId);
+                                const chatData = {
+                                    user_id: userId,
+                                    tenant_id: user.loginId,
+                                    owner_id: propertyOwnerId,
+                                    property_id: propertyId,
+                                    booking_id: bookingId,
+                                    email: email,
+                                    name: name,
+                                    created_at: new Date().toISOString()
+                                };
+                                
+                                const existingChats = JSON.parse(localStorage.getItem('roomhy_booking_chats') || '{}');
+                                existingChats[bookingId] = chatData;
+                                localStorage.setItem('roomhy_booking_chats', JSON.stringify(existingChats));
+                                console.log('💬 Chat flow initialized with user ID:', userId);
                             }
 
-                            const response = await fetch(`${apiUrl}/api/booking/create`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(bookingData)
-                            });
+                            alert(`Thank you ${name}! Your request has been sent to the property owner. We'll contact you soon.`);
+                            scheduleForm.reset();
+                            
+                            // ✅ REDIRECT TO INDEX PAGE ONLY
+                            setTimeout(() => {
+                                window.location.href = '../index.html';
 
-                            if (response.ok) {
-                                const result = await response.json();
-                                const bookingId = result.bookingId || result._id || result.id;
-                                
-                                // ✅ INITIALIZE CHAT WITH USER ID
-                                if (userId) {
-                                    const chatData = {
-                                        user_id: userId,
-                                        tenant_id: user.loginId,
-                                        owner_id: propertyOwnerId,
-                                        property_id: propertyId,
-                                        booking_id: bookingId,
-                                        email: email,
-                                        name: name,
-                                        created_at: new Date().toISOString()
-                                    };
-                                    
-                                    // Store chat data for later use
-                                    const existingChats = JSON.parse(localStorage.getItem('roomhy_booking_chats') || '{}');
-                                    existingChats[bookingId] = chatData;
-                                    localStorage.setItem('roomhy_booking_chats', JSON.stringify(existingChats));
-                                    console.log('💬 Chat flow initialized with user ID:', userId);
-                                }
-
-                                alert(`Thank you ${name}! Your request has been sent to the property owner. We'll contact you soon.`);
-                                scheduleForm.reset();
-                                
-                                // ✅ REDIRECT TO INDEX PAGE ONLY
-                                setTimeout(() => {
-                                    window.location.href = '../index.html';
                                 }, 1500);
                             } else {
                                 const error = await response.json();
@@ -1702,8 +1696,7 @@
                             console.error('Error:', error);
                             alert('Error submitting request. Please check your connection.');
                         }
-                    });
-                }
+                    }
 
                 
             });
@@ -2271,6 +2264,157 @@
                 });
             }
         })();
+    </script>
+
+    <!-- ✅ ATTRACTIVE SIGNUP POPUP MODAL -->
+    <div id="signupModalOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4" style="animation: fadeIn 0.3s ease-in-out;">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8" style="animation: slideUp 0.3s ease-out;">
+            <!-- Close Button -->
+            <button onclick="closeSignupModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+
+            <!-- Header Icon -->
+            <div class="flex justify-center mb-6">
+                <div class="bg-gradient-to-br from-teal-400 to-teal-600 rounded-full p-4 transform transition-transform hover:scale-110">
+                    <i data-lucide="mail-check" class="w-8 h-8 text-white"></i>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <h2 class="text-2xl font-bold text-gray-900 text-center mb-2">Join Roomhy Community</h2>
+            
+            <!-- Subtitle -->
+            <p class="text-center text-gray-600 mb-3">Your email address is not registered yet</p>
+
+            <!-- Email Display -->
+            <div class="bg-gradient-to-r from-teal-50 to-blue-50 rounded-lg p-4 mb-6 border border-teal-100">
+                <p class="text-sm text-gray-600 text-center">
+                    <span class="font-semibold text-teal-700" id="modalEmailDisplay">email@example.com</span>
+                </p>
+            </div>
+
+            <!-- Message -->
+            <div class="mb-6">
+                <p class="text-center text-gray-700 leading-relaxed">
+                    Sign up now to unlock exclusive features and manage your bookings with ease!
+                </p>
+            </div>
+
+            <!-- Benefits List -->
+            <div class="space-y-2 mb-8">
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
+                    </div>
+                    <span class="text-sm text-gray-700">Create your profile instantly</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
+                    </div>
+                    <span class="text-sm text-gray-700">Direct chat with property owners</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex-shrink-0">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
+                    </div>
+                    <span class="text-sm text-gray-700">Track all your bookings & requests</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="space-y-3">
+                <!-- Sign Up Button -->
+                <button onclick="redirectToSignup()" class="w-full bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2">
+                    <i data-lucide="user-plus" class="w-5 h-5"></i>
+                    Sign Up Now
+                </button>
+                
+                <!-- Continue as Guest Button -->
+                <button onclick="continueAsGuest()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 border border-gray-300 flex items-center justify-center gap-2">
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    Continue as Guest
+                </button>
+            </div>
+
+            <!-- Security Note -->
+            <p class="text-xs text-gray-500 text-center mt-6">
+                🔒 Your information is secure. We never share your data.
+            </p>
+        </div>
+    </div>
+
+    <!-- ✅ MODAL ANIMATIONS -->
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <!-- ✅ MODAL CONTROL FUNCTIONS -->
+    <script>
+        let userEmailForSignup = '';
+        let guestProceedCallback = null;
+
+        // Show signup modal
+        function showSignupModal(email, guestCallback) {
+            userEmailForSignup = email;
+            guestProceedCallback = guestCallback;
+            document.getElementById('modalEmailDisplay').textContent = email;
+            document.getElementById('signupModalOverlay').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // Close signup modal
+        function closeSignupModal() {
+            document.getElementById('signupModalOverlay').classList.add('hidden');
+        }
+
+        // Redirect to signup with email
+        function redirectToSignup() {
+            const email = userEmailForSignup;
+            const returnUrl = window.location.href;
+            window.location.href = '../signup.html?email=' + encodeURIComponent(email) + '&return=' + encodeURIComponent(returnUrl);
+        }
+
+        // Continue as guest
+        function continueAsGuest() {
+            closeSignupModal();
+            if (guestProceedCallback && typeof guestProceedCallback === 'function') {
+                guestProceedCallback();
+            }
+        }
+
+        // Close modal on overlay click
+        document.getElementById('signupModalOverlay')?.addEventListener('click', (e) => {
+            if (e.target.id === 'signupModalOverlay') {
+                closeSignupModal();
+            }
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeSignupModal();
+            }
+        });
     </script>
 </body>
 </html>
