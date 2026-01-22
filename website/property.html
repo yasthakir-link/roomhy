@@ -1560,6 +1560,33 @@
                             return;
                         }
 
+                        // ✅ CHECK IF EMAIL HAS USER ID IN NEW_SIGNUPS
+                        const kycTableKey = 'roomhy_kyc_verification';
+                        const signupUsers = JSON.parse(localStorage.getItem(kycTableKey) || '[]');
+                        const userSignup = signupUsers.find(u => u.email && u.email.toLowerCase() === email.toLowerCase());
+
+                        let userId = null;
+                        if (userSignup && userSignup.id) {
+                            // User found in new_signups with user ID
+                            userId = userSignup.id;
+                            console.log('✅ User found in new_signups with ID:', userId);
+                        } else {
+                            // User not found - show signup popup
+                            const shouldSignup = confirm(
+                                `Your email (${email}) is not registered in our system yet.\n\n` +
+                                `Would you like to sign up first?\n\n` +
+                                `Click OK to go to signup page, or Cancel to proceed as guest.`
+                            );
+                            
+                            if (shouldSignup) {
+                                // Redirect to signup page
+                                window.location.href = '../signup.html?email=' + encodeURIComponent(email) + '&return=' + encodeURIComponent(window.location.href);
+                                return;
+                            }
+                            // User chose to proceed without signup
+                            console.warn('⚠️ User proceeding without signup registration');
+                        }
+
                         // Get property details from page
                         const propertyId = getParam('id') || '1';
                         const propertyName = document.getElementById('property-title')?.textContent || 'Property';
@@ -1608,29 +1635,65 @@
                         try {
                             const apiUrl = API_URL;
 
+                            // ✅ ADD USER ID TO BOOKING REQUEST
+                            const bookingData = {
+                                property_id: propertyId,
+                                property_name: propertyName,
+                                area: area,
+                                property_type: propertyType,
+                                rent_amount: parseInt(rentAmount),
+                                user_id: user.loginId,
+                                owner_id: propertyOwnerId,  // ✅ ADD OWNER ID
+                                name: name,
+                                email: email,
+                                phone: '',
+                                request_type: 'request',
+                                message: ''
+                            };
+
+                            // ✅ INCLUDE NEW_SIGNUPS USER ID IF AVAILABLE
+                            if (userId) {
+                                bookingData.signup_user_id = userId;
+                                console.log('📋 Adding signup user ID to booking request:', userId);
+                            }
+
                             const response = await fetch(`${apiUrl}/api/booking/create`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    property_id: propertyId,
-                                    property_name: propertyName,
-                                    area: area,
-                                    property_type: propertyType,
-                                    rent_amount: parseInt(rentAmount),
-                                    user_id: user.loginId,
-                                    owner_id: propertyOwnerId,  // ✅ ADD OWNER ID
-                                    name: name,
-                                    email: email,
-                                    phone: '',
-                                    request_type: 'request',
-                                    message: ''
-                                })
+                                body: JSON.stringify(bookingData)
                             });
 
                             if (response.ok) {
                                 const result = await response.json();
+                                const bookingId = result.bookingId || result._id || result.id;
+                                
+                                // ✅ INITIALIZE CHAT WITH USER ID
+                                if (userId) {
+                                    const chatData = {
+                                        user_id: userId,
+                                        tenant_id: user.loginId,
+                                        owner_id: propertyOwnerId,
+                                        property_id: propertyId,
+                                        booking_id: bookingId,
+                                        email: email,
+                                        name: name,
+                                        created_at: new Date().toISOString()
+                                    };
+                                    
+                                    // Store chat data for later use
+                                    const existingChats = JSON.parse(localStorage.getItem('roomhy_booking_chats') || '{}');
+                                    existingChats[bookingId] = chatData;
+                                    localStorage.setItem('roomhy_booking_chats', JSON.stringify(existingChats));
+                                    console.log('💬 Chat flow initialized with user ID:', userId);
+                                }
+
                                 alert(`Thank you ${name}! Your request has been sent to the property owner. We'll contact you soon.`);
                                 scheduleForm.reset();
+                                
+                                // ✅ REDIRECT TO INDEX PAGE ONLY
+                                setTimeout(() => {
+                                    window.location.href = '../index.html';
+                                }, 1500);
                             } else {
                                 const error = await response.json();
                                 alert('Error: ' + (error.message || 'Could not submit request'));

@@ -370,7 +370,7 @@
                     <td class="px-4 py-3 text-gray-600 whitespace-nowrap">${req.area || 'N/A'}</td>
                     <td class="px-4 py-3 text-gray-600 whitespace-nowrap">${req.property_type || 'N/A'}</td>
                     <td class="px-4 py-3 text-gray-900 font-semibold whitespace-nowrap">₹${req.rent_amount || 0}</td>
-                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">${req.user_id || 'N/A'}</td>
+                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap font-mono text-xs"><strong>${req.signup_user_id || req.user_id || 'Guest'}</strong></td>
                     <td class="px-4 py-3 text-gray-900 font-medium whitespace-nowrap">${req.name}</td>
                     <td class="px-4 py-3 text-gray-600 whitespace-nowrap">${req.phone}</td>
                     <td class="px-4 py-3 text-gray-600 whitespace-nowrap">${req.email}</td>
