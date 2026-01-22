@@ -56,10 +56,15 @@ app.use('/api/favorites', require('./roomhy-backend/routes/favoritesRoutes'));
 app.use('/api/bids', require('./roomhy-backend/routes/bidsRoutes'));
 app.use('/api/kyc', require('./roomhy-backend/routes/kycRoutes'));
 app.use('/api/cities', require('./roomhy-backend/routes/citiesRoutes'));
+app.use('/api/approved-properties', require('./roomhy-backend/routes/approvedPropertyRoutes'));
+app.use('/api/approvals', require('./roomhy-backend/routes/approvedPropertyRoutes'));
 app.use('/api', require('./roomhy-backend/routes/uploadRoutes'));
 
 // NEW: Website Enquiry Routes (for property enquiries from website form)
 app.use('/api/website-enquiry', require('./roomhy-backend/routes/websiteEnquiryRoutes'));
+
+// NEW: Website Property Data Routes
+app.use('/api/website-property-data', require('./roomhy-backend/routes/websitePropertyDataRoutes'));
 
 // NEW: Data Sync Routes (for MongoDB Atlas integration)
 app.use('/api/data', require('./roomhy-backend/routes/dataSync'));
