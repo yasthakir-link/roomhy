@@ -273,7 +273,6 @@
                     <p><strong>Visitor:</strong> ${visit.visitorName || 'N/A'}</p>
                     <p><strong>Owner:</strong> ${visit.ownerName || 'N/A'}</p>
                     <p><strong>Rent:</strong> ₹${visit.monthlyRent || 'N/A'}/month</p>
-                    <p><strong>Status:</strong> <span class="px-2 py-1 rounded text-white ${visit.status === 'approved' ? 'bg-green-500' : visit.status === 'rejected' ? 'bg-red-500' : 'bg-yellow-500'}">${visit.status || 'Submitted'}</span></p>
                 </div>
                 <button onclick="viewVisitDetails('${visit._id}')" class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700">
                     View Details

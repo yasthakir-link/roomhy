@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Roomhy - Admin Enquiry</title>
     <script>
-        // API Configuration
+        // API Configuration with better debugging
         const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
             ? 'http://localhost:5000'
-            : 'https://roomhy-backend.onrender.com';
+            : 'https://roomhy-backend-wqwo.onrender.com';
+        
+        console.log(`🔗 Using API_URL: ${API_URL}`);
+        console.log(`📍 Current hostname: ${window.location.hostname}`);
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -693,28 +696,30 @@
                 visits[idx].generatedCredentials = { loginId, tempPassword: password };
                 if (window.safeStorage) { window.safeStorage.setVisits(visits); } else { localStorage.setItem('roomhy_visits', JSON.stringify(visits)); }
                 
-                // Sync with backend API if should upload
-                if (shouldUpload) {
-                    try {
-                        const response = await fetch(API_URL + '/api/visits/approve', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
-                            },
-                            body: JSON.stringify({
-                                visitId: currentApprovingId,
-                                status: 'approved',
-                                isLiveOnWebsite: true,
-                                loginId: loginId,
-                                tempPassword: password
-                            })
-                        });
+                // Always sync approval with backend API
+                try {
+                    const response = await fetch(API_URL + '/api/visits/approve', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': sessionStorage.getItem('token') || localStorage.getItem('token') || ''
+                        },
+                        body: JSON.stringify({
+                            visitId: currentApprovingId,
+                            status: 'approved',
+                            isLiveOnWebsite: shouldUpload,
+                            loginId: loginId,
+                            tempPassword: password
+                        })
+                    });
+                    if (!response.ok) {
+                        console.warn(`API Error ${response.status}: ${response.statusText} from ${API_URL}/api/visits/approve`);
+                    } else {
                         const data = await response.json();
                         console.log('✅ Visit approved and synced to backend:', data);
-                    } catch (err) {
-                        console.warn('âš ï¸ Backend sync failed (continuing with localStorage):', err);
                     }
+                } catch (err) {
+                    console.warn('Backend sync failed:', err.message);
                 }
                 
                 document.getElementById('modalLoginId').innerText = loginId;

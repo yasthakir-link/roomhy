@@ -1,7 +1,7 @@
 // backend-sync.js
 // Syncs visit data with backend API instead of relying on localStorage quota
 (function(window){
-    const API_URL = window.API_URL ? window.API_URL + '/api/visits' : 'https://roomhy-backend.onrender.com/api/visits';
+    const API_URL = window.API_URL ? window.API_URL + '/api/visits' : 'https://roomhy-backend-wqwo.onrender.com/api/visits';
     
     // Load visits from backend, with fallback to localStorage
     async function loadVisits(useCache = true) {
