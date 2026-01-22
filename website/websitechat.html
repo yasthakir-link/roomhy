@@ -370,11 +370,13 @@
         async function loadChats() {
             if (!currentUser) return;
             const loginId = currentUser.loginId;
+            const userId = localStorage.getItem('user_id');
             const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
                 ? 'http://localhost:5000' 
                 : 'https://roomhy-backend-wqwo.onrender.com';
 
             try {
+                // Fetch from backend API
                 const response = await fetch(`${API_URL}/api/booking/requests?user_id=${loginId}`);
                 const result = await response.json();
                 const allBookings = result.data || [];
@@ -382,21 +384,45 @@
                 // Filter out rejected bookings
                 const bookings = allBookings.filter(b => b.status !== 'rejected');
 
+                // Also load chats from localStorage (created by booking.html)
+                const localStorageChats = [];
+                try {
+                    const storedChatRooms = JSON.parse(localStorage.getItem('chatRooms') || '[]');
+                    localStorageChats.push(...storedChatRooms);
+                    console.log('✅ Loaded', storedChatRooms.length, 'chats from localStorage');
+                } catch (e) {
+                    console.log('No chats in localStorage yet');
+                }
+
+                // Merge backend and localStorage chats
+                const mergedChats = [...bookings, ...localStorageChats];
+
                 const chatList = document.getElementById('chat-list');
                 chatList.innerHTML = '';
 
-                if (bookings.length === 0) {
-                    chatList.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">No active bookings found.</div>';
+                if (mergedChats.length === 0) {
+                    chatList.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">No active bookings found.<br/>Start by requesting a property on Our Properties page.</div>';
                     return;
                 }
 
-                // Deduplicate by owner
+                // Deduplicate by owner ID
                 const uniqueOwners = [];
                 const seenOwners = new Set();
-                bookings.forEach(b => {
-                    if (!seenOwners.has(b.owner_id)) {
-                        seenOwners.add(b.owner_id);
-                        uniqueOwners.push(b);
+                mergedChats.forEach(b => {
+                    const ownerId = b.owner_id || b.ownerLoginId;
+                    if (ownerId && !seenOwners.has(ownerId)) {
+                        seenOwners.add(ownerId);
+                        // Ensure chat object has all necessary properties
+                        const chat = {
+                            owner_name: b.owner_name || b.ownerName || 'Property Owner',
+                            owner_id: ownerId,
+                            ownerLoginId: b.ownerLoginId || ownerId,
+                            property_name: b.property_name || 'Roomhy Partner',
+                            status: b.status || 'pending',
+                            chatRoomId: b.chatRoomId || `${userId}_${ownerId}`,
+                            timestamp: b.timestamp || new Date().toISOString()
+                        };
+                        uniqueOwners.push(chat);
                     }
                 });
 
@@ -404,18 +430,27 @@
                     const item = document.createElement('div');
                     item.className = 'flex items-center gap-4 p-4 rounded-2xl cursor-pointer hover:bg-white hover:shadow-md transition-all border border-transparent hover:border-slate-100 group';
                     
+                    const ownerInitial = (chat.owner_name || 'O').charAt(0).toUpperCase();
+                    const colors = ['bg-indigo-100', 'bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-pink-100'];
+                    const colorIndex = ownerInitial.charCodeAt(0) % colors.length;
+                    const textColors = ['text-indigo-700', 'text-blue-700', 'text-green-700', 'text-purple-700', 'text-pink-700'];
+                    const hoverBg = ['group-hover:bg-indigo-600', 'group-hover:bg-blue-600', 'group-hover:bg-green-600', 'group-hover:bg-purple-600', 'group-hover:bg-pink-600'];
+                    
                     item.innerHTML = `
-                        <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                            ${(chat.owner_name || 'O').charAt(0)}
+                        <div class="w-12 h-12 rounded-full ${colors[colorIndex]} ${textColors[colorIndex]} flex items-center justify-center font-bold ${hoverBg[colorIndex]} group-hover:text-white transition-all">
+                            ${ownerInitial}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <h4 class="text-sm font-bold text-slate-800 truncate">${chat.owner_name || 'Owner'}</h4>
-                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider truncate">${chat.property_name || 'Roomhy Partner'}</p>
+                            <h4 class="text-sm font-bold text-slate-800 truncate">${chat.owner_name}</h4>
+                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-wider truncate">${chat.property_name}</p>
+                            <p class="text-[9px] text-slate-500 mt-1">${chat.status === 'accepted' ? '✅ Accepted' : '⏳ Pending'}</p>
                         </div>
                     `;
                     item.onclick = () => openChat(chat);
                     chatList.appendChild(item);
                 });
+                
+                console.log('✅ Chat list loaded with', uniqueOwners.length, 'unique owners');
             } catch (err) {
                 console.error("Error loading chats", err);
             }
@@ -426,14 +461,26 @@
             document.getElementById('no-chat-selected').classList.add('hidden');
             document.getElementById('chat-active').classList.remove('hidden');
             
-            document.getElementById('active-chat-name').textContent = chat.owner_name || 'Owner';
-            document.getElementById('active-chat-id').textContent = `ID: ${chat.owner_id || '...'}`;
-            document.getElementById('active-chat-avatar').textContent = (chat.owner_name || 'O').charAt(0).toUpperCase();
+            // Display owner information
+            const ownerName = chat.owner_name || chat.ownerName || 'Property Owner';
+            const ownerId = chat.owner_id || chat.ownerLoginId || '...';
+            const ownerInitial = (ownerName || 'O').charAt(0).toUpperCase();
+            
+            document.getElementById('active-chat-name').textContent = ownerName;
+            document.getElementById('active-chat-id').textContent = `Login ID: ${ownerId}`;
+            document.getElementById('active-chat-avatar').textContent = ownerInitial;
+            
+            // Update avatar background color based on owner initial
+            const avatarEl = document.getElementById('active-chat-avatar');
+            const colors = ['bg-indigo-100', 'bg-blue-100', 'bg-green-100', 'bg-purple-100', 'bg-pink-100'];
+            const colorIndex = ownerInitial.charCodeAt(0) % colors.length;
+            avatarEl.className = `w-12 h-12 rounded-full ${colors[colorIndex]} flex items-center justify-center font-bold text-slate-700`;
 
             if (window.innerWidth < 768) {
                 document.getElementById('contacts-panel').classList.add('hidden');
             }
 
+            console.log('✅ Chat opened with owner:', ownerName, 'ID:', ownerId);
             loadMessages();
         }
 
