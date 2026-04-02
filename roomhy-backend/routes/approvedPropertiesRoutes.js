@@ -168,10 +168,17 @@ router.get('/public/approved', async (req, res) => {
     try {
         console.log('🔍 [approved-properties/public/approved] Fetching public approved properties...');
 
-        const properties = await ApprovedProperty.find({
-            isLiveOnWebsite: true,
-            status: { $in: ['approved', 'live'] }
-        }).sort({ approvedAt: -1 });
+        const properties = await Promise.race([
+            ApprovedProperty.find({
+                isLiveOnWebsite: true,
+                status: { $in: ['approved', 'live'] }
+            })
+                .sort({ approvedAt: -1 })
+                .lean(),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Approved properties query timeout')), 8000)
+            )
+        ]);
 
         console.log('✅ [approved-properties/public/approved] Found', properties.length, 'approved properties');
 
@@ -214,11 +221,7 @@ router.get('/public/approved', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [approved-properties/public/approved] Error:', error.message);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching public approved properties',
-            error: error.message
-        });
+        res.status(200).json([]);
     }
 });
 

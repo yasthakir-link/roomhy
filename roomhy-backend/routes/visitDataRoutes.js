@@ -207,8 +207,13 @@ router.get('/', async (req, res) => {
         } else {
             console.log('[visits/GET] Fetching all visits');
         }
-        
-        const visits = await VisitData.find(query).sort({ submittedAt: -1 });
+
+        const visits = await Promise.race([
+            VisitData.find(query).sort({ submittedAt: -1 }).lean(),
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Visits query timeout')), 8000)
+            )
+        ]);
         
         console.log(`? [visits/GET] Returning ${visits.length} visits`);
         
@@ -219,10 +224,12 @@ router.get('/', async (req, res) => {
         });
     } catch (error) {
         console.error('Error fetching visits:', error);
-        res.status(500).json({
+        res.status(200).json({
             success: false,
             message: 'Error fetching visits',
-            error: error.message
+            error: error.message,
+            count: 0,
+            visits: []
         });
     }
 });
