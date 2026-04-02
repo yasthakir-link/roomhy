@@ -14,6 +14,10 @@ const VisitDataSchema = new mongoose.Schema({
     visitorPhone: String,
     staffName: String,
     staffId: String,
+    submittedBy: String,
+    submittedById: String,
+    submittedByLoginId: String,
+    ownerLoginId: String,
     
     // Property Information
     propertyName: String,
@@ -136,6 +140,7 @@ VisitDataSchema.pre('save', function(next) {
 // Compound indexes for query optimization
 VisitDataSchema.index({ staffId: 1, submittedAt: -1 });
 VisitDataSchema.index({ staffName: 1, submittedAt: -1 });
+VisitDataSchema.index({ submittedBy: 1, submittedAt: -1 });
 VisitDataSchema.index({ submittedById: 1, submittedAt: -1 });
 VisitDataSchema.index({ submittedByLoginId: 1, submittedAt: -1 });
 VisitDataSchema.index({ ownerLoginId: 1, submittedAt: -1 });

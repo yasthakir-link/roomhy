@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ApprovedProperty = require('../models/ApprovedProperty');
+const APPROVED_PROPERTIES_QUERY_TIMEOUT_MS = 12000;
 
 // ============================================================
 // POST: Save an approved property to MongoDB
@@ -172,19 +173,16 @@ router.get('/public/approved', async (req, res) => {
         const limit = Math.max(1, Math.min(1000, parseInt(req.query.limit, 10) || 500));
         const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
 
-        const properties = await Promise.race([
-            ApprovedProperty.find({
-                isLiveOnWebsite: true,
-                status: { $in: ['approved', 'live'] }
-            })
-                .sort({ approvedAt: -1 })
-                .limit(limit)
-                .skip(skip)
-                .lean(),
-            new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Approved properties query timeout')), 15000)
-            )
-        ]);
+        const properties = await ApprovedProperty.find({
+            isLiveOnWebsite: true,
+            status: { $in: ['approved', 'live'] }
+        })
+            .select('visitId propertyInfo professionalPhotos generatedCredentials isLiveOnWebsite status submittedAt approvedAt approvedBy reuploadRequests')
+            .sort({ approvedAt: -1 })
+            .limit(limit)
+            .skip(skip)
+            .maxTimeMS(APPROVED_PROPERTIES_QUERY_TIMEOUT_MS)
+            .lean();
 
         console.log('✅ [approved-properties/public/approved] Found', properties.length, 'approved properties (limit:', limit, 'skip:', skip + ')');
 

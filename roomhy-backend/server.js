@@ -32,6 +32,7 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 const app = express();
 const server = http.createServer(app);
 const ROOT_DIR = path.resolve(__dirname, '..');
+let queryIndexesEnsured = false;
 app.set('trust proxy', Number(process.env.TRUST_PROXY || 1));
 const envOrigins = (process.env.CORS_ORIGINS || '')
     .split(',')
@@ -146,9 +147,28 @@ const mongoOptions = {
 
 console.log('🔗 Connecting to MongoDB...');
 
+async function ensureQueryIndexes() {
+    if (queryIndexesEnsured) return;
+    queryIndexesEnsured = true;
+
+    try {
+        const VisitData = require('./models/VisitData');
+        const ApprovedProperty = require('./models/ApprovedProperty');
+        await Promise.all([
+            VisitData.createIndexes(),
+            ApprovedProperty.createIndexes()
+        ]);
+        console.log('✅ Query indexes ensured for visits and approved properties');
+    } catch (err) {
+        queryIndexesEnsured = false;
+        console.warn('⚠️ Failed to ensure query indexes:', err.message);
+    }
+}
+
 mongoose.connect(process.env.MONGO_URI, mongoOptions)
     .then(() => {
         console.log('✅ MongoDB Connected');
+        ensureQueryIndexes().catch(() => {});
         startServer();
     })
     .catch(err => {
@@ -157,7 +177,10 @@ mongoose.connect(process.env.MONGO_URI, mongoOptions)
         startServer();
     });
 
-mongoose.connection.on('connected', () => console.log('✅ Mongoose connected'));
+mongoose.connection.on('connected', () => {
+    console.log('✅ Mongoose connected');
+    ensureQueryIndexes().catch(() => {});
+});
 mongoose.connection.on('error', (err) => console.error('❌ Mongoose error', err && err.message));
 mongoose.connection.on('disconnected', () => console.warn('⚠️ Mongoose disconnected'));
 mongoose.connection.on('reconnected', () => console.log('✅ Mongoose reconnected'));

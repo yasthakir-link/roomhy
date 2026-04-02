@@ -7,6 +7,7 @@ const CheckinRecord = require('../models/CheckinRecord');
 const Property = require('../models/Property');
 const mailer = require('../utils/mailer');
 const { notifySuperadmin } = require('../utils/superadminNotifier');
+const VISITS_QUERY_TIMEOUT_MS = 12000;
 
 const APP_URL = process.env.APP_URL || process.env.APP_BASE_URL || process.env.WEB_APP_URL || 'https://app.roomhy.com';
 const DIGITAL_CHECKIN_URL = process.env.DIGITAL_CHECKIN_URL || process.env.FRONTEND_URL || 'https://admin.roomhy.com';
@@ -41,6 +42,10 @@ function normalizeOccupancyFields(source = {}) {
 
 function hasVacancy(source = {}) {
     return toNonNegativeInt(source.vacantRooms) > 0;
+}
+
+function uniqueTruthy(values = []) {
+    return Array.from(new Set(values.map((value) => String(value || '').trim()).filter(Boolean)));
 }
 
 // Owner login ID format: ROOMHY + 4 digits (e.g., ROOMHY1234)
@@ -181,25 +186,27 @@ router.get('/', async (req, res) => {
         const staffName = (req.query.staffName || '').toString().trim();
 
         let query = {};
+        let usesCaseInsensitiveMatch = false;
         if (staffId || staffName) {
             const or = [];
             if (staffId) {
-                const escapedId = String(staffId).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const idRegex = new RegExp(`^${escapedId}$`, 'i');
+                const idValues = uniqueTruthy([
+                    staffId,
+                    String(staffId).toUpperCase(),
+                    String(staffId).toLowerCase()
+                ]);
                 or.push(
-                    { staffId: idRegex },
-                    { submittedById: idRegex },
-                    { submittedByLoginId: idRegex },
-                    { ownerLoginId: idRegex }
+                    { staffId: { $in: idValues } },
+                    { submittedById: { $in: idValues } },
+                    { submittedByLoginId: { $in: idValues } },
+                    { ownerLoginId: { $in: idValues } }
                 );
             }
             if (staffName) {
-                const escapedName = staffName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const nameRegex = new RegExp(`^${escapedName}$`, 'i');
+                usesCaseInsensitiveMatch = true;
                 or.push(
-                    { staffName: nameRegex },
-                    { submittedBy: nameRegex },
-                    { visitorName: nameRegex }
+                    { staffName },
+                    { submittedBy: staffName }
                 );
             }
             query = or.length ? { $or: or } : {};
@@ -212,29 +219,36 @@ router.get('/', async (req, res) => {
         const limit = Math.max(1, Math.min(500, parseInt(req.query.limit, 10) || 100));
         const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
 
-        const visits = await Promise.race([
-            VisitData.find(query)
-                .sort({ submittedAt: -1 })
-                .limit(limit)
-                .skip(skip)
-                .lean(),
-            new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Visits query timeout')), 15000)
-            )
-        ]);
+        const visitsQuery = VisitData.find(query)
+            .sort({ submittedAt: -1 })
+            .limit(limit)
+            .skip(skip)
+            .maxTimeMS(VISITS_QUERY_TIMEOUT_MS)
+            .lean();
+
+        const countQuery = VisitData.countDocuments(query).maxTimeMS(VISITS_QUERY_TIMEOUT_MS);
+
+        if (usesCaseInsensitiveMatch) {
+            const collation = { locale: 'en', strength: 2 };
+            visitsQuery.collation(collation);
+            countQuery.collation(collation);
+        }
+
+        const [visits, totalCount] = await Promise.all([visitsQuery, countQuery]);
         
-        console.log(`? [visits/GET] Returning ${visits.length} visits (limit: ${limit}, skip: ${skip})`);
+        console.log(`? [visits/GET] Returning ${visits.length} visits from ${totalCount} total (limit: ${limit}, skip: ${skip})`);
         
         res.json({
             success: true,
-            count: visits.length,
+            count: totalCount,
+            returned: visits.length,
             visits: visits
         });
     } catch (error) {
         console.error('Error fetching visits:', error);
         res.status(200).json({
             success: false,
-            message: 'Error fetching visits',
+            message: error?.message?.includes('maxTimeMS') ? 'Visits query exceeded database time limit' : 'Error fetching visits',
             error: error.message,
             count: 0,
             visits: []
