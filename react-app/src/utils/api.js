@@ -20,18 +20,53 @@ export const getAuthHeader = () => {
 export const fetchJson = async (path, options = {}) => {
   const base = getApiBase();
   const url = path.startsWith("http") ? path : `${base}${path}`;
+  const method = String(options.method || "GET").toUpperCase();
+  const timeoutMs = Number.isFinite(options.timeoutMs) ? options.timeoutMs : 12000;
+  const retryAttempts = Number.isFinite(options.retryAttempts)
+    ? Math.max(0, options.retryAttempts)
+    : (method === "GET" ? 2 : 0);
   const headers = {
     "Content-Type": "application/json",
     ...(options.headers || {}),
     ...getAuthHeader()
   };
-  const res = await fetch(url, { ...options, headers });
-  if (!res.ok) {
-    const text = await res.text();
-    const err = new Error(`Request failed: ${res.status} ${res.statusText}`);
-    err.status = res.status;
-    err.body = text;
-    throw err;
+
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  let lastError;
+  for (let attempt = 0; attempt <= retryAttempts; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { ...options, method, headers, signal: controller.signal });
+      clearTimeout(timer);
+
+      const text = await res.text();
+      let parsed;
+      try {
+        parsed = text ? JSON.parse(text) : {};
+      } catch (_) {
+        parsed = text;
+      }
+
+      if (!res.ok) {
+        const err = new Error(`Request failed: ${res.status} ${res.statusText}`);
+        err.status = res.status;
+        err.body = parsed;
+        throw err;
+      }
+      return parsed;
+    } catch (err) {
+      clearTimeout(timer);
+      lastError = err;
+      const status = Number(err?.status || 0);
+      const retriableStatus = status === 429 || status === 502 || status === 503 || status === 504;
+      const retriableNetwork = err?.name === "AbortError" || err instanceof TypeError;
+      const shouldRetry = attempt < retryAttempts && (retriableStatus || retriableNetwork);
+      if (!shouldRetry) break;
+      await wait((attempt + 1) * 400);
+    }
   }
-  return res.json();
+
+  throw lastError;
 };

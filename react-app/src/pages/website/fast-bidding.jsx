@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
+import { fetchJson } from "../../utils/api";
 import {
   getWebsiteApiUrl,
   getWebsiteUser,
@@ -123,9 +124,10 @@ export default function WebsiteFastBidding() {
       }
       setLoadingProperties(true);
       try {
-        const response = await fetch(`${apiUrl}/api/approved-properties/public/approved`);
-        if (!response.ok) throw new Error("Failed to fetch properties");
-        const data = await response.json();
+        const data = await fetchJson(`${apiUrl}/api/approved-properties/public/approved`, {
+          retryAttempts: 3,
+          timeoutMs: 12000
+        });
         let properties = Array.isArray(data) ? data : data?.properties || (data ? [data] : []);
         properties = properties.filter((prop) => prop.isLiveOnWebsite === true || prop.status === "live" || prop.status === "approved");
 

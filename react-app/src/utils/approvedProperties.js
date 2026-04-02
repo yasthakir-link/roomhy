@@ -61,10 +61,7 @@ export const loadApprovedProperties = async ({ includeOffline = true } = {}) => 
     const endpoint = endpoints[index];
     try {
       const data = endpoint.includes("/public/")
-        ? await fetch(endpoint).then(async (res) => {
-            if (!res.ok) throw new Error(`Failed to fetch ${endpoint}`);
-            return res.json();
-          })
+        ? await fetchJson(endpoint, { retryAttempts: 3, timeoutMs: 12000 })
         : await fetchJson(endpoint);
 
       const list = extractApprovedPropertyList(data);

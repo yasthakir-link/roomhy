@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const ApprovedProperty = require('../models/ApprovedProperty');
 const APPROVED_PROPERTIES_QUERY_TIMEOUT_MS = 12000;
+const APPROVED_PROPERTIES_CACHE_TTL_MS = 15000;
+const approvedPropertiesCache = new Map();
+const approvedPropertiesInFlight = new Map();
 
 // ============================================================
 // POST: Save an approved property to MongoDB
@@ -172,17 +175,29 @@ router.get('/public/approved', async (req, res) => {
         // Add pagination to prevent timeout on large datasets
         const limit = Math.max(1, Math.min(1000, parseInt(req.query.limit, 10) || 500));
         const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+        const cacheKey = JSON.stringify({ limit, skip });
+        const cached = approvedPropertiesCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < APPROVED_PROPERTIES_CACHE_TTL_MS) {
+            return res.status(200).json(cached.payload);
+        }
 
-        const properties = await ApprovedProperty.find({
-            isLiveOnWebsite: true,
-            status: { $in: ['approved', 'live'] }
-        })
-            .select('visitId propertyInfo professionalPhotos generatedCredentials isLiveOnWebsite status submittedAt approvedAt approvedBy reuploadRequests')
-            .sort({ approvedAt: -1 })
-            .limit(limit)
-            .skip(skip)
-            .maxTimeMS(APPROVED_PROPERTIES_QUERY_TIMEOUT_MS)
-            .lean();
+        let queryPromise = approvedPropertiesInFlight.get(cacheKey);
+        if (!queryPromise) {
+            queryPromise = ApprovedProperty.find({
+                isLiveOnWebsite: true,
+                status: { $in: ['approved', 'live'] }
+            })
+                .select('visitId propertyInfo professionalPhotos generatedCredentials isLiveOnWebsite status submittedAt approvedAt approvedBy reuploadRequests')
+                .sort({ approvedAt: -1 })
+                .limit(limit)
+                .skip(skip)
+                .maxTimeMS(APPROVED_PROPERTIES_QUERY_TIMEOUT_MS)
+                .lean();
+            approvedPropertiesInFlight.set(cacheKey, queryPromise);
+        }
+
+        const properties = await queryPromise;
+        approvedPropertiesInFlight.delete(cacheKey);
 
         console.log('✅ [approved-properties/public/approved] Found', properties.length, 'approved properties (limit:', limit, 'skip:', skip + ')');
 
@@ -221,10 +236,19 @@ router.get('/public/approved', async (req, res) => {
             createdBy: prop.approvedBy
         }));
 
+        approvedPropertiesCache.set(cacheKey, {
+            timestamp: Date.now(),
+            payload: transformedProperties
+        });
         res.status(200).json(transformedProperties);
 
     } catch (error) {
         console.error('❌ [approved-properties/public/approved] Error:', error.message);
+        approvedPropertiesInFlight.delete(cacheKey);
+        const stale = approvedPropertiesCache.get(cacheKey);
+        if (stale?.payload) {
+            return res.status(200).json(stale.payload);
+        }
         res.status(200).json([]);
     }
 });

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
+import { fetchJson } from "../../utils/api";
 import { getWebsiteApiUrl, getWebsiteUser, getWebsiteUserId, isWebsiteLoggedIn, logoutWebsite } from "../../utils/websiteSession";
 import { addFavorite, isFavorite, loadFavorites, removeFavorite } from "../../utils/websiteFavorites";
 import { useHeroSlideshow, useLucideIcons, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
@@ -131,17 +132,17 @@ export default function WebsiteProperty() {
       } catch { }
       if (!record || !hasUsefulLocationData(record)) {
         try {
-          const response = await fetch(`${apiUrl}/api/approved-properties/public/approved`);
-          if (response.ok) {
-            const payload = await response.json();
-            const records = Array.isArray(payload) ? payload
-              : Array.isArray(payload?.properties) ? payload.properties
-              : Array.isArray(payload?.visits) ? payload.visits
-              : Array.isArray(payload?.data) ? payload.data : [];
-            if (mounted) setApprovedProperties(records);
-            const approvedRecord = records.find((item) => matchesProperty(item, propertyId)) || null;
-            if (approvedRecord) record = approvedRecord;
-          }
+          const payload = await fetchJson(`${apiUrl}/api/approved-properties/public/approved`, {
+            retryAttempts: 3,
+            timeoutMs: 12000
+          });
+          const records = Array.isArray(payload) ? payload
+            : Array.isArray(payload?.properties) ? payload.properties
+            : Array.isArray(payload?.visits) ? payload.visits
+            : Array.isArray(payload?.data) ? payload.data : [];
+          if (mounted) setApprovedProperties(records);
+          const approvedRecord = records.find((item) => matchesProperty(item, propertyId)) || null;
+          if (approvedRecord) record = approvedRecord;
         } catch { }
       }
       if (!record) {

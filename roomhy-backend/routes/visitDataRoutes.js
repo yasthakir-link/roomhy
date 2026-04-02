@@ -8,6 +8,9 @@ const Property = require('../models/Property');
 const mailer = require('../utils/mailer');
 const { notifySuperadmin } = require('../utils/superadminNotifier');
 const VISITS_QUERY_TIMEOUT_MS = 12000;
+const VISITS_CACHE_TTL_MS = 10000;
+const visitsListCache = new Map();
+const visitsListInFlight = new Map();
 
 const APP_URL = process.env.APP_URL || process.env.APP_BASE_URL || process.env.WEB_APP_URL || 'https://app.roomhy.com';
 const DIGITAL_CHECKIN_URL = process.env.DIGITAL_CHECKIN_URL || process.env.FRONTEND_URL || 'https://admin.roomhy.com';
@@ -184,6 +187,18 @@ router.get('/', async (req, res) => {
     try {
         const staffId = req.query.staffId;
         const staffName = (req.query.staffName || '').toString().trim();
+        const limit = Math.max(1, Math.min(500, parseInt(req.query.limit, 10) || 100));
+        const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+        const cacheKey = JSON.stringify({
+            staffId: String(staffId || '').trim(),
+            staffName,
+            limit,
+            skip
+        });
+        const cached = visitsListCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < VISITS_CACHE_TTL_MS) {
+            return res.json(cached.payload);
+        }
 
         let query = {};
         let usesCaseInsensitiveMatch = false;
@@ -215,37 +230,61 @@ router.get('/', async (req, res) => {
             console.log('[visits/GET] Fetching all visits');
         }
 
-        // Add pagination to prevent timeout on large datasets
-        const limit = Math.max(1, Math.min(500, parseInt(req.query.limit, 10) || 100));
-        const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+        const fetchVisits = async () => {
+            const visitsQuery = VisitData.find(query)
+                .sort({ submittedAt: -1 })
+                .limit(limit)
+                .skip(skip)
+                .maxTimeMS(VISITS_QUERY_TIMEOUT_MS)
+                .lean();
 
-        const visitsQuery = VisitData.find(query)
-            .sort({ submittedAt: -1 })
-            .limit(limit)
-            .skip(skip)
-            .maxTimeMS(VISITS_QUERY_TIMEOUT_MS)
-            .lean();
+            const countQuery = VisitData.countDocuments(query).maxTimeMS(VISITS_QUERY_TIMEOUT_MS);
 
-        const countQuery = VisitData.countDocuments(query).maxTimeMS(VISITS_QUERY_TIMEOUT_MS);
+            if (usesCaseInsensitiveMatch) {
+                const collation = { locale: 'en', strength: 2 };
+                visitsQuery.collation(collation);
+                countQuery.collation(collation);
+            }
 
-        if (usesCaseInsensitiveMatch) {
-            const collation = { locale: 'en', strength: 2 };
-            visitsQuery.collation(collation);
-            countQuery.collation(collation);
+            const [visits, totalCount] = await Promise.all([visitsQuery, countQuery]);
+
+            console.log(`? [visits/GET] Returning ${visits.length} visits from ${totalCount} total (limit: ${limit}, skip: ${skip})`);
+            return {
+                success: true,
+                count: totalCount,
+                returned: visits.length,
+                visits
+            };
+        };
+
+        let requestPromise = visitsListInFlight.get(cacheKey);
+        if (!requestPromise) {
+            requestPromise = fetchVisits();
+            visitsListInFlight.set(cacheKey, requestPromise);
         }
 
-        const [visits, totalCount] = await Promise.all([visitsQuery, countQuery]);
-        
-        console.log(`? [visits/GET] Returning ${visits.length} visits from ${totalCount} total (limit: ${limit}, skip: ${skip})`);
-        
-        res.json({
-            success: true,
-            count: totalCount,
-            returned: visits.length,
-            visits: visits
-        });
+        const payload = await requestPromise;
+        visitsListInFlight.delete(cacheKey);
+        visitsListCache.set(cacheKey, { timestamp: Date.now(), payload });
+        res.json(payload);
     } catch (error) {
         console.error('Error fetching visits:', error);
+        const limit = Math.max(1, Math.min(500, parseInt(req.query.limit, 10) || 100));
+        const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+        const cacheKey = JSON.stringify({
+            staffId: String(req.query.staffId || '').trim(),
+            staffName: (req.query.staffName || '').toString().trim(),
+            limit,
+            skip
+        });
+        visitsListInFlight.delete(cacheKey);
+        const stale = visitsListCache.get(cacheKey);
+        if (stale?.payload) {
+            return res.status(200).json({
+                ...stale.payload,
+                stale: true
+            });
+        }
         res.status(200).json({
             success: false,
             message: error?.message?.includes('maxTimeMS') ? 'Visits query exceeded database time limit' : 'Error fetching visits',
