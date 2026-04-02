@@ -169,13 +169,13 @@ router.get('/city/:city', async (req, res) => {
 // GET: Public approved properties (for ourproperty.html)
 // ============================================================
 router.get('/public/approved', async (req, res) => {
+    const limit = Math.max(1, Math.min(1000, parseInt(req.query.limit, 10) || 500));
+    const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+    const cacheKey = JSON.stringify({ limit, skip });
     try {
         console.log('🔍 [approved-properties/public/approved] Fetching public approved properties...');
 
         // Add pagination to prevent timeout on large datasets
-        const limit = Math.max(1, Math.min(1000, parseInt(req.query.limit, 10) || 500));
-        const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
-        const cacheKey = JSON.stringify({ limit, skip });
         const cached = approvedPropertiesCache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < APPROVED_PROPERTIES_CACHE_TTL_MS) {
             return res.status(200).json(cached.payload);
@@ -192,7 +192,8 @@ router.get('/public/approved', async (req, res) => {
                 .limit(limit)
                 .skip(skip)
                 .maxTimeMS(APPROVED_PROPERTIES_QUERY_TIMEOUT_MS)
-                .lean();
+                .lean()
+                .exec();
             approvedPropertiesInFlight.set(cacheKey, queryPromise);
         }
 
