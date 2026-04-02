@@ -168,19 +168,25 @@ router.get('/public/approved', async (req, res) => {
     try {
         console.log('🔍 [approved-properties/public/approved] Fetching public approved properties...');
 
+        // Add pagination to prevent timeout on large datasets
+        const limit = Math.max(1, Math.min(1000, parseInt(req.query.limit, 10) || 500));
+        const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+
         const properties = await Promise.race([
             ApprovedProperty.find({
                 isLiveOnWebsite: true,
                 status: { $in: ['approved', 'live'] }
             })
                 .sort({ approvedAt: -1 })
+                .limit(limit)
+                .skip(skip)
                 .lean(),
             new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Approved properties query timeout')), 8000)
+                setTimeout(() => reject(new Error('Approved properties query timeout')), 15000)
             )
         ]);
 
-        console.log('✅ [approved-properties/public/approved] Found', properties.length, 'approved properties');
+        console.log('✅ [approved-properties/public/approved] Found', properties.length, 'approved properties (limit:', limit, 'skip:', skip + ')');
 
         // Transform to match ourproperty.html expectations
         const transformedProperties = properties.map(prop => ({

@@ -208,14 +208,22 @@ router.get('/', async (req, res) => {
             console.log('[visits/GET] Fetching all visits');
         }
 
+        // Add pagination to prevent timeout on large datasets
+        const limit = Math.max(1, Math.min(500, parseInt(req.query.limit, 10) || 100));
+        const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
+
         const visits = await Promise.race([
-            VisitData.find(query).sort({ submittedAt: -1 }).lean(),
+            VisitData.find(query)
+                .sort({ submittedAt: -1 })
+                .limit(limit)
+                .skip(skip)
+                .lean(),
             new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Visits query timeout')), 8000)
+                setTimeout(() => reject(new Error('Visits query timeout')), 15000)
             )
         ]);
         
-        console.log(`? [visits/GET] Returning ${visits.length} visits`);
+        console.log(`? [visits/GET] Returning ${visits.length} visits (limit: ${limit}, skip: ${skip})`);
         
         res.json({
             success: true,

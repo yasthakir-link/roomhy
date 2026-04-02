@@ -133,4 +133,12 @@ VisitDataSchema.pre('save', function(next) {
     next();
 });
 
+// Compound indexes for query optimization
+VisitDataSchema.index({ staffId: 1, submittedAt: -1 });
+VisitDataSchema.index({ staffName: 1, submittedAt: -1 });
+VisitDataSchema.index({ submittedById: 1, submittedAt: -1 });
+VisitDataSchema.index({ submittedByLoginId: 1, submittedAt: -1 });
+VisitDataSchema.index({ ownerLoginId: 1, submittedAt: -1 });
+VisitDataSchema.index({ submittedAt: -1 });
+
 module.exports = mongoose.model('VisitData', VisitDataSchema);

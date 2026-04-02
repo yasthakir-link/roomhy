@@ -90,4 +90,8 @@ ApprovedPropertySchema.pre('save', function(next) {
     next();
 });
 
+// Compound indexes for query optimization
+ApprovedPropertySchema.index({ isLiveOnWebsite: 1, status: 1, approvedAt: -1 });
+ApprovedPropertySchema.index({ status: 1, approvedAt: -1 });
+
 module.exports = mongoose.model('ApprovedProperty', ApprovedPropertySchema);
