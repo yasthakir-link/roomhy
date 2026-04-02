@@ -64,11 +64,40 @@ const localOrigins = [
     'http://127.0.0.1:5177'
 ];
 const allowedOrigins = Array.from(new Set([...(envOrigins.length ? envOrigins : defaultOrigins), ...localOrigins]));
+const allowedHosts = Array.from(
+    new Set(
+        allowedOrigins
+            .map((origin) => {
+                try {
+                    return new URL(origin).hostname.toLowerCase();
+                } catch (_) {
+                    return '';
+                }
+            })
+            .filter(Boolean)
+    )
+);
+
+const isAllowedOrigin = (origin) => {
+    if (!origin) return true;
+    if (allowedOrigins.includes(origin)) return true;
+    try {
+        const parsed = new URL(origin);
+        const host = parsed.hostname.toLowerCase();
+        if (allowedHosts.includes(host)) return true;
+        // Allow RoomHy apex + known subdomains regardless of explicit env formatting.
+        if (host === 'roomhy.com' || host.endsWith('.roomhy.com')) return true;
+        return false;
+    } catch (_) {
+        return false;
+    }
+};
+
 const corsOptions = {
     origin: (origin, callback) => {
         // Allow server-to-server tools and curl/postman requests without Origin header
         if (!origin) return callback(null, true);
-        if (allowedOrigins.includes(origin)) return callback(null, true);
+        if (isAllowedOrigin(origin)) return callback(null, true);
         return callback(new Error(`CORS blocked for origin: ${origin}`));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

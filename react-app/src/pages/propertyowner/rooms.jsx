@@ -344,6 +344,19 @@ const firstValidValue = (...values) => {
   return "";
 };
 
+const withTimeoutFallback = async (promise, timeoutMs, fallbackValue) => {
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((resolve) => {
+        setTimeout(() => resolve(fallbackValue), timeoutMs);
+      })
+    ]);
+  } catch (_) {
+    return fallbackValue;
+  }
+};
+
 export default function Rooms() {
   useHtmlPage({
     title: "RoomHy - Room Management",
@@ -386,10 +399,6 @@ export default function Rooms() {
     wantsReupload: "no"
   });
   const [reuploadForm, setReuploadForm] = useState(initialReuploadForm);
-
-  useEffect(() => {
-    if (window.lucide?.createIcons) window.lucide.createIcons();
-  }, [rooms, properties, tenants, roomModalOpen, assignModalOpen, vacateModalOpen]);
 
   const currentProperty = useMemo(() => properties[0] || null, [properties]);
   const cachedProperty = useMemo(
@@ -733,11 +742,12 @@ export default function Rooms() {
     setLoading(true);
     setErrorMsg("");
     try {
+      const timeoutMs = 12000;
       const [propertyList, roomData, tenantList, ownerProfile] = await Promise.all([
-        fetchOwnerProperties(session.loginId),
-        fetchOwnerRooms(session.loginId),
-        fetchOwnerTenants(session.loginId),
-        fetchJson(`/api/owners/${encodeURIComponent(session.loginId)}`).catch(() => null)
+        withTimeoutFallback(fetchOwnerProperties(session.loginId), timeoutMs, []),
+        withTimeoutFallback(fetchOwnerRooms(session.loginId), timeoutMs, { rooms: [], properties: [] }),
+        withTimeoutFallback(fetchOwnerTenants(session.loginId), timeoutMs, []),
+        withTimeoutFallback(fetchJson(`/api/owners/${encodeURIComponent(session.loginId)}`), timeoutMs, null)
       ]);
       if (ownerProfile) {
         setOwner((prev) => ({ ...(prev || {}), ...ownerProfile }));
@@ -750,7 +760,13 @@ export default function Rooms() {
       setProperties(resolvedProperties);
       setRooms(mergedRooms);
       setTenants(tenantList || []);
-      setBackendStatus("connected");
+      const hasLiveData = Boolean(
+        resolvedProperties.length ||
+        mergedRooms.length ||
+        (tenantList && tenantList.length) ||
+        ownerProfile
+      );
+      setBackendStatus(hasLiveData ? "connected" : "limited");
     } catch (err) {
       setBackendStatus("connection failed");
       setErrorMsg(err?.body || err?.message || "Failed to load rooms.");
