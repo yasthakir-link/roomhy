@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const jwt = require('jsonwebtoken');
 const VisitData = require('../models/VisitData');
 const User = require('../models/user');
 const Owner = require('../models/Owner');
@@ -90,6 +91,21 @@ async function generateUniqueOwnerLoginId(maxAttempts = 100) {
 
 function escapeRegex(value) {
     return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function resolveRequestUser(req) {
+    try {
+        const authHeader = req.headers.authorization || '';
+        if (!authHeader.startsWith('Bearer ')) return null;
+        const token = authHeader.slice(7).trim();
+        if (!token) return null;
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+        if (!decoded?.id) return null;
+        const user = await User.findById(decoded.id).select('role loginId').lean();
+        return user || null;
+    } catch (_) {
+        return null;
+    }
 }
 
 // ============================================================
@@ -185,12 +201,22 @@ router.post('/', async (req, res) => {
 // ============================================================
 router.get('/', async (req, res) => {
     try {
-        const staffId = req.query.staffId;
-        const staffName = (req.query.staffName || '').toString().trim();
+        const requester = await resolveRequestUser(req);
+        const requestedStaffId = String(req.query.staffId || '').trim();
+        const requestedStaffName = (req.query.staffName || '').toString().trim();
+
+        // Employees should only see their own visit reports.
+        const enforcedStaffId =
+            requester?.role === 'employee'
+                ? String(requester.loginId || requestedStaffId || '').trim()
+                : requestedStaffId;
+
+        const staffId = enforcedStaffId;
+        const staffName = staffId ? '' : requestedStaffName;
         const limit = Math.max(1, Math.min(500, parseInt(req.query.limit, 10) || 100));
         const skip = Math.max(0, parseInt(req.query.skip, 10) || 0);
         const cacheKey = JSON.stringify({
-            staffId: String(staffId || '').trim(),
+            staffId,
             staffName,
             limit,
             skip
@@ -225,7 +251,11 @@ router.get('/', async (req, res) => {
                 );
             }
             query = or.length ? { $or: or } : {};
-            console.log('[visits/GET] Fetching visits for staff filter:', { staffId, staffName });
+            console.log('[visits/GET] Fetching visits for staff filter:', {
+                staffId,
+                staffName,
+                enforcedByRole: requester?.role === 'employee'
+            });
         } else {
             console.log('[visits/GET] Fetching all visits');
         }
