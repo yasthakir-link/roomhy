@@ -274,5 +274,56 @@ export default function WebsiteIndex() {
     };
   }, []);
 
+  useEffect(() => {
+    const normalizeCityName = (value = "") => {
+      const cleaned = String(value || "").trim();
+      if (!cleaned) return "";
+      const lower = cleaned.toLowerCase();
+      if (lower === "bangalore") return "Bengaluru";
+      return cleaned;
+    };
+
+    const redirectToCityProperties = (cityName) => {
+      const normalizedCity = normalizeCityName(cityName);
+      if (!normalizedCity) return;
+      const params = new URLSearchParams();
+      params.set("city", normalizedCity);
+      window.location.href = `/website/ourproperty?${params.toString()}`;
+    };
+
+    const handleCityClick = (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const slider = document.getElementById("cities-category-slider");
+      const sliderItem = slider ? target.closest("button, a, [data-city], .city-card, .city-filter-item, .top-city-card") : null;
+      if (sliderItem && slider && slider.contains(sliderItem)) {
+        event.preventDefault();
+        const cityName =
+          sliderItem.getAttribute("data-city") ||
+          sliderItem.getAttribute("data-name") ||
+          sliderItem.querySelector("h3, h4, h5, span, p")?.textContent ||
+          sliderItem.textContent;
+        redirectToCityProperties(cityName);
+        return;
+      }
+
+      const footerLink = target.closest('a[href*="ourproperty.html?city="], a[href*="/website/ourproperty?city="]');
+      if (footerLink instanceof HTMLAnchorElement) {
+        event.preventDefault();
+        try {
+          const href = footerLink.getAttribute("href") || "";
+          const url = new URL(href, window.location.origin);
+          redirectToCityProperties(url.searchParams.get("city") || footerLink.textContent || "");
+        } catch {
+          redirectToCityProperties(footerLink.textContent || "");
+        }
+      }
+    };
+
+    document.addEventListener("click", handleCityClick);
+    return () => document.removeEventListener("click", handleCityClick);
+  }, []);
+
   return <div className="html-page" dangerouslySetInnerHTML={{ __html: bodyHtml }} />;
 }

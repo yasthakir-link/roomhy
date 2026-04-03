@@ -273,7 +273,7 @@ async function sendViaSmtp({ cfg, host, port, secure, user, pass, label, service
     return true;
 }
 
-async function sendMail(to, subject, text, html) {
+async function sendMail(to, subject, text, html, options = {}) {
     const cfg = getMailerConfig();
     const recipients = normalizeRecipients(to);
     if (!recipients.length) {
@@ -286,7 +286,8 @@ async function sendMail(to, subject, text, html) {
         to: recipients.map((x) => x.Email).join(', '),
         subject: subject || 'RoomHy Notification',
         text: text || '',
-        html: html || ''
+        html: html || '',
+        attachments: Array.isArray(options.attachments) ? options.attachments : undefined
     };
 
     if (!emailSent && isSmtpConfigured(cfg)) {

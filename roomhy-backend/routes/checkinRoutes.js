@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const PDFDocument = require('pdfkit');
 const CheckinRecord = require('../models/CheckinRecord');
 const Owner = require('../models/Owner');
 const Property = require('../models/Property');
@@ -137,6 +138,141 @@ function buildTenantLoginEmail(tenant, dashboardUrl) {
             </div>
         </div>
     `;
+}
+
+function generateTenantAgreementPdfBuffer(tenant, record = {}) {
+    return new Promise((resolve, reject) => {
+        try {
+            const agreement = record?.tenantAgreement || {};
+            const profile = tenant?.digitalCheckin?.profile || {};
+            const propertyName = tenant.propertyTitle || profile.propertyName || 'RoomHy Property';
+            const tenantName = tenant.name || profile.name || 'Tenant';
+            const moveInDate = tenant.moveInDate ? new Date(tenant.moveInDate).toISOString().slice(0, 10) : (profile.moveInDate || '-');
+            const signedDate = agreement.signedAt ? new Date(agreement.signedAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+            const aadhaarNumber = tenant?.kyc?.aadhaarNumber || tenant?.kyc?.aadhar || record?.tenantKyc?.aadhaarNumber || '-';
+            const securityDepositTotal = tenant.securityDepositTotal || profile.securityDepositTotal || 0;
+            const securityDepositPaid = tenant.securityDepositPaid || profile.securityDepositPaid || 0;
+            const securityDepositBalance = tenant.securityDepositBalance || profile.securityDepositBalance || 0;
+            const electricityCharge = tenant.electricityCharge || profile.electricityCharge || 0;
+            const maintenanceCharge = tenant.maintenanceCharge || profile.maintenanceCharge || 0;
+            const eSignName = tenant.agreementESignName || agreement.eSignName || tenantName;
+            const signatureDataUrl = agreement.signatureDataUrl || tenant?.digitalCheckin?.agreement?.signatureDataUrl || '';
+            let signatureBuffer = null;
+
+            if (signatureDataUrl.startsWith('data:image/')) {
+                const base64Part = signatureDataUrl.split(',')[1] || '';
+                if (base64Part) {
+                    signatureBuffer = Buffer.from(base64Part, 'base64');
+                }
+            }
+
+            const doc = new PDFDocument({ size: 'A4', margin: 44 });
+            const chunks = [];
+            doc.on('data', (chunk) => chunks.push(chunk));
+            doc.on('end', () => resolve(Buffer.concat(chunks)));
+            doc.on('error', reject);
+
+            doc.fontSize(10).fillColor('#2563eb').text('ROOMHY RENTAL RECORD', { align: 'left' });
+            doc
+                .roundedRect(410, 38, 140, 46, 14)
+                .lineWidth(2)
+                .strokeColor('#1d4ed8')
+                .stroke();
+            doc.fontSize(18).fillColor('#1d4ed8').text('ROOMHY', 435, 50, { width: 90, align: 'center' });
+            doc.fontSize(8).fillColor('#1d4ed8').text('OFFICIAL SEAL', 438, 68, { width: 84, align: 'center' });
+
+            doc.moveDown(1);
+            doc.fontSize(18).fillColor('#111827').text('LICENCE & SUBSCRIPTION AGREEMENT');
+            doc.moveDown(0.5);
+            doc.fontSize(11).fillColor('#475569').text(`Executed between RoomHy and ${tenantName}.`);
+            doc.moveDown(1);
+
+            const clauses = [
+                '1. TERM: As per Annexure A.',
+                '2. PREMISES: As per Annexure A.',
+                '3. LICENSE FEE / RENT: As per Annexure A. Rent is payable in advance on or before the due date.',
+                '4. REFUNDABLE SECURITY DEPOSIT: As per Annexure A. Refund is processed after applicable deductions for dues or damages.',
+                '5. MINIMUM STAY DURATION: As per Annexure A. Early move-out before minimum stay may lead to deposit withholding.',
+                '6. LIMITED LICENSE: Tenant receives a limited right to use the premises subject to compliance and timely payments.',
+                '7. RENT DEFAULT: Delayed or unpaid rent may result in lockout, penalties, restricted services, and termination.',
+                '8. TERMINATION WITHOUT CAUSE: Either party may terminate subject to lock-in and notice requirements.',
+                '9. TERMINATION FOR CAUSE: RoomHy may terminate for illegal activity, non-payment, damage, nuisance, or policy breach.',
+                '10. MAINTENANCE OF PREMISES: Tenant must maintain the premises and is liable for damages beyond ordinary wear and tear.',
+                '11. RENEWAL: Renewal may occur with revised rent or updated terms based on market conditions.',
+                '12. NOTICES: Notices may be sent by email or physical delivery.',
+                '13. ENTIRE AGREEMENT: This document and Annexure A form the complete agreement between parties.',
+                '14. SEVERABILITY: Invalidity of one clause does not affect the balance of the agreement.',
+                '15. GOVERNING LAW & JURISDICTION: Laws of India apply and jurisdiction lies where the premises are situated.',
+                '16. ASSIGNING OF RECEIVABLES: RoomHy may assign receivables under this agreement.',
+                '17. STAMP DUTY: Any applicable stamp duty responsibility lies with the tenant.',
+                '18. OTHER TERMS & CONDITIONS: RoomHy policies may be updated from time to time.'
+            ];
+
+            doc.fontSize(10).fillColor('#111827');
+            clauses.forEach((line) => {
+                doc.text(line, { align: 'left' });
+                doc.moveDown(0.35);
+            });
+
+            doc.moveDown(0.6);
+            doc.fontSize(14).fillColor('#0f172a').text('ANNEXURE A');
+            doc.moveDown(0.4);
+            [
+                `Name of Tenant: ${tenantName}`,
+                `Tenant Email: ${tenant.email || '-'}`,
+                `Tenant Phone Number: ${tenant.phone || '-'}`,
+                `Tenant Aadhaar Number: ${aadhaarNumber}`,
+                `Property Name: ${propertyName}`,
+                `Room Number: ${tenant.roomNo || profile.roomNo || '-'}`,
+                `Monthly Rent: ${tenant.agreedRent || profile.agreedRent || 0}`,
+                `License Start Date: ${moveInDate}`,
+                `Security Deposit Total: ${securityDepositTotal}`,
+                `Security Deposit Paid: ${securityDepositPaid}`,
+                `Security Deposit Balance: ${securityDepositBalance}`,
+                `Electricity Charge: ${electricityCharge}`,
+                `Maintenance Charge: ${maintenanceCharge}`,
+                'Minimum Stay Duration: 3 Months'
+            ].forEach((line) => {
+                doc.fontSize(10).fillColor('#111827').text(line);
+                doc.moveDown(0.22);
+            });
+
+            if (doc.y > 680) doc.addPage();
+            doc.moveDown(1);
+            doc.fontSize(11).fillColor('#111827').text(`Tenant E-sign: ${eSignName}`);
+            doc.fontSize(9).fillColor('#64748b').text(`Signed on ${signedDate}`);
+            doc.moveDown(1.2);
+
+            if (signatureBuffer) {
+                const signatureTop = doc.y;
+                doc.fontSize(9).fillColor('#64748b').text('Tenant Signature', 44, signatureTop);
+                doc
+                    .moveTo(44, signatureTop + 54)
+                    .lineTo(220, signatureTop + 54)
+                    .lineWidth(1)
+                    .strokeColor('#94a3b8')
+                    .stroke();
+                doc.image(signatureBuffer, 44, signatureTop + 10, {
+                    fit: [170, 40],
+                    align: 'left',
+                    valign: 'center'
+                });
+                doc.y = Math.max(doc.y, signatureTop + 68);
+            }
+
+            doc
+                .roundedRect(392, doc.y - 14, 150, 44, 14)
+                .lineWidth(2)
+                .strokeColor('#1d4ed8')
+                .stroke();
+            doc.fontSize(16).fillColor('#1d4ed8').text('ROOMHY', 430, doc.y - 4, { width: 74, align: 'center' });
+            doc.fontSize(8).fillColor('#1d4ed8').text('DIGITAL SEAL', 432, doc.y + 14, { width: 70, align: 'center' });
+
+            doc.end();
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
 function buildTenantAgreementHtml(tenant, record = {}) {
@@ -357,7 +493,8 @@ async function completeTenantAgreementAndNotify(loginId, { requestId = '', provi
     tenant.digitalCheckin.agreement = {
         ...(tenant.digitalCheckin.agreement || {}),
         acceptedAt: tenant.digitalCheckin.agreement?.acceptedAt || record.tenantAgreement?.acceptedAt || new Date(),
-        eSignName: tenant.agreementESignName || record.tenantAgreement?.eSignName || tenant.name || ''
+        eSignName: tenant.agreementESignName || record.tenantAgreement?.eSignName || tenant.name || '',
+        signatureDataUrl: record.tenantAgreement?.signatureDataUrl || tenant.digitalCheckin.agreement?.signatureDataUrl || ''
     };
     tenant.digitalCheckin.submittedAt = new Date();
     tenant.status = 'active';
@@ -370,11 +507,21 @@ async function completeTenantAgreementAndNotify(loginId, { requestId = '', provi
     let loginEmailSent = false;
     if (tenant.email) {
         try {
+            const agreementPdfBuffer = await generateTenantAgreementPdfBuffer(tenant, record);
             await sendMail(
                 tenant.email,
                 'RoomHy Tenant Agreement & Login Details',
                 '',
-                `${buildTenantLoginEmail(tenant, dashboardUrl)}${buildTenantAgreementHtml(tenant, record)}`
+                `${buildTenantLoginEmail(tenant, dashboardUrl)}${buildTenantAgreementHtml(tenant, record)}`,
+                {
+                    attachments: [
+                        {
+                            filename: `RoomHy-Tenant-Agreement-${tenant.loginId || normalizedLoginId}.pdf`,
+                            content: agreementPdfBuffer,
+                            contentType: 'application/pdf'
+                        }
+                    ]
+                }
             );
             loginEmailSent = true;
         } catch (emailErr) {
