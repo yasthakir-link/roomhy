@@ -138,11 +138,23 @@ function stripHtmlTags(html) {
         .trim();
 }
 
+function normalizeWhatsAppText(value, maxLength = 3900) {
+    return String(value || '')
+        .replace(/\r/g, '')
+        .replace(/\u00a0/g, ' ')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n[ \t]+/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]{2,}/g, ' ')
+        .trim()
+        .slice(0, maxLength);
+}
+
 function buildWhatsAppMessage(subject, text, html) {
-    const plain = String(text || '').trim() || stripHtmlTags(html);
-    const heading = String(subject || 'RoomHy Notification').trim();
+    const plain = normalizeWhatsAppText(String(text || '').trim() || stripHtmlTags(html), 3300);
+    const heading = normalizeWhatsAppText(subject || 'RoomHy Notification', 250);
     const body = plain ? `${heading}\n\n${plain}` : heading;
-    return body.slice(0, 3900);
+    return normalizeWhatsAppText(body, 3900);
 }
 
 async function resolvePhoneByEmail(email) {

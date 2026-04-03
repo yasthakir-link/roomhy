@@ -594,7 +594,7 @@ async function completeTenantAgreementAndNotify(loginId, { requestId = '', provi
             userId: tenant.loginId || '',
             link: `${BACKEND_URL}/api/checkin/tenant/agreement/pdf/${encodeURIComponent(normalizedLoginId)}`,
             filename: `RoomHy-Tenant-Agreement-${tenant.loginId || normalizedLoginId}.pdf`,
-            caption: `RoomHy tenant agreement PDF for ${tenant.name || normalizedLoginId}`
+            caption: `RoomHy Tenant Agreement\nTenant: ${tenant.name || normalizedLoginId}\nLogin ID: ${tenant.loginId || normalizedLoginId}`
         });
     } catch (whatsAppDocErr) {
         console.error('[TENANT AGREEMENT COMPLETE] WhatsApp PDF send error:', whatsAppDocErr.message);

@@ -14,6 +14,18 @@ function getConfig() {
     };
 }
 
+function normalizeWhatsAppText(value, maxLength = 3900) {
+    return String(value || '')
+        .replace(/\r/g, '')
+        .replace(/\u00a0/g, ' ')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n[ \t]+/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]{2,}/g, ' ')
+        .trim()
+        .slice(0, maxLength);
+}
+
 function toTemplateParameters(values = []) {
     return values
         .map((value) => (value == null ? '' : String(value).trim()))
@@ -194,7 +206,7 @@ async function sendTextMessage(to, body) {
         type: 'text',
         text: {
             preview_url: true,
-            body: String(body).slice(0, 3900)
+            body: normalizeWhatsAppText(body, 3900)
         }
     });
 }
@@ -207,7 +219,7 @@ async function sendDocumentMessage(to, link, filename, caption = '') {
         document: {
             link: String(link).trim(),
             filename: String(filename || 'document.pdf').trim().slice(0, 240),
-            caption: String(caption || '').slice(0, 1024)
+            caption: normalizeWhatsAppText(caption, 1024)
         }
     });
 }
@@ -307,5 +319,6 @@ module.exports = {
     sendTemplateMessage,
     sendTemplateToResolvedUser,
     sendTextMessage,
+    normalizeWhatsAppText,
     setSession
 };
