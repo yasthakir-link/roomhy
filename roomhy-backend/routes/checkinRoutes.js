@@ -1436,7 +1436,11 @@ router.post('/tenant/agreement', async (req, res) => {
         });
     } catch (err) {
         console.error('tenant/agreement error:', err);
-        return res.status(500).json({ success: false, message: err.message });
+        return res.status(err.status || 500).json({
+            success: false,
+            message: err?.data?.message || err?.data?.error || err.message || 'Tenant agreement request failed',
+            details: err?.data || null
+        });
     }
 });
 

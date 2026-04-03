@@ -13,7 +13,11 @@ function getFrontendBaseUrl() {
 
 function getBearerHeaders() {
     const accessToken = process.env.ZOHO_SIGN_ACCESS_TOKEN || '';
-    return accessToken ? { Authorization: `Bearer ${accessToken}` } : {};
+    if (!accessToken) return {};
+    if (/^(Bearer|Zoho-oauthtoken)\s/i.test(accessToken)) {
+        return { Authorization: accessToken };
+    }
+    return { Authorization: `Zoho-oauthtoken ${accessToken}` };
 }
 
 function buildCompleteUrl(pathname, loginId, extraParams = {}) {
@@ -40,6 +44,47 @@ function isZohoConfigured() {
     return Boolean(process.env.ZOHO_SIGN_CREATE_URL && process.env.ZOHO_SIGN_ACCESS_TOKEN);
 }
 
+function getTemplateValue(kind) {
+    if (kind === 'tenant') {
+        return process.env.ZOHO_SIGN_TENANT_TEMPLATE_ID || process.env.ZOHO_SIGN_TEMPLATE_ID || '';
+    }
+    if (kind === 'owner') {
+        return process.env.ZOHO_SIGN_OWNER_TEMPLATE_ID || process.env.ZOHO_SIGN_TEMPLATE_ID || '';
+    }
+    return process.env.ZOHO_SIGN_TEMPLATE_ID || '';
+}
+
+function getZohoEndpoint(templateValue) {
+    const raw = String(templateValue || '').trim();
+    if (/^https?:\/\//i.test(raw)) return raw;
+    return process.env.ZOHO_SIGN_CREATE_URL;
+}
+
+function toZohoTemplateRequestData(payload) {
+    const signer = payload.tenant || payload.owner || {};
+    return {
+        templates: {
+            request_name: payload.documentName,
+            actions: [
+                {
+                    action_type: 'SIGN',
+                    signing_order: 1,
+                    verify_recipient: false,
+                    recipient_name: signer.name || signer.eSignName || 'Signer',
+                    recipient_email: signer.email || '',
+                    recipient_phonenumber: signer.phone || '',
+                    private_notes: 'Please review and sign the RoomHy agreement.'
+                }
+            ],
+            field_data: {
+                field_text_data: payload.fields || {}
+            },
+            redirect_url: payload.redirectUrl,
+            callback_url: payload.callbackUrl
+        }
+    };
+}
+
 function pickFirstString(values = []) {
     return values.find((value) => typeof value === 'string' && value.trim()) || '';
 }
@@ -47,7 +92,7 @@ function pickFirstString(values = []) {
 function buildOwnerAgreementPayload({ owner = {}, loginId, aadhaarNumber, callbackUrl }) {
     const normalizedLoginId = String(loginId || '').toUpperCase();
     return {
-        templateId: process.env.ZOHO_SIGN_TEMPLATE_ID || '',
+        templateId: getTemplateValue('owner'),
         documentName: `RoomHy Owner Agreement - ${normalizedLoginId}`,
         callbackUrl,
         redirectUrl: getOwnerCompleteUrl(normalizedLoginId),
@@ -82,7 +127,7 @@ function buildTenantAgreementPayload({ tenant = {}, loginId, eSignName, callback
         : (tenant.digitalCheckin?.profile?.moveInDate || '');
 
     return {
-        templateId: process.env.ZOHO_SIGN_TEMPLATE_ID || '',
+        templateId: getTemplateValue('tenant'),
         documentName: `RoomHy Tenant Rental Agreement - ${normalizedLoginId}`,
         callbackUrl,
         redirectUrl: getTenantCompleteUrl(normalizedLoginId),
@@ -126,14 +171,30 @@ async function createZohoRequest({ payload, loginId, providerLabel, completeUrl 
         };
     }
 
-    const response = await fetch(process.env.ZOHO_SIGN_CREATE_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...getBearerHeaders()
-        },
-        body: JSON.stringify(payload)
-    });
+    const endpoint = getZohoEndpoint(payload.templateId);
+    const isTemplateEndpoint = /\/templates\/.+\/createdocument/i.test(String(endpoint || ''));
+    const requestOptions = isTemplateEndpoint
+        ? (() => {
+            const formData = new FormData();
+            formData.set('data', JSON.stringify(toZohoTemplateRequestData(payload)));
+            return {
+                method: 'POST',
+                headers: {
+                    ...getBearerHeaders()
+                },
+                body: formData
+            };
+        })()
+        : {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                ...getBearerHeaders()
+            },
+            body: JSON.stringify(payload)
+        };
+
+    const response = await fetch(endpoint, requestOptions);
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
