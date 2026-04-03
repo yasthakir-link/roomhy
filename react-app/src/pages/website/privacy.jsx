@@ -324,9 +324,6 @@ export default function WebsitePrivacy() {
           </main>
           <WebsiteFooter />
     </div>
-          
-          
-    </div>
   );
 }
 

@@ -235,7 +235,7 @@ export default function WebsiteRefund() {
               
               <div className="light-card rounded-2xl p-6 md:p-10 lg:p-12 max-w-4xl mx-auto">
                   <article className="prose max-w-none">
-                      <h1>Refund Policy "? Roomhy</h1>
+                      <h1>Refund Policy - Roomhy</h1>
                       <p><strong>Effective Date: 1st Aug 2025</strong></p>
                       <p>At Roomhy, our mission is to make student housing simple, transparent, and broker-free. We work hard to ensure every listing, booking, and transaction on our platform is smooth and reliable. This Refund Policy explains when you may be eligible for a refund.</p>
       
@@ -270,13 +270,13 @@ export default function WebsiteRefund() {
                           <li>A technical error caused an incorrect or duplicate charge.</li>
                           <li>A payment was processed for a cancelled or unconfirmed booking.</li>
                       </ul>
-                      <p>In such cases, refunds will be processed within 7"?10 business days to the original payment method.</p>
+                      <p>In such cases, refunds will be processed within 7-10 business days to the original payment method.</p>
       
                       <h2>Contact Us</h2>
                       <p>For any refund queries or requests, please contact:</p>
                       <p>
-                          ?? <a href="mailto:hello@roomhy.com">hello@roomhy.com</a><br />
-                          ?? +91-7413040868
+                          Email: <a href="mailto:hello@roomhy.com">hello@roomhy.com</a><br />
+                          Phone: +91-7413040868
                       </p>
       
                       <h2>Policy Updates</h2>
@@ -286,9 +286,6 @@ export default function WebsiteRefund() {
       
           </main>
           <WebsiteFooter />
-    </div>
-          
-          
     </div>
   );
 }

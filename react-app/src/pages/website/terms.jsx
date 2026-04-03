@@ -344,20 +344,6 @@ export default function WebsiteTerms() {
           </main>
           <WebsiteFooter />
     </div>
-          
-          
-          
-      
-      
-          
-          
-          
-          
-          
-          
-          
-      
-    </div>
   );
 }
 
