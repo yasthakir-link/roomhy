@@ -64,6 +64,16 @@ function getActionId(kind) {
     return process.env.ZOHO_SIGN_ACTION_ID || '';
 }
 
+function getRole(kind) {
+    if (kind === 'tenant') {
+        return process.env.ZOHO_SIGN_TENANT_ROLE || process.env.ZOHO_SIGN_ROLE || '';
+    }
+    if (kind === 'owner') {
+        return process.env.ZOHO_SIGN_OWNER_ROLE || process.env.ZOHO_SIGN_ROLE || '';
+    }
+    return process.env.ZOHO_SIGN_ROLE || '';
+}
+
 function getZohoEndpoint(templateValue) {
     const raw = String(templateValue || '').trim();
     if (/^https?:\/\//i.test(raw)) return raw;
@@ -73,6 +83,7 @@ function getZohoEndpoint(templateValue) {
 function toZohoTemplateRequestData(payload) {
     const signer = payload.tenant || payload.owner || {};
     const actionId = String(payload.actionId || '').trim();
+    const role = String(payload.role || '').trim();
     return {
         templates: {
             request_name: payload.documentName,
@@ -82,6 +93,7 @@ function toZohoTemplateRequestData(payload) {
                     action_type: 'SIGN',
                     signing_order: 1,
                     verify_recipient: false,
+                    ...(role ? { role } : {}),
                     recipient_name: signer.name || signer.eSignName || 'Signer',
                     recipient_email: signer.email || '',
                     recipient_phonenumber: signer.phone || '',
@@ -91,8 +103,7 @@ function toZohoTemplateRequestData(payload) {
             field_data: {
                 field_text_data: payload.fields || {}
             },
-            redirect_url: payload.redirectUrl,
-            callback_url: payload.callbackUrl
+            notes: 'RoomHy agreement'
         }
     };
 }
@@ -106,6 +117,7 @@ function buildOwnerAgreementPayload({ owner = {}, loginId, aadhaarNumber, callba
     return {
         templateId: getTemplateValue('owner'),
         actionId: getActionId('owner'),
+        role: getRole('owner'),
         documentName: `RoomHy Owner Agreement - ${normalizedLoginId}`,
         callbackUrl,
         redirectUrl: getOwnerCompleteUrl(normalizedLoginId),
@@ -142,6 +154,7 @@ function buildTenantAgreementPayload({ tenant = {}, loginId, eSignName, callback
     return {
         templateId: getTemplateValue('tenant'),
         actionId: getActionId('tenant'),
+        role: getRole('tenant'),
         documentName: `RoomHy Tenant Rental Agreement - ${normalizedLoginId}`,
         callbackUrl,
         redirectUrl: getTenantCompleteUrl(normalizedLoginId),
@@ -199,6 +212,7 @@ async function createZohoRequest({ payload, loginId, providerLabel, completeUrl 
         ? (() => {
             const formData = new FormData();
             formData.set('data', JSON.stringify(toZohoTemplateRequestData(payload)));
+            formData.set('is_quicksend', 'true');
             return {
                 method: 'POST',
                 headers: {
