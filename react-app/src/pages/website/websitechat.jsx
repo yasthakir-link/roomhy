@@ -475,6 +475,7 @@ export default function WebsiteWebsitechat() {
           </div>
         </div>
       </div>
+      <WebsiteFooter />
     </div>
   );
 }

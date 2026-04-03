@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
+import { getOwnerSession } from "../../utils/ownerSession";
 
 export default function Index() {
   useHtmlPage({
@@ -19,6 +20,11 @@ export default function Index() {
   });
 
   useEffect(() => {
+    const owner = getOwnerSession();
+    if (owner?.loginId) {
+      window.location.replace("/propertyowner/admin");
+      return;
+    }
     if (window?.lucide) window.lucide.createIcons();
   }, []);
 

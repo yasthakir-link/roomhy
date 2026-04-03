@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import templateHtml from "./index.template.html?raw";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { buildOrganizationJsonLd, buildSeoConfig, buildWebsiteJsonLd } from "../../utils/websiteSeo";
@@ -86,10 +87,7 @@ const extractBodyContent = (source) => {
   const cleanedBody = match[1]
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(
-      /<footer class="footer container mx-auto px-4 sm:px-6 mt-16">/i,
-      '<footer data-shared-website-footer="1" class="footer container mx-auto px-4 sm:px-6 mt-16">'
-    )
+    .replace(/<footer[\s\S]*?<\/footer>/gi, "")
     .replace(
       /\bon(click|mouseover|mouseout)="([^"]*window\.location\.href\s*=\s*'([^']+)'.*?)"/gi,
       (full, eventName, handler, target) =>
@@ -325,5 +323,10 @@ export default function WebsiteIndex() {
     return () => document.removeEventListener("click", handleCityClick);
   }, []);
 
-  return <div className="html-page" dangerouslySetInnerHTML={{ __html: bodyHtml }} />;
+  return (
+    <div className="html-page">
+      <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+      <WebsiteFooter />
+    </div>
+  );
 }

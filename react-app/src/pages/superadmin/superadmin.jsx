@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useHeadAssets } from "../../utils/useHeadAssets.js";
 import { useTailwindProcessor } from "../../utils/useTailwindProcessor.js";
 
@@ -277,8 +277,28 @@ const bodyHtml = `<!-- Mobile Overlay -->
 export default function SuperadminSuperadminPage() {
   useHeadAssets({ title, metas, links, scripts, htmlAttrs, bodyAttrs });
   useTailwindProcessor();
+
+  useEffect(() => {
+    const runDashboardInit = () => {
+      try {
+        window.initializeMockData?.();
+        window.populateHeader?.();
+        window.loadDashboard?.();
+        window.lucide?.createIcons?.();
+      } catch (_) {
+        // ignore legacy dashboard bootstrap failures
+      }
+    };
+
+    const timer = window.setTimeout(runDashboardInit, 80);
+    return () => window.clearTimeout(timer);
+  }, []);
   
   return (
-    <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+    <div
+      dangerouslySetInnerHTML={{
+        __html: bodyHtml.replace("/superadmin/superadmin/new_signups", "/superadmin/new_signups")
+      }}
+    />
   );
 }

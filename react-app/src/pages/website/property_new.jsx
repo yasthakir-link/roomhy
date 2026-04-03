@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { useLucideIcons, useWebsiteCommon } from "../../utils/websiteUi";
 
@@ -71,7 +72,7 @@ export default function WebsitePropertyNew() {
                 <div>
                   <div className="flex gap-2 mb-3">
                     <span className="badge badge-info" id="property-type">Hostel for Girls</span>
-                    <span className="badge badge-success" id="verified-badge">✓ Verified</span>
+                    <span className="badge badge-success" id="verified-badge">Verified</span>
                   </div>
                   <h1 className="text-3xl sm:text-4xl font-bold text-gray-900" id="property-name">Athena House</h1>
                   <p className="text-gray-600 mt-2 flex items-center">
@@ -106,11 +107,11 @@ export default function WebsitePropertyNew() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between pb-3 border-b border-gray-200">
                   <span className="text-gray-600">Monthly Rent</span>
-                  <span className="font-semibold">₹10,000</span>
+                  <span className="font-semibold">Rs10,000</span>
                 </div>
                 <div className="flex justify-between pb-3 border-b border-gray-200">
                   <span className="text-gray-600">Security Deposit</span>
-                  <span className="font-semibold">₹10,000</span>
+                  <span className="font-semibold">Rs10,000</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Electricity / Maintenance</span>
@@ -122,52 +123,22 @@ export default function WebsitePropertyNew() {
             <section className="card p-6">
               <h3 className="text-xl font-bold mb-6">Facilities</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <div className="flex items-center gap-3">
-                  <i data-lucide="wifi" className="w-6 h-6 text-blue-600"></i>
-                  <span className="text-sm">High-Speed WiFi</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <i data-lucide="utensils" className="w-6 h-6 text-blue-600"></i>
-                  <span className="text-sm">Daily Meals</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <i data-lucide="wind" className="w-6 h-6 text-blue-600"></i>
-                  <span className="text-sm">Air Conditioned</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <i data-lucide="washing-machine" className="w-6 h-6 text-blue-600"></i>
-                  <span className="text-sm">Laundry Service</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <i data-lucide="car" className="w-6 h-6 text-blue-600"></i>
-                  <span className="text-sm">Parking</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <i data-lucide="plug-zap" className="w-6 h-6 text-blue-600"></i>
-                  <span className="text-sm">Power Backup</span>
-                </div>
+                <div className="flex items-center gap-3"><i data-lucide="wifi" className="w-6 h-6 text-blue-600"></i><span className="text-sm">High-Speed WiFi</span></div>
+                <div className="flex items-center gap-3"><i data-lucide="utensils" className="w-6 h-6 text-blue-600"></i><span className="text-sm">Daily Meals</span></div>
+                <div className="flex items-center gap-3"><i data-lucide="wind" className="w-6 h-6 text-blue-600"></i><span className="text-sm">Air Conditioned</span></div>
+                <div className="flex items-center gap-3"><i data-lucide="washing-machine" className="w-6 h-6 text-blue-600"></i><span className="text-sm">Laundry Service</span></div>
+                <div className="flex items-center gap-3"><i data-lucide="car" className="w-6 h-6 text-blue-600"></i><span className="text-sm">Parking</span></div>
+                <div className="flex items-center gap-3"><i data-lucide="plug-zap" className="w-6 h-6 text-blue-600"></i><span className="text-sm">Power Backup</span></div>
               </div>
             </section>
 
             <section className="card p-6">
               <h3 className="text-xl font-bold mb-4">House Rules</h3>
               <ul className="space-y-3 text-sm text-gray-700">
-                <li className="flex items-start gap-3">
-                  <i data-lucide="circle" className="w-2 h-2 mt-2 text-blue-600 flex-shrink-0"></i>
-                  <span><strong>No smoking</strong> in rooms or common areas</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <i data-lucide="circle" className="w-2 h-2 mt-2 text-blue-600 flex-shrink-0"></i>
-                  <span><strong>Alcohol not allowed</strong> on premises</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <i data-lucide="circle" className="w-2 h-2 mt-2 text-blue-600 flex-shrink-0"></i>
-                  <span><strong>Visitors allowed</strong> in common areas only (9 AM - 9 PM)</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <i data-lucide="circle" className="w-2 h-2 mt-2 text-blue-600 flex-shrink-0"></i>
-                  <span><strong>Curfew at 10:30 PM</strong> (exceptions with approval)</span>
-                </li>
+                <li className="flex items-start gap-3"><i data-lucide="circle" className="w-2 h-2 mt-2 text-blue-600 flex-shrink-0"></i><span><strong>No smoking</strong> in rooms or common areas</span></li>
+                <li className="flex items-start gap-3"><i data-lucide="circle" className="w-2 h-2 mt-2 text-blue-600 flex-shrink-0"></i><span><strong>Alcohol not allowed</strong> on premises</span></li>
+                <li className="flex items-start gap-3"><i data-lucide="circle" className="w-2 h-2 mt-2 text-blue-600 flex-shrink-0"></i><span><strong>Visitors allowed</strong> in common areas only (9 AM - 9 PM)</span></li>
+                <li className="flex items-start gap-3"><i data-lucide="circle" className="w-2 h-2 mt-2 text-blue-600 flex-shrink-0"></i><span><strong>Curfew at 10:30 PM</strong> (exceptions with approval)</span></li>
               </ul>
             </section>
 
@@ -177,27 +148,9 @@ export default function WebsitePropertyNew() {
                 <i data-lucide="map" className="w-12 h-12 text-gray-400"></i>
               </div>
               <div className="space-y-3 text-sm">
-                <div className="flex items-start gap-3">
-                  <i data-lucide="graduation-cap" className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></i>
-                  <div>
-                    <p className="font-semibold">Symbiosis Institute</p>
-                    <p className="text-gray-600">1.5 km away</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <i data-lucide="bus" className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></i>
-                  <div>
-                    <p className="font-semibold">Bus Stop</p>
-                    <p className="text-gray-600">300 m away</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <i data-lucide="shopping-cart" className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></i>
-                  <div>
-                    <p className="font-semibold">D-Mart</p>
-                    <p className="text-gray-600">800 m away</p>
-                  </div>
-                </div>
+                <div className="flex items-start gap-3"><i data-lucide="graduation-cap" className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></i><div><p className="font-semibold">Symbiosis Institute</p><p className="text-gray-600">1.5 km away</p></div></div>
+                <div className="flex items-start gap-3"><i data-lucide="bus" className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></i><div><p className="font-semibold">Bus Stop</p><p className="text-gray-600">300 m away</p></div></div>
+                <div className="flex items-start gap-3"><i data-lucide="shopping-cart" className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></i><div><p className="font-semibold">D-Mart</p><p className="text-gray-600">800 m away</p></div></div>
               </div>
             </section>
 
@@ -229,22 +182,10 @@ export default function WebsitePropertyNew() {
             <section className="card p-6 bg-green-50 border border-green-200">
               <h3 className="text-xl font-bold mb-4 text-green-900">Trust & Safety</h3>
               <ul className="space-y-3 text-sm">
-                <li className="flex items-start gap-3">
-                  <i data-lucide="check-circle" className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"></i>
-                  <span>All payments handled securely by Roomhy</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <i data-lucide="check-circle" className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"></i>
-                  <span>₹500 visit security is fully refundable</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <i data-lucide="check-circle" className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"></i>
-                  <span>No direct contact until owner accepts</span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <i data-lucide="check-circle" className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"></i>
-                  <span>Chat available only after acceptance</span>
-                </li>
+                <li className="flex items-start gap-3"><i data-lucide="check-circle" className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"></i><span>All payments handled securely by Roomhy</span></li>
+                <li className="flex items-start gap-3"><i data-lucide="check-circle" className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"></i><span>Rs500 visit security is fully refundable</span></li>
+                <li className="flex items-start gap-3"><i data-lucide="check-circle" className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"></i><span>No direct contact until owner accepts</span></li>
+                <li className="flex items-start gap-3"><i data-lucide="check-circle" className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5"></i><span>Chat available only after acceptance</span></li>
               </ul>
             </section>
           </div>
@@ -253,7 +194,7 @@ export default function WebsitePropertyNew() {
             <div className="card p-6 sticky top-24 space-y-6">
               <div>
                 <p className="text-sm text-gray-600">Monthly Rent</p>
-                <p className="text-4xl font-bold text-gray-900">₹10,000</p>
+                <p className="text-4xl font-bold text-gray-900">Rs10,000</p>
                 <p className="text-sm text-gray-600">/month</p>
               </div>
 
@@ -265,39 +206,19 @@ export default function WebsitePropertyNew() {
               <div className="border-t border-gray-200 pt-4">
                 <h4 className="font-semibold text-gray-900 mb-3">What You'll Pay</h4>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Bid Activation</span>
-                    <span className="font-semibold">₹49</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Visit Security</span>
-                    <span className="font-semibold">₹500</span>
-                  </div>
-                  <div className="flex justify-between text-gray-500 text-xs">
-                    <span>(Refundable)</span>
-                  </div>
+                  <div className="flex justify-between"><span className="text-gray-600">Bid Activation</span><span className="font-semibold">Rs49</span></div>
+                  <div className="flex justify-between"><span className="text-gray-600">Visit Security</span><span className="font-semibold">Rs500</span></div>
+                  <div className="flex justify-between text-gray-500 text-xs"><span>(Refundable)</span></div>
                 </div>
                 <div className="border-t border-gray-200 my-3 pt-3">
-                  <div className="flex justify-between">
-                    <span className="font-bold text-gray-900">Total</span>
-                    <span className="font-bold text-xl text-blue-600">₹549</span>
-                  </div>
+                  <div className="flex justify-between"><span className="font-bold text-gray-900">Total</span><span className="font-bold text-xl text-blue-600">Rs549</span></div>
                 </div>
               </div>
 
               <div className="space-y-3 border-t border-gray-200 pt-4 text-sm">
-                <div className="flex gap-2">
-                  <i data-lucide="check" className="w-5 h-5 text-green-600 flex-shrink-0"></i>
-                  <span className="text-gray-700">Chat opens after owner accepts</span>
-                </div>
-                <div className="flex gap-2">
-                  <i data-lucide="check" className="w-5 h-5 text-green-600 flex-shrink-0"></i>
-                  <span className="text-gray-700">Max 2 visits allowed</span>
-                </div>
-                <div className="flex gap-2">
-                  <i data-lucide="check" className="w-5 h-5 text-green-600 flex-shrink-0"></i>
-                  <span className="text-gray-700">Security refunded on booking</span>
-                </div>
+                <div className="flex gap-2"><i data-lucide="check" className="w-5 h-5 text-green-600 flex-shrink-0"></i><span className="text-gray-700">Chat opens after owner accepts</span></div>
+                <div className="flex gap-2"><i data-lucide="check" className="w-5 h-5 text-green-600 flex-shrink-0"></i><span className="text-gray-700">Max 2 visits allowed</span></div>
+                <div className="flex gap-2"><i data-lucide="check" className="w-5 h-5 text-green-600 flex-shrink-0"></i><span className="text-gray-700">Security refunded on booking</span></div>
               </div>
 
               <button id="sidebar-bid-btn" className="btn-primary w-full py-3 text-lg" onClick={() => setShowPayment(true)}>
@@ -312,7 +233,7 @@ export default function WebsitePropertyNew() {
       <div id="payment-modal" className={`fixed inset-0 bg-black/50 items-center justify-center z-50 p-4 ${showPayment ? "flex" : "hidden"}`}>
         <div className="bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
           <h2 className="text-2xl font-bold mb-4">Place Your Bid</h2>
-          <p className="text-gray-600 mb-4">Total: <span className="text-2xl font-bold text-blue-600">₹549</span></p>
+          <p className="text-gray-600 mb-4">Total: <span className="text-2xl font-bold text-blue-600">Rs549</span></p>
           <button className="btn-primary w-full py-3 mb-2">Proceed to Payment</button>
           <button className="text-gray-600" onClick={() => setShowPayment(false)}>Cancel</button>
         </div>
@@ -331,13 +252,7 @@ export default function WebsitePropertyNew() {
         <button className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">Account</button>
       </div>
 
-      <footer className="bg-gray-900 text-gray-300 py-12 mt-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <p className="text-center text-sm">© 2025 Roomhy. Your trusted student accommodation platform.</p>
-        </div>
-      </footer>
+      <WebsiteFooter />
     </div>
   );
 }
-
-

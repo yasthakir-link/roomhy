@@ -621,17 +621,8 @@ export default function WebsiteRefundRequest() {
       </main>
       
       
-      <footer className="bg-gray-900 text-gray-400 py-12 mt-20">
-          <div className="container mx-auto px-4 sm:px-6 text-center">
-              <p className="text-sm">&copy; 2024 RoomHy. All rights reserved.</p>
-          </div>
-      </footer>
-      
-      
-      
-      
+      <WebsiteFooter />
     </div>
   );
 }
-
 

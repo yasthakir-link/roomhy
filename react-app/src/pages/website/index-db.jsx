@@ -290,8 +290,9 @@ export default function WebsiteIndexDb() {
           </div>
         )}
       </div>
+
+      <WebsiteFooter />
     </div>
   );
 }
-
 

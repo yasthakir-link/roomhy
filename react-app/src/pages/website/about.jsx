@@ -1,4 +1,5 @@
 import React from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import aboutTemplateHtml from "../../templates/about.website1.html?raw";
 import { useHtmlPage } from "../../utils/htmlPage";
 
@@ -43,7 +44,9 @@ const rewriteAssetPaths = (html) =>
 const extractBodyHtml = (source) => {
   const bodyMatch = source.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   if (!bodyMatch) return "";
-  return bodyMatch[1].replace(/<script[\s\S]*?<\/script>/gi, "");
+  return bodyMatch[1]
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<footer[\s\S]*?<\/footer>/gi, "");
 };
 
 const bodyHtml = rewriteAssetPaths(extractBodyHtml(aboutTemplateHtml));
@@ -137,5 +140,10 @@ export default function WebsiteAbout() {
     scripts: [{ src: "/website/assets/js/about.js" }]
   });
 
-  return <div className="html-page" dangerouslySetInnerHTML={{ __html: bodyHtml }} />;
+  return (
+    <div className="html-page">
+      <div dangerouslySetInnerHTML={{ __html: bodyHtml }} />
+      <WebsiteFooter />
+    </div>
+  );
 }

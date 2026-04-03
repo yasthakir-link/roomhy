@@ -607,8 +607,8 @@ export default function WebsiteMystaysBookings() {
           </div>
         </div>
       </div>
+      <WebsiteFooter />
     </div>
   );
 }
-
 

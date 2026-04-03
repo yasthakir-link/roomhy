@@ -66,12 +66,12 @@ export default function WebsiteProperty() {
   const collectPhotosFromRecord = (record) => {
     if (!record || typeof record !== "object") return [];
     const buckets = [
-      record.professionalPhotos, record.professional_photos, record.propertyPhotos,
-      record.property_photos, record.photos, record.images, record.gallery,
-      record.media && record.media.professionalPhotos, record.media && record.media.photos,
+      record.professionalPhotos,
+      record.professional_photos,
+      record.media && record.media.professionalPhotos,
+      record.media && record.media.professional_photos,
       record.propertyInfo && record.propertyInfo.professionalPhotos,
-      record.propertyInfo && record.propertyInfo.propertyPhotos,
-      record.propertyInfo && record.propertyInfo.photos
+      record.propertyInfo && record.propertyInfo.professional_photos
     ];
     const urls = [];
     buckets.forEach((bucket) => {

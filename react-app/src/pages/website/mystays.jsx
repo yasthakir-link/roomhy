@@ -752,79 +752,8 @@ export default function WebsiteMystays() {
       
       
       
-      <footer className="bg-gray-900 text-gray-400 py-16 mt-20">
-          <div className="container mx-auto px-4 sm:px-6">
-              
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-                  
-                  <div>
-                      <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" className="h-8 w-auto mb-4" />
-                      <p className="text-sm text-gray-400 leading-relaxed">RoomHy is your trusted partner in finding quality accommodations. We connect property owners with quality tenants through a secure and transparent platform.</p>
-                      <div className="flex space-x-4 mt-6">
-                          <a href="#" className="text-gray-400 hover:text-white transition"><i data-lucide="facebook" className="w-5 h-5"></i></a>
-                          <a href="#" className="text-gray-400 hover:text-white transition"><i data-lucide="instagram" className="w-5 h-5"></i></a>
-                          <a href="#" className="text-gray-400 hover:text-white transition"><i data-lucide="twitter" className="w-5 h-5"></i></a>
-                          <a href="#" className="text-gray-400 hover:text-white transition"><i data-lucide="linkedin" className="w-5 h-5"></i></a>
-                      </div>
-                  </div>
-                  
-                  
-                  <div>
-                      <h4 className="text-white font-bold mb-6">Quick Links</h4>
-                      <ul className="space-y-3">
-                          <li><a href="/website/index" className="text-gray-400 hover:text-white transition">Home</a></li>
-                          <li><a href="/website/ourproperty" className="text-gray-400 hover:text-white transition">Properties</a></li>
-                          <li><a href="/website/mystays" className="text-gray-400 hover:text-white transition">My Stays</a></li>
-                          <li><a href="/website/about" className="text-gray-400 hover:text-white transition">About Us</a></li>
-                      </ul>
-                  </div>
-                  
-                  
-                  <div>
-                      <h4 className="text-white font-bold mb-6">Support</h4>
-                      <ul className="space-y-3">
-                          <li><a href="#" className="text-gray-400 hover:text-white transition">Help Center</a></li>
-                          <li><a href="#" className="text-gray-400 hover:text-white transition">FAQ</a></li>
-                          <li><a href="#" className="text-gray-400 hover:text-white transition">Contact Us</a></li>
-                          <li><a href="#" className="text-gray-400 hover:text-white transition">Report Issue</a></li>
-                      </ul>
-                  </div>
-                  
-                  
-                  <div>
-                      <h4 className="text-white font-bold mb-6">Contact Info</h4>
-                      <ul className="space-y-3 text-sm">
-                          <li className="flex items-center gap-2">
-                              <i data-lucide="mail" className="w-5 h-5"></i>
-                              <a href="mailto:support@roomhy.com" className="text-gray-400 hover:text-white transition">support@roomhy.com</a>
-                          </li>
-                          <li className="flex items-center gap-2">
-                              <i data-lucide="phone" className="w-5 h-5"></i>
-                              <a href="tel:+919876543210" className="text-gray-400 hover:text-white transition">+91 98765 43210</a>
-                          </li>
-                          <li className="flex items-center gap-2">
-                              <i data-lucide="map-pin" className="w-5 h-5"></i>
-                              <span>Bangalore, India</span>
-                          </li>
-                      </ul>
-                  </div>
-              </div>
-              
-              
-              <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
-                  <p className="text-sm text-gray-400">&copy; 2024 RoomHy. All rights reserved.</p>
-                  <div className="flex gap-6 text-sm mt-6 md:mt-0">
-                      <a href="#" className="text-gray-400 hover:text-white transition">Privacy Policy</a>
-                      <a href="#" className="text-gray-400 hover:text-white transition">Terms of Service</a>
-                      <a href="#" className="text-gray-400 hover:text-white transition">Cookie Policy</a>
-                  </div>
-              </div>
-          </div>
-      </footer>
-      
       <WebsiteFooter />
     </div>
   );
 }
-
 
