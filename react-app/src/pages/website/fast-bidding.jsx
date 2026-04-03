@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { fetchJson } from "../../utils/api";
 import {
@@ -475,11 +476,7 @@ export default function WebsiteFastBidding() {
         </div>
       </main>
 
-      <footer className="bg-gray-900 text-gray-300 py-12 mt-16">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-sm">© 2025 Roomhy. Your trusted student accommodation platform.</p>
-        </div>
-      </footer>
+      <WebsiteFooter />
 
       <div id="submissionModal" className={`fixed inset-0 bg-black/50 items-center justify-center z-50 p-4 ${showSuccessModal ? "flex" : "hidden"}`}>
         <div className="bg-white rounded-lg max-w-md w-full p-8 shadow-xl">

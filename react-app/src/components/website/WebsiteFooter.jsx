@@ -1,300 +1,275 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
-const CITY_DATA = {
-  Indore: [
-    { name: "PG in Vijay Nagar", area: "Vijay Nagar", type: "PG" },
-    { name: "PG in Palasia", area: "Palasia", type: "PG" },
-    { name: "PG in LIG Colony", area: "LIG Colony", type: "PG" },
-    { name: "PG in Scheme 54", area: "Scheme 54", type: "PG" },
-    { name: "PG in Bhawarkuan", area: "Bhawarkuan", type: "PG" },
-    { name: "PG in South Tukoganj", area: "South Tukoganj", type: "PG" },
-    { name: "Hostel near DAVV", area: "DAVV", type: "Hostel" },
-    { name: "Hostel near IIM Indore", area: "IIM Indore", type: "Hostel" },
-    { name: "Flat in Nipania", area: "Nipania", type: "Apartment" },
-    { name: "PG in AB Road", area: "AB Road", type: "PG" },
-    { name: "PG in MR 10", area: "MR 10", type: "PG" },
-    { name: "Flat in Vijay Nagar", area: "Vijay Nagar", type: "Apartment" }
-  ],
-  Kota: [
-    { name: "PG in Talwandi", area: "Talwandi", type: "PG" },
-    { name: "PG in Jawahar Nagar", area: "Jawahar Nagar", type: "PG" },
-    { name: "PG in Vigyan Nagar", area: "Vigyan Nagar", type: "PG" },
-    { name: "PG in Mahaveer Nagar", area: "Mahaveer Nagar", type: "PG" },
-    { name: "Hostel near Allen", area: "Allen", type: "Hostel" },
-    { name: "Hostel near Resonance", area: "Resonance", type: "Hostel" },
-    { name: "Hostel near Bansal Classes", area: "Bansal", type: "Hostel" },
-    { name: "PG in Dadabari", area: "Dadabari", type: "PG" },
-    { name: "Flat in Talwandi", area: "Talwandi", type: "Apartment" },
-    { name: "PG in Rangbari", area: "Rangbari", type: "PG" }
-  ],
-  Sikar: [
-    { name: "PG in Subhash Nagar", area: "Subhash Nagar", type: "PG" },
-    { name: "PG in Nehru Nagar", area: "Nehru Nagar", type: "PG" },
-    { name: "PG near Shekhawati University", area: "Shekhawati Uni", type: "PG" },
-    { name: "Hostel near CBSE Schools", area: "CBSE Zone", type: "Hostel" },
-    { name: "Flat in Sikar City", area: "Sikar City", type: "Apartment" },
-    { name: "PG near Bus Stand", area: "Bus Stand", type: "PG" }
-  ],
-  Bengaluru: [
-    { name: "PG in BTM Layout", area: "BTM Layout", type: "PG" },
-    { name: "PG in Koramangala", area: "Koramangala", type: "PG" },
-    { name: "PG in HSR Layout", area: "HSR Layout", type: "PG" },
-    { name: "PG in Marathahalli", area: "Marathahalli", type: "PG" },
-    { name: "PG in Manyata Tech Park", area: "Manyata", type: "PG" },
-    { name: "Hostel near RVCE", area: "RVCE", type: "Hostel" },
-    { name: "PG in Bellandur", area: "Bellandur", type: "PG" },
-    { name: "Flat in Koramangala", area: "Koramangala", type: "Apartment" }
-  ],
-  Mumbai: [
-    { name: "PG in Andheri", area: "Andheri", type: "PG" },
-    { name: "PG in Bandra", area: "Bandra", type: "PG" },
-    { name: "PG in Powai", area: "Powai", type: "PG" },
-    { name: "PG in Thane", area: "Thane", type: "PG" },
-    { name: "Flat in Andheri", area: "Andheri", type: "Apartment" },
-    { name: "PG in Navi Mumbai", area: "Navi Mumbai", type: "PG" }
-  ],
-  Delhi: [
-    { name: "PG in Mukherjee Nagar", area: "Mukherjee Nagar", type: "PG" },
-    { name: "PG near DU North Campus", area: "DU North", type: "PG" },
-    { name: "PG in Dwarka", area: "Dwarka", type: "PG" },
-    { name: "Hostel near JNU", area: "JNU", type: "Hostel" },
-    { name: "PG in Lajpat Nagar", area: "Lajpat Nagar", type: "PG" },
-    { name: "PG in Rohini", area: "Rohini", type: "PG" }
-  ],
-  Pune: [
-    { name: "PG in Kothrud", area: "Kothrud", type: "PG" },
-    { name: "PG in Hinjewadi", area: "Hinjewadi", type: "PG" },
-    { name: "PG in Baner", area: "Baner", type: "PG" },
-    { name: "Hostel near COEP", area: "COEP", type: "Hostel" },
-    { name: "Flat in Hinjewadi", area: "Hinjewadi", type: "Apartment" },
-    { name: "PG in Viman Nagar", area: "Viman Nagar", type: "PG" }
-  ],
-  Hyderabad: [
-    { name: "PG in Gachibowli", area: "Gachibowli", type: "PG" },
-    { name: "PG in Hitech City", area: "Hitech City", type: "PG" },
-    { name: "PG in Kondapur", area: "Kondapur", type: "PG" },
-    { name: "Hostel near IIIT Hyd", area: "IIIT Hyderabad", type: "Hostel" },
-    { name: "Flat in Gachibowli", area: "Gachibowli", type: "Apartment" },
-    { name: "PG in Ameerpet", area: "Ameerpet", type: "PG" }
-  ]
+const getApiBase = () => {
+  if (typeof window === "undefined") return "";
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  const port = window.location.port;
+  const baseUrl = port ? `${protocol}//${hostname}:${port}` : `${protocol}//${hostname}`;
+  return baseUrl;
 };
 
-const CITIES = Object.keys(CITY_DATA);
-
+// Black & White theme styles for professional look
 const footerStyle = {
-  backgroundColor: "#0a0a0a",
-  color: "#d1d5db",
+  backgroundColor: "#ffffff",
+  color: "#4a4a4a",
   fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-  borderTop: "1px solid #141414",
-  marginTop: "4rem"
+  borderTop: "2px solid #000000",
+  marginTop: "4rem",
+  boxShadow: "0 -1px 3px rgba(0, 0, 0, 0.08)"
 };
 
 const desktopGridStyle = {
   display: "grid",
-  gridTemplateColumns: "1.4fr 1fr 1fr 1fr 1fr 1fr",
-  gap: "40px",
-  padding: "64px 48px 52px",
-  borderBottom: "1px solid #141414"
+  gridTemplateColumns: "1.5fr 1.2fr 1.2fr 1.2fr 1.2fr 1.2fr",
+  gap: "48px",
+  padding: "72px 64px 60px",
+  borderBottom: "1px solid #e5e5e5"
 };
 
 const mobileGridStyle = {
   display: "grid",
   gridTemplateColumns: "1fr",
-  gap: "28px",
-  padding: "36px 20px 28px",
-  borderBottom: "1px solid #141414"
+  gap: "32px",
+  padding: "40px 24px 32px",
+  borderBottom: "1px solid #e5e5e5"
 };
 
 const headingStyle = {
-  color: "#ffffff",
+  color: "#000000",
+  fontSize: "12px",
+  fontWeight: "700",
+  margin: "0 0 24px",
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+  opacity: 0.85
+};
+
+const cityButtonBaseStyle = {
+  background: "none",
+  border: "none",
+  padding: "8px 0",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  width: "100%",
   fontSize: "13px",
-  fontWeight: "600",
-  margin: "0 0 20px",
-  letterSpacing: "0.01em"
+  transition: "all 0.2s ease",
+  fontWeight: "500"
+};
+
+const areaLinkStyle = {
+  fontSize: "13px",
+  textDecoration: "none",
+  transition: "all 0.15s ease",
+  display: "block",
+  lineHeight: "1.6",
+  color: "#666666"
 };
 
 export default function WebsiteFooter() {
+  const [cities, setCities] = useState([]);
+  const [areas, setAreas] = useState([]);
   const [selectedCity, setSelectedCity] = useState(null);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth < 960 : false
   );
+  const [loading, setLoading] = useState(true);
 
+  // Fetch cities and areas on mount
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const apiBase = getApiBase();
+        const [citiesRes, areasRes] = await Promise.all([
+          fetch(`${apiBase}/api/locations/cities`),
+          fetch(`${apiBase}/api/locations/areas`)
+        ]);
+
+        if (citiesRes.ok && areasRes.ok) {
+          const citiesData = await citiesRes.json();
+          const areasData = await areasRes.json();
+          
+          setCities(citiesData?.data || []);
+          setAreas(areasData?.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching locations:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLocations();
+  }, []);
+
+  // Handle window resize
   React.useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 960);
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // Get areas for a specific city
+  const getAreasForCity = (cityId) => {
+    return areas.filter((area) => area.cityId === cityId || area.city === cityId);
+  };
+
+  // Get city name by ID
+  const getCityName = (cityId) => {
+    return cities.find((c) => c._id === cityId)?.name || cityId;
+  };
+
   return (
     <footer data-roomhy-shared-footer="1" style={footerStyle}>
       <div style={isMobile ? mobileGridStyle : desktopGridStyle}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        {/* Brand Section */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <div
               style={{
-                width: "34px",
-                height: "34px",
-                borderRadius: "7px",
-                backgroundColor: "#ffffff",
+                width: "40px",
+                height: "40px",
+                borderRadius: "4px",
+                backgroundColor: "#000000",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0
               }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                <polyline points="9 22 9 12 15 12 15 22" />
-              </svg>
+              <span style={{ color: "#ffffff", fontSize: "22px", fontWeight: "800" }}>R</span>
             </div>
-            <span style={{ color: "#ffffff", fontSize: "17px", fontWeight: "700", letterSpacing: "-0.3px" }}>
+            <span style={{ color: "#000000", fontSize: "18px", fontWeight: "800", letterSpacing: "-0.5px" }}>
               Roomhy
             </span>
           </div>
           <p
             style={{
-              color: "#444444",
+              color: "#666666",
               fontSize: "13px",
-              lineHeight: "1.75",
+              lineHeight: "1.8",
               margin: 0,
-              maxWidth: "220px",
-              whiteSpace: "pre-line"
+              maxWidth: "240px",
+              fontWeight: "400"
             }}
           >
-            {"© copyright Roomhy 2025.\nAll rights reserved."}
+            Find your perfect room, hostel, or apartment across major Indian cities.
           </p>
         </div>
 
-        <div>
-          <h4 style={headingStyle}>Cities</h4>
-          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "4px" }}>
-            {CITIES.map((city) => {
-              const isOpen = selectedCity === city;
-              const cityListings = CITY_DATA[city] || [];
+        {/* Cities with Areas Dropdown */}
+        {!loading && cities.length > 0 && (
+          <div>
+            <h4 style={headingStyle}>Cities & Areas</h4>
+            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "2px" }}>
+              {cities.slice(0, 8).map((city) => {
+                const isOpen = selectedCity === city._id;
+                const cityAreas = getAreasForCity(city._id);
 
-              return (
-                <li key={city}>
-                  <button
-                    onClick={() => setSelectedCity((prev) => (prev === city ? null : city))}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      padding: "4px 0",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      width: "100%",
-                      color: isOpen ? "#ffffff" : "#555555",
-                      fontSize: "13px",
-                      fontWeight: isOpen ? "600" : "400",
-                      transition: "color 0.15s"
-                    }}
-                  >
-                    <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span
+                return (
+                  <li key={city._id}>
+                    <button
+                      onClick={() => setSelectedCity((prev) => (prev === city._id ? null : city._id))}
+                      style={{
+                        ...cityButtonBaseStyle,
+                        color: isOpen ? "#000000" : "#4a4a4a"
+                      }}
+                    >
+                      <span style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span
+                          style={{
+                            width: "6px",
+                            height: "6px",
+                            borderRadius: "50%",
+                            backgroundColor: isOpen ? "#000000" : "#cccccc",
+                            transition: "all 0.2s ease",
+                            flexShrink: 0
+                          }}
+                        />
+                        <span style={{ fontWeight: isOpen ? "600" : "500" }}>{city.name}</span>
+                      </span>
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
                         style={{
-                          width: "5px",
-                          height: "5px",
-                          borderRadius: "50%",
-                          backgroundColor: isOpen ? "#4ade80" : "transparent",
-                          border: isOpen ? "none" : "1px solid #2a2a2a",
+                          transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+                          transition: "transform 0.3s ease",
                           flexShrink: 0
                         }}
-                      />
-                      {city}
-                    </span>
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      style={{
-                        transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                        transition: "transform 0.2s ease",
-                        flexShrink: 0
-                      }}
-                    >
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </button>
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
 
-                  {isOpen && (
-                    <ul
-                      style={{
-                        listStyle: "none",
-                        margin: "4px 0 8px 11px",
-                        padding: "0 0 0 10px",
-                        borderLeft: "1px solid #1e1e1e",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "8px"
-                      }}
-                    >
-                      {cityListings.map((listing, index) => (
-                        <li key={`${city}-${listing.area}-${index}`}>
-                          <a
-                            href={`/website/ourproperty?city=${encodeURIComponent(city)}&area=${encodeURIComponent(
-                              listing.area
-                            )}&type=${encodeURIComponent(listing.type)}`}
-                            style={{
-                              color: "#3a3a3a",
-                              fontSize: "12px",
-                              textDecoration: "none",
-                              transition: "color 0.15s",
-                              display: "block",
-                              lineHeight: "1.4"
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = "#aaaaaa";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = "#3a3a3a";
-                            }}
-                          >
-                            {listing.name}
-                          </a>
-                        </li>
-                      ))}
-                      <li>
-                        <a
-                          href={`/website/ourproperty?city=${encodeURIComponent(city)}`}
-                          style={{
-                            color: "#2a2a2a",
-                            fontSize: "11px",
-                            textDecoration: "none",
-                            transition: "color 0.15s",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "3px",
-                            marginTop: "2px"
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = "#4ade80";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = "#2a2a2a";
-                          }}
-                        >
-                          View all →
-                        </a>
-                      </li>
-                    </ul>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+                    {isOpen && cityAreas.length > 0 && (
+                      <ul
+                        style={{
+                          listStyle: "none",
+                          margin: "8px 0 12px 14px",
+                          padding: "8px 0 8px 12px",
+                          borderLeft: "2px solid #000000",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "6px"
+                        }}
+                      >
+                        {cityAreas.slice(0, 5).map((area) => (
+                          <li key={area._id}>
+                            <a
+                              href={`/website/ourproperty?city=${encodeURIComponent(city.name)}&area=${encodeURIComponent(
+                                area.name
+                              )}`}
+                              style={areaLinkStyle}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = "#000000";
+                                e.currentTarget.style.fontWeight = "600";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = "#666666";
+                                e.currentTarget.style.fontWeight = "400";
+                              }}
+                            >
+                              {area.name}
+                            </a>
+                          </li>
+                        ))}
+                        {cityAreas.length > 5 && (
+                          <li>
+                            <a
+                              href={`/website/ourproperty?city=${encodeURIComponent(city.name)}`}
+                              style={{
+                                ...areaLinkStyle,
+                                color: "#000000",
+                                fontSize: "12px",
+                                fontWeight: "600",
+                                marginTop: "4px"
+                              }}
+                            >
+                              View all {cityAreas.length} areas →
+                            </a>
+                          </li>
+                        )}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         <NavCol
           heading="Pages"
           links={[
-            { label: "Find a PG", href: "/website/ourproperty?type=pg" },
-            { label: "Hostels", href: "/website/ourproperty?type=hostel" },
-            { label: "Apartments", href: "/website/ourproperty?type=apartment" },
+            { label: "Find a PG", href: "/website/ourproperty?type=PG" },
+            { label: "Hostels", href: "/website/ourproperty?type=Hostel" },
+            { label: "Apartments", href: "/website/ourproperty?type=Apartment" },
             { label: "Fast Bidding", href: "/website/fast-bidding" },
             { label: "List Property", href: "/website/list" },
             { label: "About Us", href: "/website/about" }
@@ -302,13 +277,13 @@ export default function WebsiteFooter() {
         />
 
         <NavCol
-          heading="Socials"
+          heading="Company"
           links={[
-            { label: "Facebook", href: "#" },
-            { label: "Instagram", href: "#" },
-            { label: "Twitter", href: "#" },
-            { label: "LinkedIn", href: "#" },
-            { label: "YouTube", href: "#" }
+            { label: "Contact Us", href: "/website/contact" },
+            { label: "Support", href: "#" },
+            { label: "Blog", href: "#" },
+            { label: "Careers", href: "#" },
+            { label: "FAQ", href: "#" }
           ]}
         />
 
@@ -317,46 +292,60 @@ export default function WebsiteFooter() {
           links={[
             { label: "Privacy Policy", href: "/website/privacy" },
             { label: "Terms of Service", href: "/website/terms" },
-            { label: "Cookie Policy", href: "/website/cookies" },
+            { label: "Cookie Policy", href: "#" },
             { label: "Sitemap", href: "/sitemap.xml" }
           ]}
         />
 
         <NavCol
-          heading="Register"
+          heading="Account"
           links={[
             { label: "Sign Up", href: "/website/signup" },
-            { label: "Login", href: "/website/signup" },
+            { label: "Login", href: "/website/login" },
             { label: "List Property", href: "/website/signuprole" },
-            { label: "Contact Us", href: "/website/contact" },
-            { label: "FAQ", href: "#faq" }
+            { label: "My Bookings", href: "/website/mystays-bookings" },
+            { label: "Profile", href: "/website/profile" }
           ]}
         />
       </div>
 
+      {/* Bottom Section */}
       <div
         style={{
-          overflow: "hidden",
-          userSelect: "none",
-          pointerEvents: "none",
-          lineHeight: "0.85",
-          padding: isMobile ? "0 12px" : "0 24px",
-          textAlign: "center"
+          padding: isMobile ? "32px 24px" : "48px 64px",
+          backgroundColor: "#f5f5f5",
+          borderTop: "1px solid #e5e5e5",
+          display: "flex",
+          flexDirection: isMobile ? "column" : "row",
+          justifyContent: "space-between",
+          alignItems: isMobile ? "flex-start" : "center",
+          gap: isMobile ? "20px" : "0"
         }}
       >
         <p
           style={{
-            fontSize: "clamp(72px, 17vw, 210px)",
-            fontWeight: "800",
-            color: "#141414",
             margin: 0,
-            letterSpacing: "-0.04em",
-            fontFamily: "'Inter', sans-serif",
-            whiteSpace: "nowrap"
+            color: "#666666",
+            fontSize: "13px",
+            fontWeight: "400"
           }}
         >
-          Roomhy
+          © {new Date().getFullYear()} Roomhy. All rights reserved.
         </p>
+        <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
+          <a href="#" style={{ color: "#4a4a4a", textDecoration: "none", fontSize: "13px", transition: "color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.color = "#000000"} onMouseLeave={(e) => e.currentTarget.style.color = "#4a4a4a"}>
+            Facebook
+          </a>
+          <a href="#" style={{ color: "#4a4a4a", textDecoration: "none", fontSize: "13px", transition: "color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.color = "#000000"} onMouseLeave={(e) => e.currentTarget.style.color = "#4a4a4a"}>
+            Instagram
+          </a>
+          <a href="#" style={{ color: "#4a4a4a", textDecoration: "none", fontSize: "13px", transition: "color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.color = "#000000"} onMouseLeave={(e) => e.currentTarget.style.color = "#4a4a4a"}>
+            Twitter
+          </a>
+          <a href="#" style={{ color: "#4a4a4a", textDecoration: "none", fontSize: "13px", transition: "color 0.2s" }} onMouseEnter={(e) => e.currentTarget.style.color = "#000000"} onMouseLeave={(e) => e.currentTarget.style.color = "#4a4a4a"}>
+            LinkedIn
+          </a>
+        </div>
       </div>
     </footer>
   );
@@ -366,17 +355,26 @@ function NavCol({ heading, links }) {
   return (
     <div>
       <h4 style={headingStyle}>{heading}</h4>
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "14px" }}>
+      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
         {links.map(({ label, href }) => (
           <li key={label}>
             <a
               href={href}
-              style={{ color: "#555555", fontSize: "13px", textDecoration: "none", transition: "color 0.15s" }}
+              style={{
+                color: "#4a4a4a",
+                fontSize: "13px",
+                textDecoration: "none",
+                transition: "all 0.2s ease",
+                fontWeight: "400",
+                display: "inline-block"
+              }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#ffffff";
+                e.currentTarget.style.color = "#000000";
+                e.currentTarget.style.fontWeight = "600";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = "#555555";
+                e.currentTarget.style.color = "#4a4a4a";
+                e.currentTarget.style.fontWeight = "400";
               }}
             >
               {label}

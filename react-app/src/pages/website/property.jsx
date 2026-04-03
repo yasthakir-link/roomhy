@@ -280,22 +280,22 @@ export default function WebsiteProperty() {
         ? String(normalized.nearbyLocation).split(/[,|]/).map((i) => i.trim()).filter(Boolean).slice(0, 6)
         : [normalized.area || "Area not specified", normalized.city || "City not specified"];
       nearbyEl.innerHTML = nearbyItems.map((item) => `
-        <div style="border-left:2px solid #000;padding-left:1rem;">
-          <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#525252;margin-bottom:0.25rem;">Location</p>
-          <p style="font-size:0.95rem;font-weight:600;color:#000;">${item}</p>
+        <div style="padding:1rem 1.1rem;border:1px solid #e2e8f0;border-radius:18px;background:linear-gradient(180deg,#ffffff,#f8fbff);box-shadow:0 18px 40px rgba(15,23,42,0.06);">
+          <p style="font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:#64748b;margin-bottom:0.35rem;">Location</p>
+          <p style="font-size:0.98rem;font-weight:700;color:#0f172a;line-height:1.4;">${item}</p>
         </div>`).join("");
     }
     const recommendedEl = document.getElementById("recommended-slider");
     if (recommendedEl && recommendedProperties.length > 0) {
       recommendedEl.innerHTML = recommendedProperties.map((item) => `
         <a href="/website/property?id=${encodeURIComponent(String(item.id || ""))}" style="flex-shrink:0;width:280px;text-decoration:none;color:inherit;">
-          <div style="border:1px solid #e5e7eb;overflow:hidden;background:#fff;">
+          <div style="border:1px solid #e2e8f0;overflow:hidden;background:#fff;border-radius:24px;box-shadow:0 20px 40px rgba(15,23,42,0.08);">
             <img src="${item.image}" alt="${item.title}" style="width:100%;height:180px;object-fit:cover;" />
-            <div style="padding:1rem;">
-              <p style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:#525252;margin-bottom:0.25rem;">${item.type}</p>
-              <p style="font-size:1rem;font-weight:800;color:#000;margin-bottom:0.25rem;">${item.title}</p>
-              <p style="font-size:0.85rem;color:#525252;margin-bottom:0.5rem;">${[item.area, item.city].filter(Boolean).join(", ") || "Location unavailable"}</p>
-              <p style="font-size:1.1rem;font-weight:800;color:#000;">₹${Number(item.rent).toLocaleString("en-IN")}<span style="font-size:0.75rem;font-weight:400;color:#525252;"> / mo</span></p>
+            <div style="padding:1rem 1rem 1.1rem;">
+              <p style="display:inline-flex;align-items:center;padding:0.38rem 0.7rem;border-radius:999px;background:#eff6ff;color:#2563eb;font-size:0.68rem;font-weight:800;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:0.65rem;">${item.type}</p>
+              <p style="font-size:1rem;font-weight:800;color:#0f172a;margin-bottom:0.3rem;line-height:1.35;">${item.title}</p>
+              <p style="font-size:0.84rem;color:#64748b;margin-bottom:0.65rem;">${[item.area, item.city].filter(Boolean).join(", ") || "Location unavailable"}</p>
+              <p style="font-size:1.12rem;font-weight:900;color:#111827;">₹${Number(item.rent).toLocaleString("en-IN")}<span style="font-size:0.76rem;font-weight:600;color:#64748b;"> / mo</span></p>
             </div>
           </div>
         </a>`).join("");
@@ -386,14 +386,14 @@ export default function WebsiteProperty() {
   });
 
   // ─── Shared style tokens ─────────────────────────────────────────────────
-  const divider = { borderBottom: "1px solid #e2e8f0", paddingBottom: "2rem", marginBottom: "2rem" };
-  const sectionH2 = { fontSize: "1.1rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.1em", color: "#000", marginBottom: "1.5rem" };
-  const infoLabel = { fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#525252" };
-  const btnBlack = { display: "block", width: "100%", backgroundColor: "#000", color: "#fff", border: "none", padding: "1rem", fontWeight: 900, fontSize: "1.1rem", textTransform: "uppercase", letterSpacing: "-0.02em", cursor: "pointer", boxShadow: "4px 4px 0 0 rgba(0,0,0,1)", transition: "all 0.15s" };
-  const btnOutline = { display: "inline-flex", alignItems: "center", gap: "0.5rem", backgroundColor: "#fff", color: "#000", border: "1px solid #000", padding: "0.5rem 1rem", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.025em", cursor: "pointer" };
+  const divider = { border: "1px solid #e2e8f0", borderRadius: "28px", padding: "1.8rem", marginBottom: "1.5rem", background: "linear-gradient(180deg,#ffffff,#f8fbff)", boxShadow: "0 22px 50px rgba(15,23,42,0.06)" };
+  const sectionH2 = { fontSize: "1rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.12em", color: "#0f172a", marginBottom: "1.35rem" };
+  const infoLabel = { fontSize: "0.72rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "#64748b" };
+  const btnBlack = { display: "block", width: "100%", background: "linear-gradient(135deg,#111827,#334155)", color: "#fff", border: "none", padding: "1rem", fontWeight: 800, fontSize: "1rem", borderRadius: "18px", cursor: "pointer", boxShadow: "0 18px 35px rgba(15,23,42,0.24)", transition: "all 0.2s ease" };
+  const btnOutline = { display: "inline-flex", alignItems: "center", gap: "0.5rem", backgroundColor: "#fff", color: "#0f172a", border: "1px solid #dbe2ea", padding: "0.75rem 1rem", fontWeight: 700, fontSize: "0.8rem", borderRadius: "999px", letterSpacing: "0.025em", cursor: "pointer", boxShadow: "0 10px 25px rgba(15,23,42,0.05)" };
 
   return (
-    <div style={{ fontFamily: "'Inter', sans-serif", backgroundColor: "#fff", color: "#000" }}>
+    <div style={{ fontFamily: "'Inter', sans-serif", background: "radial-gradient(circle at top left, rgba(219,234,254,0.75), transparent 28%), radial-gradient(circle at top right, rgba(254,242,242,0.7), transparent 26%), #f8fafc", color: "#000" }}>
 
       {/* ── RESPONSIVE STYLES (layout only) ──────────────────────────────── */}
       <style>{`
@@ -401,26 +401,28 @@ export default function WebsiteProperty() {
         .rh-gallery-grid {
           display: grid;
           grid-template-columns: 2fr 1fr 1fr;
-          gap: 0.75rem;
-          margin-bottom: 3rem;
+          gap: 0.9rem;
+          margin-bottom: 2rem;
         }
         .rh-gallery-main {
           grid-row: span 2;
           height: 500px;
-          border-radius: 8px;
+          border-radius: 26px;
           overflow: hidden;
+          box-shadow: 0 22px 60px rgba(15,23,42,0.14);
         }
         .rh-gallery-sub {
           height: 246px;
-          border-radius: 8px;
+          border-radius: 22px;
           overflow: hidden;
+          box-shadow: 0 20px 45px rgba(15,23,42,0.1);
         }
 
         /* Two-column content + sidebar */
         .rh-content-grid {
           display: grid;
           grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-          gap: 4rem;
+          gap: 2rem;
           align-items: start;
         }
 
@@ -442,9 +444,14 @@ export default function WebsiteProperty() {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 2rem;
+          margin-bottom: 1.5rem;
           flex-wrap: wrap;
           gap: 0.75rem;
+          padding: 1rem 1.2rem;
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
+          background: rgba(255,255,255,0.92);
+          box-shadow: 0 18px 40px rgba(15,23,42,0.06);
         }
 
         /* Nearby grid */
@@ -639,7 +646,7 @@ export default function WebsiteProperty() {
       )}
 
       {/* ── MAIN ─────────────────────────────────────────────────────────── */}
-      <main style={{ maxWidth: "88rem", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+      <main style={{ maxWidth: "86rem", margin: "0 auto", padding: "2.2rem 1.25rem 4rem" }}>
 
         {/* Back + Save/Share — now uses rh-topbar class for responsive wrapping */}
         <div className="rh-topbar">
@@ -657,14 +664,27 @@ export default function WebsiteProperty() {
         </div>
 
         {/* Title + Location */}
-        <div style={{ marginBottom: "2rem" }}>
-          <h1 style={{ fontSize: "clamp(1.8rem,4vw,2.5rem)", fontWeight: 900, letterSpacing: "-0.02em", textTransform: "uppercase", color: "#000", marginBottom: "0.5rem" }}>
-            {normalized.title}
-          </h1>
-          <p style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#525252", fontWeight: 500, fontSize: "0.95rem" }}>
-            <i data-lucide="map-pin" style={{ width: "1rem", height: "1rem" }}></i>
-            {normalized.locationText || "Location unavailable"}
-          </p>
+        <div style={{ marginBottom: "1.75rem", padding: "1.5rem", borderRadius: "30px", border: "1px solid #e2e8f0", background: "rgba(255,255,255,0.94)", boxShadow: "0 24px 55px rgba(15,23,42,0.07)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "flex-start", flexWrap: "wrap" }}>
+            <div>
+              <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginBottom: "0.9rem" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", padding: "0.45rem 0.8rem", borderRadius: "999px", background: "#eff6ff", color: "#2563eb", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>{normalized.badge}</span>
+                {normalized.verified && <span style={{ display: "inline-flex", alignItems: "center", padding: "0.45rem 0.8rem", borderRadius: "999px", background: "#ecfdf5", color: "#059669", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase" }}>Verified</span>}
+              </div>
+              <h1 style={{ fontSize: "clamp(1.8rem,4vw,2.75rem)", fontWeight: 900, letterSpacing: "-0.03em", color: "#0f172a", marginBottom: "0.55rem", lineHeight: 1.05 }}>
+                {normalized.title}
+              </h1>
+              <p style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "#64748b", fontWeight: 600, fontSize: "0.98rem" }}>
+                <i data-lucide="map-pin" style={{ width: "1rem", height: "1rem" }}></i>
+                {normalized.locationText || "Location unavailable"}
+              </p>
+            </div>
+            <div style={{ minWidth: "220px", padding: "1rem 1.1rem", borderRadius: "22px", background: "linear-gradient(135deg,#0f172a,#1e293b)", color: "#fff", boxShadow: "0 20px 45px rgba(15,23,42,0.25)" }}>
+              <p style={{ fontSize: "0.74rem", fontWeight: 700, letterSpacing: "0.12em", textTransform: "uppercase", opacity: 0.8, marginBottom: "0.35rem" }}>Starting From</p>
+              <div style={{ fontSize: "2rem", fontWeight: 900, letterSpacing: "-0.04em" }}>{formatInr(normalized.rent)}</div>
+              <p style={{ fontSize: "0.82rem", opacity: 0.72, marginTop: "0.15rem" }}>per month</p>
+            </div>
+          </div>
         </div>
 
         {/* ── 4-GRID GALLERY — uses rh-gallery-* classes ────────────────── */}
@@ -739,7 +759,7 @@ export default function WebsiteProperty() {
             {/* ABOUT PROPERTY */}
             <section style={divider}>
               <h2 style={sectionH2}>About Property</h2>
-              <p style={{ fontSize: "1.05rem", lineHeight: 1.8, color: "#1a1a1a" }}>
+              <p style={{ fontSize: "1rem", lineHeight: 1.9, color: "#334155" }}>
                 <strong style={{ color: "#000" }}>{normalized.title}</strong> is a well-maintained property with tenants currently living in the property. The property is located in the roots of the city and is completely available for Girls and is surrounded by all kinds of markets and transport facilities. This is a smart property and all the complaints and rent collection is done through the smart tenant app which is given to the tenant upon joining.
               </p>
             </section>
@@ -747,11 +767,11 @@ export default function WebsiteProperty() {
             {/* QUICK PROPERTY FACTS */}
             <section style={divider}>
               <h2 style={sectionH2}>Quick Property Facts</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "2rem 1.5rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "1rem" }}>
                 {quickFacts.map((fact) => (
-                  <div key={fact.label} style={{ borderLeft: "2px solid #000", paddingLeft: "1rem" }}>
+                  <div key={fact.label} style={{ padding: "1rem", borderRadius: "18px", border: "1px solid #e2e8f0", background: "#fff" }}>
                     <p style={infoLabel}>{fact.label}</p>
-                    <p style={{ fontSize: "1.2rem", fontWeight: 800, color: "#000", marginTop: "0.25rem" }}>{fact.value}</p>
+                    <p style={{ fontSize: "1.02rem", fontWeight: 800, color: "#0f172a", marginTop: "0.35rem", lineHeight: 1.3 }}>{fact.value}</p>
                   </div>
                 ))}
               </div>
@@ -765,11 +785,11 @@ export default function WebsiteProperty() {
                   { id: "student", label: "Student Rating", rId: "student-reviews-rating", sId: "student-reviews-stars", cId: "student-reviews-comment" },
                   { id: "employee", label: "Professional Assessment", rId: "employee-rating-rating", sId: "employee-rating-stars", cId: "employee-rating-comment" },
                 ].map(({ id, label, rId, sId, cId }) => (
-                  <div key={id} style={{ border: "1px solid #e5e7eb", padding: "1.5rem", background: "#fff" }}>
+                  <div key={id} style={{ border: "1px solid #e2e8f0", borderRadius: "22px", padding: "1.5rem", background: "#fff", boxShadow: "0 16px 34px rgba(15,23,42,0.05)" }}>
                     <p style={infoLabel}>{label}</p>
-                    <p id={rId} style={{ fontSize: "3rem", fontWeight: 900, color: "#000", lineHeight: 1, marginTop: "0.5rem" }}>-</p>
+                    <p id={rId} style={{ fontSize: "3rem", fontWeight: 900, color: "#0f172a", lineHeight: 1, marginTop: "0.5rem" }}>-</p>
                     <div id={sId} style={{ fontSize: "1.25rem", marginTop: "0.5rem", color: "#000" }}>☆☆☆☆☆</div>
-                    <p id={cId} style={{ fontSize: "0.85rem", color: "#525252", marginTop: "1rem", borderTop: "1px solid #e5e7eb", paddingTop: "0.75rem", fontStyle: "italic" }}>Loading...</p>
+                    <p id={cId} style={{ fontSize: "0.88rem", color: "#64748b", marginTop: "1rem", borderTop: "1px solid #e5e7eb", paddingTop: "0.9rem", fontStyle: "italic", lineHeight: 1.7 }}>Loading...</p>
                   </div>
                 ))}
               </div>
@@ -781,11 +801,11 @@ export default function WebsiteProperty() {
               {amenityList.length === 0 ? (
                 <p style={{ color: "#525252" }}>No amenities listed.</p>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.75rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.85rem" }}>
                   {amenityList.map((amenity) => (
-                    <div key={amenity} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem 1rem", border: "1px solid #e5e7eb", background: "#fff" }}>
-                      <i data-lucide="check" style={{ width: "1rem", height: "1rem", color: "#000", flexShrink: 0 }}></i>
-                      <span style={{ fontSize: "0.875rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.025em", color: "#000" }}>{amenity}</span>
+                    <div key={amenity} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.9rem 1rem", border: "1px solid #e2e8f0", background: "#fff", borderRadius: "18px" }}>
+                      <i data-lucide="check" style={{ width: "1rem", height: "1rem", color: "#2563eb", flexShrink: 0 }}></i>
+                      <span style={{ fontSize: "0.875rem", fontWeight: 700, letterSpacing: "0.01em", color: "#0f172a" }}>{amenity}</span>
                     </div>
                   ))}
                 </div>
@@ -796,7 +816,7 @@ export default function WebsiteProperty() {
             <section style={divider}>
               <h2 style={sectionH2}>Location Mapping</h2>
               {/* rh-map-container class lets mobile override the height */}
-              <div className="rh-map-container" style={{ width: "100%", height: "400px", borderRadius: "8px", overflow: "hidden", border: "1px solid #e2e8f0" }}>
+              <div className="rh-map-container" style={{ width: "100%", height: "400px", borderRadius: "24px", overflow: "hidden", border: "1px solid #e2e8f0", boxShadow: "0 20px 45px rgba(15,23,42,0.08)" }}>
                 <iframe
                   id="propertyMapIframe"
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15125.93170782271!2d73.7302436871582!3d18.597144800000004!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2bbc048041d6f%3A0x2c608fa4f67c696f!2sHinjawadi%2C%20Pune%2C%20Maharashtra%2C%20India!5e0!3m2!1sen!2sus!4v1730248835251!5m2!1sen!2sus"
@@ -806,7 +826,7 @@ export default function WebsiteProperty() {
               </div>
               {normalized.nearbyLocation && (
                 <div style={{ marginTop: "1.5rem" }}>
-                  <h3 style={{ fontSize: "0.9rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.075em", marginBottom: "1rem", color: "#000" }}>Nearby</h3>
+                  <h3 style={{ fontSize: "0.9rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.075em", marginBottom: "1rem", color: "#0f172a" }}>Nearby</h3>
                   {/* rh-nearby-grid class stacks to 1-col on mobile */}
                   <div id="whats-nearby-dynamic" className="rh-nearby-grid"></div>
                 </div>
@@ -822,9 +842,9 @@ export default function WebsiteProperty() {
                 { q: "Is there a curfew time?", a: "For the safety and well-being of all residents, we maintain a professional curfew policy: 10:30 PM on weekdays and 11:00 PM on weekends. Exceptions can be made with prior approval from the warden." },
                 { q: "Are guests allowed?", a: "Yes, guests are welcome in our designated common areas during professional visiting hours (9 AM to 9 PM). Overnight stays for guests are not permitted." },
               ].map(({ q, a }) => (
-                <div key={q} style={{ borderLeft: "4px solid #000", padding: "1.25rem 1.5rem", background: "#fff", border: "1px solid #e5e7eb", marginBottom: "0.75rem" }}>
-                  <p style={{ fontWeight: 800, fontSize: "1rem", color: "#000", marginBottom: "0.5rem" }}>{q}</p>
-                  <p style={{ fontSize: "0.875rem", color: "#525252", lineHeight: 1.7 }}>{a}</p>
+                <div key={q} style={{ padding: "1.25rem 1.5rem", background: "#fff", border: "1px solid #e2e8f0", borderRadius: "20px", marginBottom: "0.8rem", boxShadow: "0 16px 34px rgba(15,23,42,0.04)" }}>
+                  <p style={{ fontWeight: 800, fontSize: "1rem", color: "#0f172a", marginBottom: "0.55rem" }}>{q}</p>
+                  <p style={{ fontSize: "0.9rem", color: "#64748b", lineHeight: 1.8 }}>{a}</p>
                 </div>
               ))}
             </section>
@@ -833,52 +853,62 @@ export default function WebsiteProperty() {
 
           {/* ── BOOKING SIDEBAR — uses rh-sidebar class ───────────────────── */}
           <div className="rh-sidebar">
-            <div style={{ border: "2px solid #000", padding: "2rem", background: "#fff" }}>
+            <div style={{ border: "1px solid #dbe2ea", padding: "1.6rem", background: "linear-gradient(180deg,#ffffff,#f8fbff)", borderRadius: "28px", boxShadow: "0 26px 60px rgba(15,23,42,0.12)" }}>
               <p style={infoLabel}>Monthly Rent</p>
-              <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem", marginTop: "0.5rem", marginBottom: "2rem" }}>
-                <span style={{ fontSize: "2.5rem", fontWeight: 900, color: "#000" }}>{formatInr(normalized.rent)}</span>
-                <span style={{ color: "#525252", fontWeight: 700, textTransform: "uppercase", fontSize: "0.65rem" }}>/ per month</span>
+              <div style={{ display: "flex", alignItems: "baseline", gap: "0.25rem", marginTop: "0.55rem", marginBottom: "1.5rem" }}>
+                <span style={{ fontSize: "2.5rem", fontWeight: 900, color: "#0f172a", letterSpacing: "-0.04em" }}>{formatInr(normalized.rent)}</span>
+                <span style={{ color: "#64748b", fontWeight: 700, textTransform: "uppercase", fontSize: "0.68rem" }}>/ per month</span>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.8rem", marginBottom: "1.4rem" }}>
+                <div style={{ padding: "0.9rem", borderRadius: "18px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                  <p style={infoLabel}>Property Type</p>
+                  <p style={{ marginTop: "0.35rem", fontWeight: 800, color: "#0f172a" }}>{normalized.badge}</p>
+                </div>
+                <div style={{ padding: "0.9rem", borderRadius: "18px", background: "#fff", border: "1px solid #e2e8f0" }}>
+                  <p style={infoLabel}>Location</p>
+                  <p style={{ marginTop: "0.35rem", fontWeight: 800, color: "#0f172a" }}>{normalized.city || normalized.area || "N/A"}</p>
+                </div>
               </div>
               <form onSubmit={(e) => { e.preventDefault(); handleRequest(); }} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
                 <div>
                   <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem", color: "#000" }}>Your Full Name</label>
                   <input type="text" id="visit-name" placeholder="Ex: John Doe" required
-                    style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", outline: "none", fontWeight: 500, fontSize: "0.95rem", boxSizing: "border-box", fontFamily: "inherit" }}
-                    onFocus={(e) => e.target.style.border = "1px solid #000"}
+                    style={{ width: "100%", padding: "0.9rem 1rem", border: "1px solid #d1d5db", borderRadius: "16px", outline: "none", fontWeight: 500, fontSize: "0.95rem", boxSizing: "border-box", fontFamily: "inherit", background: "#fff" }}
+                    onFocus={(e) => e.target.style.border = "1px solid #2563eb"}
                     onBlur={(e) => e.target.style.border = "1px solid #d1d5db"}
                   />
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: "0.7rem", fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem", color: "#000" }}>Email Address</label>
                   <input type="email" id="visit-email" placeholder="name@email.com" required
-                    style={{ width: "100%", padding: "0.75rem", border: "1px solid #d1d5db", outline: "none", fontWeight: 500, fontSize: "0.95rem", boxSizing: "border-box", fontFamily: "inherit" }}
-                    onFocus={(e) => e.target.style.border = "1px solid #000"}
+                    style={{ width: "100%", padding: "0.9rem 1rem", border: "1px solid #d1d5db", borderRadius: "16px", outline: "none", fontWeight: 500, fontSize: "0.95rem", boxSizing: "border-box", fontFamily: "inherit", background: "#fff" }}
+                    onFocus={(e) => e.target.style.border = "1px solid #2563eb"}
                     onBlur={(e) => e.target.style.border = "1px solid #d1d5db"}
                   />
                 </div>
-                <div style={{ background: "#f9fafb", padding: "1rem", fontSize: "0.82rem", fontWeight: 600, borderLeft: "4px solid #000" }}>
+                <div style={{ background: "#fff", padding: "1rem", fontSize: "0.82rem", fontWeight: 600, border: "1px solid #e2e8f0", borderRadius: "18px", color: "#334155" }}>
                   <p>✓ Minimum stay required: 3 months</p>
                   <p>✓ Zero brokerage guaranteed</p>
                 </div>
                 <button type="submit" style={btnBlack}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "#262626"; e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.transform = "translate(2px,2px)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "#000"; e.currentTarget.style.boxShadow = "4px 4px 0 0 rgba(0,0,0,1)"; e.currentTarget.style.transform = "none"; }}>
+                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 24px 45px rgba(15,23,42,0.28)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 18px 35px rgba(15,23,42,0.24)"; e.currentTarget.style.transform = "none"; }}>
                   Send Booking Request
                 </button>
               </form>
-              <div style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid #f3f4f6", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                <i data-lucide="shield-check" style={{ width: "1rem", height: "1rem" }}></i>
-                <span style={{ fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#525252" }}>100% Verified Listing</span>
+              <div style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "1px solid #e5e7eb", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                <i data-lucide="shield-check" style={{ width: "1rem", height: "1rem", color: "#2563eb" }}></i>
+                <span style={{ fontSize: "0.68rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.12em", color: "#64748b" }}>100% Verified Listing</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* ── RECOMMENDED ──────────────────────────────────────────────────── */}
-        <section style={{ marginTop: "5rem" }}>
-          <div style={{ marginBottom: "2rem" }}>
+        <section style={{ marginTop: "4rem", padding: "1.75rem", borderRadius: "30px", border: "1px solid #e2e8f0", background: "rgba(255,255,255,0.94)", boxShadow: "0 24px 55px rgba(15,23,42,0.06)" }}>
+          <div style={{ marginBottom: "1.6rem" }}>
             <h2 style={sectionH2}>Recommended Properties</h2>
-            <p style={{ color: "#525252", fontWeight: 500, fontSize: "0.95rem" }}>Verified properties in the same area</p>
+            <p style={{ color: "#64748b", fontWeight: 500, fontSize: "0.95rem" }}>Verified properties in the same area</p>
           </div>
           <div id="recommended-slider" style={{ display: "flex", gap: "1.5rem", overflowX: "auto", paddingBottom: "1rem" }}>
             {[
@@ -888,13 +918,13 @@ export default function WebsiteProperty() {
               { id: 4, img: "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=1932&auto=format&fit=crop", type: "Apartment", name: "Modern Loft", loc: "Powai, Mumbai", price: "₹22,000" },
             ].map(({ id, img, type, name, loc, price }) => (
               <a key={id} href={`/website/property?id=${id}`} style={{ flexShrink: 0, width: "270px", textDecoration: "none", color: "inherit" }}>
-                <div style={{ border: "1px solid #e5e7eb", overflow: "hidden", background: "#fff" }}>
+                <div style={{ border: "1px solid #e5e7eb", overflow: "hidden", background: "#fff", borderRadius: "24px", boxShadow: "0 20px 40px rgba(15,23,42,0.08)" }}>
                   <img src={img} alt={name} style={{ width: "100%", height: "175px", objectFit: "cover" }} />
                   <div style={{ padding: "1rem" }}>
-                    <p style={{ fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#525252", marginBottom: "0.25rem" }}>{type}</p>
-                    <p style={{ fontSize: "1rem", fontWeight: 800, color: "#000", marginBottom: "0.2rem" }}>{name}</p>
-                    <p style={{ fontSize: "0.85rem", color: "#525252", marginBottom: "0.5rem" }}>{loc}</p>
-                    <p style={{ fontSize: "1.1rem", fontWeight: 800, color: "#000" }}>{price}<span style={{ fontSize: "0.75rem", fontWeight: 400, color: "#525252" }}> / mo</span></p>
+                    <p style={{ display: "inline-flex", padding: "0.35rem 0.7rem", borderRadius: "999px", background: "#eff6ff", fontSize: "0.65rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#2563eb", marginBottom: "0.5rem" }}>{type}</p>
+                    <p style={{ fontSize: "1rem", fontWeight: 800, color: "#0f172a", marginBottom: "0.2rem" }}>{name}</p>
+                    <p style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "0.5rem" }}>{loc}</p>
+                    <p style={{ fontSize: "1.1rem", fontWeight: 800, color: "#0f172a" }}>{price}<span style={{ fontSize: "0.75rem", fontWeight: 400, color: "#64748b" }}> / mo</span></p>
                   </div>
                 </div>
               </a>

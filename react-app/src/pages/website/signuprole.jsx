@@ -1,4 +1,5 @@
 import React from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { useHeroSlideshow, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
 
@@ -164,39 +165,7 @@ export default function WebsiteSignuprole() {
               <i data-lucide="message-circle" className="w-8 h-8"></i>
           </a>
           
-          
-          <footer className="footer mt-16">
-              <div className="container mx-auto px-4 sm:px-6">
-                  <div className="footer-main">
-                      <div className="footer-links">
-                          <h4>Company</h4>
-                          <ul>
-                              <li><a href="/website/about">About Us</a></li>
-                              <li><a href="/website/index#faq">FAQ</a></li>
-                              <li><a href="/website/contact">Contact Us</a></li>
-                          </ul>
-                      </div>
-                      <div className="footer-links">
-                          <h4>Top Cities</h4>
-                          <ul>
-                              <li><a href="/website/ourproperty?city=kota">Kota</a></li>
-                              <li><a href="/website/ourproperty?city=sikar">Sikar</a></li>
-                              <li><a href="/website/ourproperty?city=indore">Indore</a></li>
-                          </ul>
-                      </div>
-                      <div className="footer-links">
-                          <h4>Legal</h4>
-                          <ul>
-                              <li><a href="#">Terms & Conditions</a></li>
-                              <li><a href="#">Privacy Policy</a></li>
-                          </ul>
-                      </div>
-                  </div>
-              </div>
-              <div className="footer-bottom">
-                  <p>? 2025 <strong>Roomhy</strong>. All Rights Reserved.</p>
-              </div>
-          </footer>
+          <WebsiteFooter />
           
       
       

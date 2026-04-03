@@ -1,4 +1,5 @@
 import React from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { useHeroSlideshow, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
 
@@ -271,11 +272,7 @@ export default function WebsiteSlider() {
               <i data-lucide="message-circle" className="w-8 h-8"></i>
           </a>
       
-          <footer className="footer flex-shrink-0 mt-auto">
-              <div className="footer-bottom">
-                  &copy; 2024 Roomhy. All rights reserved.
-              </div>
-          </footer>
+          <WebsiteFooter />
       
           
       

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { getWebsiteApiUrl, getWebsiteUserEmail, getWebsiteUserId } from "../../utils/websiteSession";
 import { useLucideIcons, useWebsiteCommon } from "../../utils/websiteUi";

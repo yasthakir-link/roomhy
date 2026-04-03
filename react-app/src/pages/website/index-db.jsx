@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { buildSeoConfig } from "../../utils/websiteSeo";
 import { getWebsiteApiUrl } from "../../utils/websiteSession";

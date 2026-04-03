@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { formatDate, visitApi } from "../../services/api";
 
@@ -242,7 +243,7 @@ export default function WebsiteEnquiry() {
       <div className="mb-3">
         <h3 className="text-lg font-bold text-gray-800">{enquiry?.propertyName || "N/A"}</h3>
         <p className="text-sm text-gray-600">
-          {(enquiry?.propertyType || "N/A") + " • " + (enquiry?.city || "N/A")}
+          {(enquiry?.propertyType || "N/A") + " ï¿½ " + (enquiry?.city || "N/A")}
         </p>
       </div>
       <div className="mb-3 space-y-1 text-sm">

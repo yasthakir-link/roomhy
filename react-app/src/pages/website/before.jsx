@@ -1,4 +1,5 @@
 import React from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { useFaqAccordion, useHeroSlideshow, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
 
@@ -849,131 +850,7 @@ export default function WebsiteBefore() {
               
       
           </main>
-      
-          
-          <button id="websiteChatBtn" className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110" aria-label="Open chat">
-              <i data-lucide="message-circle" className="w-8 h-8"></i>
-          </button>
-          <div id="websiteChatModal" className="fixed bottom-24 right-6 z-50 w-80 bg-white rounded-lg shadow-xl border border-gray-200 hidden flex-col">
-              <div className="flex items-center justify-between px-4 py-2 border-b">
-                  <span className="font-bold text-gray-700">Chat with Owner</span>
-                  <button id="closeWebsiteChat" className="text-gray-400 hover:text-gray-700" title="Close chat"><i data-lucide="x" className="w-5 h-5"></i></button>
-              </div>
-              <div id="websiteChatMessages" className="flex-1 p-3 overflow-y-auto max-h-64 text-sm"></div>
-              <div className="flex items-center border-t p-2">
-                  <input id="websiteChatInput" type="text" className="flex-1 border rounded px-2 py-1 mr-2" placeholder="Type a message..." />
-                  <button id="websiteChatSend" className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">Send</button>
-              </div>
-          </div>
-          
-          
-          <div id="signupPromptModal" className="fixed inset-0 z-50 bg-black bg-opacity-50 hidden flex items-center justify-center">
-              <div className="bg-white rounded-lg shadow-xl max-w-sm w-full mx-4 p-6">
-                  
-                  <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-2xl font-bold text-gray-900">Sign Up to Continue</h2>
-                      <button onClick={function(event) { try { return Function('event', "closeSignupModal()").call(event.currentTarget, event); } catch (err) { console.error(err); } }} className="text-gray-400 hover:text-gray-700">
-                          <i data-lucide="x" className="w-6 h-6"></i>
-                      </button>
-                  </div>
-                  
-                  
-                  <p className="text-gray-600 mb-6">
-                      Sign up with Roomhy to explore <strong id="selectedCityName"></strong> and find your perfect accommodation.
-                  </p>
-                  
-                  
-                  <div className="space-y-3 mb-6">
-                      <div className="flex items-start space-x-3">
-                          <i data-lucide="check-circle" className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
-                          <span className="text-sm text-gray-700">Browse properties in your preferred city</span>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                          <i data-lucide="check-circle" className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
-                          <span className="text-sm text-gray-700">Send booking requests to property owners</span>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                          <i data-lucide="check-circle" className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
-                          <span className="text-sm text-gray-700">Chat directly with owners</span>
-                      </div>
-                      <div className="flex items-start space-x-3">
-                          <i data-lucide="check-circle" className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5"></i>
-                          <span className="text-sm text-gray-700">Zero brokerage on all bookings</span>
-                      </div>
-                  </div>
-                  
-                  
-                  <button id="signupRedirectBtn" className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-3 rounded-lg hover:shadow-lg transition-shadow mb-3">
-                      Create Account Now
-                  </button>
-                  
-                  
-                  <p className="text-center text-gray-600 text-sm">
-                      Already have an account? <a href="/website/login" className="text-purple-600 hover:text-purple-700 font-semibold">Sign In</a>
-                  </p>
-              </div>
-          </div>
-          
-          
-          <footer className="footer container mx-auto px-4 sm:px-6 mt-16">
-              <div className="footer-main">
-                  
-                  <div className="footer-logo">
-                      
-                      <img src="https://placehold.co/180x40/0f172a/ffffff?text=Roomhy+Logo" alt="Roomhy Logo" />
-                      <p className="mt-4">Discover Your Next Home, Together. Zero Brokerage, Student-First Approach.</p>
-                  </div>
-      
-                  
-                  <div className="footer-links">
-                      <h4>Company</h4>
-                      <ul>
-                          <li><a href="/website/about">About Us</a></li>
-                          <li><a href="#featured">Featured Stays</a></li>
-                          <li><a href="#faq">FAQ</a></li>
-                          <li><a href="/website/contact">Contact Us</a></li>
-                      </ul>
-                  </div>
-      
-                  
-                  <div className="footer-links">
-                      <h4>Top Cities</h4>
-                      <ul>
-                          <li><a href="/website/ourproperty?city=kota">Kota</a></li>
-                          <li><a href="/website/ourproperty?city=sikar">Sikar</a></li>
-                          <li><a href="/website/ourproperty?city=indore">Indore</a></li>
-                      </ul>
-                  </div>
-      
-                  
-                  <div className="footer-contact">
-                      <h4>Support & Legal</h4>
-                      <div className="space-y-2">
-                          <p><i className="fas fa-phone"></i> +91 99830 05030</p>
-                          <p><i className="fas fa-envelope"></i> hello@roomhy.com</p>
-                      </div>
-                      <ul className="mt-4 space-y-1 text-sm">
-                          <li><a href="/website/terms">Terms & Conditions</a></li>
-                          <li><a href="/website/privacy">Privacy Policy</a></li>
-                      </ul>
-                  </div>
-                  
-                  
-                  <div className="footer-social lg:col-span-1">
-                      <a href="#" title="Facebook"><i className="fab fa-facebook-f"></i></a>
-                      <a href="#" title="X"><i className="fab fa-x-twitter"></i></a>
-                      <a href="#" title="Instagram"><i className="fab fa-instagram"></i></a>
-                      <a href="#" title="LinkedIn"><i className="fab fa-linkedin-in"></i></a>
-                  </div>
-              </div>
-      
-              <div className="footer-bottom">
-                  <p> 2025 <strong>Roomhy</strong>. All Rights Reserved. Made for students, with love.</p>
-              </div>
-          </footer>
-          
-      
-      
+          <WebsiteFooter />
     </div>
   );
 }

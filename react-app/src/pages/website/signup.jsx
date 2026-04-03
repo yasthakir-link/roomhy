@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { setWebsiteSession, getWebsiteApiUrl } from "../../utils/websiteSession";
 import { useHeroSlideshow, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
@@ -475,80 +476,7 @@ export default function WebsiteSignup() {
               </div>
           </main>
       
-          
-          <footer className="footer">
-            <div className="footer-top">
-              <h2 className="text-lg md:text-xl font-black uppercase tracking-widest text-slate-900 mb-8 md:mb-12">Our Presence</h2>
-              <div className="footer-presence">
-                <div className="flex-1 min-w-[120px]">
-                  <h4>Kota</h4>
-                  <ul className="text-sm md:text-base">
-                    <li><a href="#">Hostels</a></li>
-                    <li><a href="#">Apartments</a></li>
-                    <li><a href="#">PG Rooms</a></li>
-                  </ul>
-                </div>
-                <div className="flex-1 min-w-[120px]">
-                  <h4>Indore</h4>
-                  <ul className="text-sm md:text-base">
-                    <li><a href="#">Hostels</a></li>
-                    <li><a href="#">Apartments</a></li>
-                    <li><a href="#">PG Rooms</a></li>
-                  </ul>
-                </div>
-                <div className="flex-1 min-w-[120px]">
-                  <h4>Ahmedabad</h4>
-                  <ul className="text-sm md:text-base">
-                    <li><a href="#">Hostels</a></li>
-                    <li><a href="#">Apartments</a></li>
-                    <li><a href="#">PG Rooms</a></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          
-              <div className="footer-main container mx-auto">
-              <div className="footer-logo">
-                <div className="flex items-center gap-2 mb-4">
-                    <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" className="h-10 w-auto" />
-                </div>
-                <p className="text-slate-500 font-medium text-sm md:text-base">Discover Your Next Home, Together.</p>
-              </div>
-          
-              <div className="footer-links">
-                <h4>Quick Links</h4>
-                <ul className="font-medium text-sm md:text-base">
-                  <li><a href="/website/contact">Contact Us</a></li>
-                  <li><a href="/website/about">About Us</a></li>
-                  <li><a href="#">Our Properties</a></li>
-                </ul>
-              </div>
-          
-              <div className="footer-legal">
-                <h4>Legal</h4>
-                <ul className="font-medium text-sm md:text-base">
-                  <li><a href="#">Terms & Conditions</a></li>
-                  <li><a href="#">Privacy Policy</a></li>
-                  <li><a href="#">Refund Policy</a></li>
-                </ul>
-              </div>
-          
-              <div className="footer-contact">
-                <h4>Contact</h4>
-                <p className="font-bold text-slate-800 mb-1 text-sm md:text-base"><i className="fas fa-phone mr-2 text-blue-600"></i> +91 99830 05030</p>
-                <p className="font-medium text-slate-500 mb-5 text-sm md:text-base"><i className="fas fa-envelope mr-2 text-blue-600"></i> hello@roomhy.com</p>
-                <div className="footer-social">
-                  <a href="#"><i className="fab fa-facebook-f"></i></a>
-                  <a href="#"><i className="fab fa-instagram"></i></a>
-                  <a href="#"><i className="fab fa-linkedin-in"></i></a>
-                </div>
-              </div>
-            </div>
-          
-            <div className="py-6 border-t border-slate-100 text-center text-slate-400 font-bold text-[10px] md:text-xs uppercase tracking-widest px-4">
-              ? 2025 Roomhy Housing Solutions. All Rights Reserved.
-            </div>
-          </footer>
+          <WebsiteFooter />
 
           {toast && (
               <div

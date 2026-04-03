@@ -1,4 +1,5 @@
 import React from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { useHeroSlideshow, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
 
@@ -251,88 +252,7 @@ export default function WebsiteCancellation() {
               </div>
       
           </main>
-          <a href="#" className="fixed bottom-6 right-6 z-50 bg-green-500 hover:bg-green-600 text-white p-4 rounded-full shadow-lg transition-transform hover:scale-110">
-              <i data-lucide="message-circle" className="w-8 h-8"></i>
-          </a>
-          <footer className="footer">
-            <div className="footer-top">
-              <h2>Our Presence</h2>
-              <div className="footer-presence">
-                <div>
-                  <h4>Kota</h4>
-                  <ul>
-                    <li><a href="#">Hostels in Kota</a></li>
-                    <li><a href="#">Apartments in Kota</a></li>
-                    <li><a href="#">PG in Kota</a></li>
-                  </ul>
-                </div>
-                <div>
-                  <h4>Indore</h4>
-                  <ul>
-                    <li><a href="#">Hostels in Indore</a></li>
-                    <li><a href="#">Apartments in Indore</a></li>
-                    <li><a href="#">PG in Indore</a></li>
-                  </ul>
-                </div>
-                <div>
-                  <h4>Ahmedabad</h4>
-                  <ul>
-                    <li><a href="#">Hostels in Ahmedabad</a></li>
-                    <li><a href="#">Apartments in Ahmedabad</a></li>
-                    <li><a href="#">PG in Ahmedabad</a></li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          
-            <div className="footer-main">
-              <div className="footer-logo">
-                <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" className="h-10 w-25" />
-                <p>Discover Your Next Home, Together.</p>
-              </div>
-          
-              <div className="footer-links">
-                <h4>Quick Links</h4>
-                <ul>
-                  <li><a href="/website/index">Find a Room</a></li>
-                  <li><a href="/website/about">Our Story</a></li>
-                  <li><a href="/website/contact">Contact Support</a></li>
-                  <li><a href="/website/terms">Terms and Conditions</a></li>
-                  <li><a href="/website/privacy">Privacy Policy</a></li>
-                  <li><a href="/website/cancellation">Cancellation Policy</a></li>
-                </ul>
-              </div>
-          
-              <div className="footer-legal">
-                <h4>Legal</h4>
-                <ul>
-                  <li><a href="/website/terms">Terms & Conditions</a></li>
-                  <li><a href="/website/privacy">Privacy Policy</a></li>
-                  <li><a href="/website/cancellation" className="text-blue-400 font-semibold">Cancellation Policy</a></li>
-                  <li><a href="#">Refund Policy</a></li>
-                </ul>
-              </div>
-          
-              <div className="footer-contact">
-                <h4>Contact</h4>
-                <p><i className="fas fa-phone"></i> +91 99830 05030</p>
-                <p><i className="fas fa-envelope"></i> hello@roomhy.com</p>
-                <div className="footer-social">
-                  <a href="#" title="Facebook"><i className="fab fa-facebook-f"></i></a>
-                  <a href="#" title="X"><i className="fab fa-x-twitter"></i></a>
-                  <a href="#" title="Instagram"><i className="fab fa-instagram"></i></a>
-                  <a href="#" title="LinkedIn"><i className="fab fa-linkedin-in"></i></a>
-                  <a href="#" title="YouTube"><i className="fab fa-youtube"></i></a>
-                </div>
-              </div>
-            </div>
-          
-            <div className="footer-bottom">
-              <p>? 2025 <strong>Roomhy</strong>. All Rights Reserved.</p>
-            </div>
-          </footer>
-          
-          
+          <WebsiteFooter />
     </div>
   );
 }

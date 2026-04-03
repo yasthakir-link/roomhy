@@ -199,6 +199,19 @@ async function sendTextMessage(to, body) {
     });
 }
 
+async function sendDocumentMessage(to, link, filename, caption = '') {
+    if (!to || !link) return false;
+    return sendWhatsAppPayload({
+        to,
+        type: 'document',
+        document: {
+            link: String(link).trim(),
+            filename: String(filename || 'document.pdf').trim().slice(0, 240),
+            caption: String(caption || '').slice(0, 1024)
+        }
+    });
+}
+
 async function sendButtonMessage(to, body, buttons) {
     if (!to || !body || !Array.isArray(buttons) || buttons.length === 0) {
         return false;
@@ -269,8 +282,23 @@ async function sendTemplateToResolvedUser({
     });
 }
 
+async function sendDocumentToResolvedUser({
+    phone,
+    email,
+    userId,
+    link,
+    filename,
+    caption = ''
+}) {
+    const resolvedPhone = await resolvePhoneByEmailOrUserId({ phone, email, userId });
+    if (!resolvedPhone) return false;
+    return sendDocumentMessage(resolvedPhone, link, filename, caption);
+}
+
 module.exports = {
     clearSession,
+    sendDocumentMessage,
+    sendDocumentToResolvedUser,
     getSession,
     normalizePhoneNumber,
     resolvePhoneByEmailOrUserId,

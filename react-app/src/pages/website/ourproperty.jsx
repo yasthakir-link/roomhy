@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import WebsiteFooter from "../../components/website/WebsiteFooter";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { buildBreadcrumbJsonLd, buildOrganizationJsonLd, buildSeoConfig } from "../../utils/websiteSeo";
 import { getWebsiteApiUrl, getWebsiteUser, getWebsiteUserEmail, getWebsiteUserName, isWebsiteLoggedIn } from "../../utils/websiteSession";
@@ -1500,34 +1501,7 @@ export default function WebsiteOurproperty() {
               </button>
           </div>
           
-          <footer className="bg-gray-800 text-gray-300">
-              <div className="container mx-auto px-6 py-16">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8">
-                      <div className="md:col-span-1"><a href="/website/index" className="mb-4 inline-block"><img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" className="h-10 w-25" /></a><p className="text-gray-400 text-sm">Your trusted partner in finding the perfect student accommodation. Live, learn, and grow with us.</p><div className="flex space-x-5 mt-6"><a href="#" className="text-gray-400 hover:text-white transition-colors"><i data-lucide="facebook" className="w-5 h-5"></i></a><a href="#" className="text-gray-400 hover:text-white transition-colors"><i data-lucide="instagram" className="w-5 h-5"></i></a><a href="#" className="text-gray-400 hover:text-white transition-colors"><i data-lucide="twitter" className="w-5 h-5"></i></a></div></div>
-                      <div><h4 className="font-semibold text-lg mb-5 text-white">Explore</h4><ul className="space-y-3"><li><a href="#" className="text-gray-300 hover:text-white transition-colors">Apartments</a></li><li><a href="#" className="text-gray-300 hover:text-white transition-colors">Hostels</a></li><li><a href="#" className="text-gray-300 hover:text-white transition-colors">Co-Living</a></li><li><a href="#" className="text-gray-300 hover:text-white transition-colors">PGs</a></li></ul></div>
-                      <div><h4 className="font-semibold text-lg mb-5 text-white">Company</h4><ul className="space-y-3"><li><a href="/website/about" className="text-gray-300 hover:text-white transition-colors">About Us</a></li><li><a href="/website/list" className="text-gray-300 hover:text-white transition-colors">List Your Property</a></li><li><a href="/website/privacy" className="text-gray-300 hover:text-white transition-colors">Privacy Policy</a></li><li><a href="/website/terms" className="text-gray-300 hover:text-white transition-colors">Terms of Service</a></li></ul></div>
-                      
-                      <div>
-                          <h4 className="font-semibold text-lg mb-5 text-white">Get in Touch</h4>
-                          <ul className="space-y-3">
-                              <li className="flex items-start space-x-2">
-                                  <i data-lucide="mail" className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0"></i>
-                                  <a href="mailto:support@roomhy.com" className="text-gray-300 hover:text-white transition-colors">support@roomhy.com</a>
-                              </li>
-                              <li className="flex items-start space-x-2">
-                                  <i data-lucide="phone" className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0"></i>
-                                  <a href="tel:+911234567890" className="text-gray-300 hover:text-white transition-colors">+91 12345 67890</a>
-                              </li>
-                              <li className="flex items-start space-x-2">
-                                  <i data-lucide="map-pin" className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0"></i>
-                                  <span className="text-gray-300">Bengaluru, India</span>
-                              </li>
-                          </ul>
-                      </div>
-                  </div>
-                  <div className="mt-12 border-t border-gray-700 pt-8 text-center text-gray-400 text-sm"><p>&copy; 2025 Roomhy. All Rights Reserved. Built with ❤️ for students.</p></div>
-              </div>
-          </footer>
+          <WebsiteFooter />
       
           
           <div id="bid-on-all-modal" className={`fixed inset-0 bg-black/50 ${showBidModal ? "flex" : "hidden"} items-center justify-center z-50 p-4 overflow-y-auto`}>

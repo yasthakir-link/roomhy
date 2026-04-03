@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const PDFDocument = require('pdfkit');
 const CheckinRecord = require('../models/CheckinRecord');
 const Owner = require('../models/Owner');
@@ -7,7 +8,7 @@ const Property = require('../models/Property');
 const Tenant = require('../models/Tenant');
 const { normalizeRoomInventory, summarizeRoomInventory, syncOwnerPropertyOccupancy } = require('../utils/ownerOccupancy');
 const { sendMail } = require('../utils/mailer');
-const { sendTemplateMessage, sendTemplateToResolvedUser } = require('../utils/whatsappBot');
+const { sendDocumentToResolvedUser, sendTemplateMessage, sendTemplateToResolvedUser } = require('../utils/whatsappBot');
 const { otpLimiter } = require('../middleware/security');
 const { requestAadhaarOtp, verifyAadhaarOtp } = require('../services/cashfreeKycService');
 const {
@@ -157,6 +158,7 @@ function generateTenantAgreementPdfBuffer(tenant, record = {}) {
             const maintenanceCharge = tenant.maintenanceCharge || profile.maintenanceCharge || 0;
             const eSignName = tenant.agreementESignName || agreement.eSignName || tenantName;
             const signatureDataUrl = agreement.signatureDataUrl || tenant?.digitalCheckin?.agreement?.signatureDataUrl || '';
+            const logoPath = path.join(__dirname, '../../react-app/public/website/images/logoroomhy.jpg');
             let signatureBuffer = null;
 
             if (signatureDataUrl.startsWith('data:image/')) {
@@ -172,20 +174,40 @@ function generateTenantAgreementPdfBuffer(tenant, record = {}) {
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', reject);
 
-            doc.fontSize(10).fillColor('#2563eb').text('ROOMHY RENTAL RECORD', { align: 'left' });
-            doc
-                .roundedRect(410, 38, 140, 46, 14)
-                .lineWidth(2)
-                .strokeColor('#1d4ed8')
-                .stroke();
-            doc.fontSize(18).fillColor('#1d4ed8').text('ROOMHY', 435, 50, { width: 90, align: 'center' });
-            doc.fontSize(8).fillColor('#1d4ed8').text('OFFICIAL SEAL', 438, 68, { width: 84, align: 'center' });
+            const left = doc.page.margins.left;
+            const right = doc.page.width - doc.page.margins.right;
+            const pageWidth = right - left;
+            const currency = (value) => `Rs ${Number(value || 0)}`;
+            const drawField = (label, value) => {
+                doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a').text(`${label}: `, { continued: true });
+                doc.font('Helvetica').fontSize(10).fillColor('#334155').text(String(value || '-'));
+                doc.moveDown(0.35);
+            };
 
-            doc.moveDown(1);
-            doc.fontSize(18).fillColor('#111827').text('LICENCE & SUBSCRIPTION AGREEMENT');
-            doc.moveDown(0.5);
-            doc.fontSize(11).fillColor('#475569').text(`Executed between RoomHy and ${tenantName}.`);
-            doc.moveDown(1);
+            doc.roundedRect(left, 32, pageWidth, 92, 18).fillAndStroke('#eff6ff', '#bfdbfe');
+            try {
+                doc.image(logoPath, left + 16, 48, { fit: [140, 56], align: 'left', valign: 'center' });
+            } catch (_) {}
+            doc.font('Helvetica-Bold').fontSize(20).fillColor('#0f172a').text('LICENCE & SUBSCRIPTION AGREEMENT', left + 180, 50, {
+                width: pageWidth - 196,
+                align: 'left'
+            });
+            doc.font('Helvetica').fontSize(10).fillColor('#475569').text('RoomHy rental agreement with digital signature record', left + 180, 78, {
+                width: pageWidth - 196,
+                align: 'left'
+            });
+            doc.roundedRect(right - 126, 44, 110, 38, 12).fillAndStroke('#ffffff', '#1d4ed8');
+            doc.font('Helvetica-Bold').fontSize(12).fillColor('#1d4ed8').text('ROOMHY', right - 112, 54, { width: 82, align: 'center' });
+            doc.font('Helvetica-Bold').fontSize(7).fillColor('#1d4ed8').text('DIGITAL SEAL', right - 110, 69, { width: 78, align: 'center' });
+            doc.y = 144;
+
+            doc.font('Helvetica').fontSize(11).fillColor('#334155').text(
+                `This License & Subscription Agreement is executed between RoomHy and ${tenantName}. The tenant occupies the allotted premises for residential purposes subject to the conditions below.`,
+                left,
+                doc.y,
+                { width: pageWidth, lineGap: 2 }
+            );
+            doc.moveDown(1.1);
 
             const clauses = [
                 '1. TERM: As per Annexure A.',
@@ -208,65 +230,89 @@ function generateTenantAgreementPdfBuffer(tenant, record = {}) {
                 '18. OTHER TERMS & CONDITIONS: RoomHy policies may be updated from time to time.'
             ];
 
-            doc.fontSize(10).fillColor('#111827');
+            doc.font('Helvetica').fontSize(10).fillColor('#111827');
             clauses.forEach((line) => {
-                doc.text(line, { align: 'left' });
-                doc.moveDown(0.35);
+                doc.text(line, left, doc.y, { width: pageWidth, lineGap: 2 });
+                doc.moveDown(0.4);
             });
 
-            doc.moveDown(0.6);
-            doc.fontSize(14).fillColor('#0f172a').text('ANNEXURE A');
             doc.moveDown(0.4);
-            [
-                `Name of Tenant: ${tenantName}`,
-                `Tenant Email: ${tenant.email || '-'}`,
-                `Tenant Phone Number: ${tenant.phone || '-'}`,
-                `Tenant Aadhaar Number: ${aadhaarNumber}`,
-                `Property Name: ${propertyName}`,
-                `Room Number: ${tenant.roomNo || profile.roomNo || '-'}`,
-                `Monthly Rent: ${tenant.agreedRent || profile.agreedRent || 0}`,
-                `License Start Date: ${moveInDate}`,
-                `Security Deposit Total: ${securityDepositTotal}`,
-                `Security Deposit Paid: ${securityDepositPaid}`,
-                `Security Deposit Balance: ${securityDepositBalance}`,
-                `Electricity Charge: ${electricityCharge}`,
-                `Maintenance Charge: ${maintenanceCharge}`,
-                'Minimum Stay Duration: 3 Months'
-            ].forEach((line) => {
-                doc.fontSize(10).fillColor('#111827').text(line);
-                doc.moveDown(0.22);
+            const annexureTop = doc.y;
+            const annexureHeight = 200;
+            doc.roundedRect(left, annexureTop, pageWidth, annexureHeight, 16).fillAndStroke('#f8fafc', '#dbeafe');
+            doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('ANNEXURE A', left + 18, annexureTop + 16);
+            doc.y = annexureTop + 42;
+
+            const leftColX = left + 18;
+            const rightColX = left + pageWidth / 2 + 8;
+            const fieldWidth = pageWidth / 2 - 32;
+            const rows = [
+                ['Name of Tenant', tenantName, 'Property Name', propertyName],
+                ['Tenant Email', tenant.email || '-', 'Room Number', tenant.roomNo || profile.roomNo || '-'],
+                ['Tenant Phone', tenant.phone || '-', 'Monthly Rent', currency(tenant.agreedRent || profile.agreedRent || 0)],
+                ['Tenant Aadhaar', aadhaarNumber, 'License Start Date', moveInDate],
+                ['Security Deposit Total', currency(securityDepositTotal), 'Security Deposit Paid', currency(securityDepositPaid)],
+                ['Security Deposit Balance', currency(securityDepositBalance), 'Electricity Charge', currency(electricityCharge)],
+                ['Maintenance Charge', currency(maintenanceCharge), 'Minimum Stay Duration', '3 Months']
+            ];
+
+            rows.forEach(([l1, v1, l2, v2]) => {
+                const rowY = doc.y;
+                doc.font('Helvetica-Bold').fontSize(9).fillColor('#475569').text(l1, leftColX, rowY, { width: fieldWidth });
+                doc.font('Helvetica').fontSize(10).fillColor('#0f172a').text(String(v1 || '-'), leftColX, rowY + 12, { width: fieldWidth });
+                doc.font('Helvetica-Bold').fontSize(9).fillColor('#475569').text(l2, rightColX, rowY, { width: fieldWidth });
+                doc.font('Helvetica').fontSize(10).fillColor('#0f172a').text(String(v2 || '-'), rightColX, rowY + 12, { width: fieldWidth });
+                doc.y = rowY + 34;
             });
+
+            doc.y = annexureTop + annexureHeight + 20;
 
             if (doc.y > 680) doc.addPage();
-            doc.moveDown(1);
-            doc.fontSize(11).fillColor('#111827').text(`Tenant E-sign: ${eSignName}`);
-            doc.fontSize(9).fillColor('#64748b').text(`Signed on ${signedDate}`);
-            doc.moveDown(1.2);
+            doc.roundedRect(left, doc.y, pageWidth, 112, 16).fillAndStroke('#ffffff', '#e2e8f0');
+            const signatureCardTop = doc.y;
+            doc.font('Helvetica-Bold').fontSize(12).fillColor('#0f172a').text('Digital Signature', left + 18, signatureCardTop + 16);
+            doc.font('Helvetica').fontSize(10).fillColor('#475569').text(`Signed by ${eSignName} on ${signedDate}`, left + 18, signatureCardTop + 34);
 
             if (signatureBuffer) {
-                const signatureTop = doc.y;
-                doc.fontSize(9).fillColor('#64748b').text('Tenant Signature', 44, signatureTop);
+                const signatureTop = signatureCardTop + 52;
+                doc.font('Helvetica').fontSize(9).fillColor('#64748b').text('Tenant Signature', left + 18, signatureTop - 10);
                 doc
-                    .moveTo(44, signatureTop + 54)
-                    .lineTo(220, signatureTop + 54)
+                    .moveTo(left + 18, signatureTop + 44)
+                    .lineTo(left + 198, signatureTop + 44)
                     .lineWidth(1)
                     .strokeColor('#94a3b8')
                     .stroke();
-                doc.image(signatureBuffer, 44, signatureTop + 10, {
-                    fit: [170, 40],
+                doc.image(signatureBuffer, left + 18, signatureTop, {
+                    fit: [170, 34],
                     align: 'left',
                     valign: 'center'
                 });
-                doc.y = Math.max(doc.y, signatureTop + 68);
+            } else {
+                doc
+                    .moveTo(left + 18, signatureCardTop + 96)
+                    .lineTo(left + 198, signatureCardTop + 96)
+                    .lineWidth(1)
+                    .strokeColor('#94a3b8')
+                    .stroke();
             }
 
             doc
-                .roundedRect(392, doc.y - 14, 150, 44, 14)
-                .lineWidth(2)
-                .strokeColor('#1d4ed8')
-                .stroke();
-            doc.fontSize(16).fillColor('#1d4ed8').text('ROOMHY', 430, doc.y - 4, { width: 74, align: 'center' });
-            doc.fontSize(8).fillColor('#1d4ed8').text('DIGITAL SEAL', 432, doc.y + 14, { width: 70, align: 'center' });
+                .roundedRect(right - 156, signatureCardTop + 28, 128, 54, 14)
+                .fillAndStroke('#eff6ff', '#1d4ed8');
+            try {
+                doc.image(logoPath, right - 142, signatureCardTop + 37, { fit: [100, 22], align: 'center', valign: 'center' });
+            } catch (_) {
+                doc.font('Helvetica-Bold').fontSize(14).fillColor('#1d4ed8').text('ROOMHY', right - 130, signatureCardTop + 44, { width: 90, align: 'center' });
+            }
+            doc.font('Helvetica-Bold').fontSize(8).fillColor('#1d4ed8').text('APPROVED DIGITAL SEAL', right - 144, signatureCardTop + 62, { width: 104, align: 'center' });
+            doc.y = signatureCardTop + 128;
+
+            doc.font('Helvetica').fontSize(9).fillColor('#64748b').text(
+                `Agreement reference: ${tenant.loginId || tenantName} | Generated by RoomHy digital check-in`,
+                left,
+                doc.y,
+                { width: pageWidth, align: 'center' }
+            );
 
             doc.end();
         } catch (error) {
@@ -541,8 +587,47 @@ async function completeTenantAgreementAndNotify(loginId, { requestId = '', provi
         console.error('[TENANT AGREEMENT COMPLETE] WhatsApp send error:', whatsAppErr.message);
     }
 
+    try {
+        await sendDocumentToResolvedUser({
+            phone: tenant.phone || '',
+            email: tenant.email || '',
+            userId: tenant.loginId || '',
+            link: `${BACKEND_URL}/api/checkin/tenant/agreement/pdf/${encodeURIComponent(normalizedLoginId)}`,
+            filename: `RoomHy-Tenant-Agreement-${tenant.loginId || normalizedLoginId}.pdf`,
+            caption: `RoomHy tenant agreement PDF for ${tenant.name || normalizedLoginId}`
+        });
+    } catch (whatsAppDocErr) {
+        console.error('[TENANT AGREEMENT COMPLETE] WhatsApp PDF send error:', whatsAppDocErr.message);
+    }
+
     return { record, tenant, dashboardUrl, tenantLoginUrl, loginEmailSent };
 }
+
+router.get('/tenant/agreement/pdf/:loginId', async (req, res) => {
+    try {
+        const normalizedLoginId = String(req.params.loginId || '').toUpperCase();
+        if (!normalizedLoginId) {
+            return res.status(400).json({ success: false, message: 'Missing loginId' });
+        }
+
+        const record = await CheckinRecord.findOne({ loginId: normalizedLoginId, role: 'tenant' }).lean();
+        const tenant = await Tenant.findOne({ loginId: normalizedLoginId }).lean();
+        if (!record || !tenant) {
+            return res.status(404).json({ success: false, message: 'Tenant agreement not found' });
+        }
+        if (record?.tenantAgreement?.status !== 'signed' && !tenant.agreementSigned) {
+            return res.status(400).json({ success: false, message: 'Tenant agreement is not signed yet' });
+        }
+
+        const pdfBuffer = await generateTenantAgreementPdfBuffer(tenant, record);
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `inline; filename="RoomHy-Tenant-Agreement-${normalizedLoginId}.pdf"`);
+        return res.send(pdfBuffer);
+    } catch (err) {
+        console.error('tenant/agreement/pdf error:', err);
+        return res.status(500).json({ success: false, message: err.message || 'Failed to generate tenant agreement PDF' });
+    }
+});
 
 router.post('/owner/profile', async (req, res) => {
     try {
