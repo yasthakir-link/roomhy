@@ -419,6 +419,7 @@ export default function Rooms() {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [selectedBedIndex, setSelectedBedIndex] = useState(null);
   const [selectedTenantId, setSelectedTenantId] = useState("");
+  const [assignRent, setAssignRent] = useState("");
   const [newTenantForm, setNewTenantForm] = useState(initialTenantForm);
   const [vacateModalOpen, setVacateModalOpen] = useState(false);
   const [vacateContext, setVacateContext] = useState(null);
@@ -822,6 +823,15 @@ export default function Rooms() {
     setSelectedRoom(room);
     setSelectedBedIndex(bedIndex);
     setSelectedTenantId("");
+    setAssignRent(String(
+      room?.rent ??
+      room?.price ??
+      currentProperty?.monthlyRent ??
+      currentProperty?.rent ??
+      cachedProperty?.monthlyRent ??
+      cachedProperty?.rent ??
+      ""
+    ));
     setNewTenantForm(initialTenantForm);
     setAssignMode("new");
     setAssignModalOpen(true);
@@ -888,15 +898,7 @@ export default function Rooms() {
       setErrorMsg("");
       const propertyId = currentProperty?._id || selectedRoom.property?._id || selectedRoom.property || selectedRoom.propertyId || "";
       const roomNo = selectedRoom.number || selectedRoom.roomNo || selectedRoom.title || "";
-      const agreedRent = Number(
-        selectedRoom.rent ??
-        selectedRoom.price ??
-        currentProperty?.monthlyRent ??
-        currentProperty?.rent ??
-        cachedProperty?.monthlyRent ??
-        cachedProperty?.rent ??
-        0
-      );
+      const agreedRent = Number(assignRent || 0);
       const moveInDate = new Date().toISOString().split("T")[0];
       const ownerUpiId = firstValidValue(owner?.checkinUpiId, owner?.profile?.upiId);
       let payload;
@@ -1201,9 +1203,20 @@ export default function Rooms() {
                 </div>
                 <div>
                   <p className="text-gray-500 uppercase font-semibold">Rent</p>
-                  <p className="text-gray-800 font-semibold">{formatMoney(selectedRoom?.rent ?? selectedRoom?.price)}</p>
+                  <p className="text-gray-800 font-semibold">{formatMoney(assignRent || selectedRoom?.rent ?? selectedRoom?.price)}</p>
                 </div>
               </div>
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Rent / Month (Rs)</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none"
+                placeholder="Enter rent"
+                value={assignRent}
+                onChange={(event) => setAssignRent(event.target.value)}
+              />
             </div>
             {assignMode === "existing" ? (
               <div className="space-y-4">
