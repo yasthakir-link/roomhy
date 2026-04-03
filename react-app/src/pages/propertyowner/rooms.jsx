@@ -1203,7 +1203,7 @@ export default function Rooms() {
                 </div>
                 <div>
                   <p className="text-gray-500 uppercase font-semibold">Rent</p>
-                  <p className="text-gray-800 font-semibold">{formatMoney(assignRent || selectedRoom?.rent ?? selectedRoom?.price)}</p>
+                  <p className="text-gray-800 font-semibold">{formatMoney(assignRent || (selectedRoom?.rent ?? selectedRoom?.price))}</p>
                 </div>
               </div>
             </div>
