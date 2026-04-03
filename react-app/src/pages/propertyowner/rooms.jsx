@@ -506,6 +506,10 @@ export default function Rooms() {
       summarizeOccupancy(rooms),
     [cachedProperty, currentProperty, owner, rooms]
   );
+  const vacantRooms = useMemo(
+    () => rooms.filter((room) => getRoomOccupancyLabel(room) === "Vacant"),
+    [rooms]
+  );
 
   const persistRooms = async (updater) => {
     const localRooms = readJson("roomhy_rooms", []);
@@ -884,11 +888,29 @@ export default function Rooms() {
       setErrorMsg("");
       const propertyId = currentProperty?._id || selectedRoom.property?._id || selectedRoom.property || selectedRoom.propertyId || "";
       const roomNo = selectedRoom.number || selectedRoom.roomNo || selectedRoom.title || "";
-      const agreedRent = Number(selectedRoom.rent ?? selectedRoom.price ?? 0);
+      const agreedRent = Number(
+        selectedRoom.rent ??
+        selectedRoom.price ??
+        currentProperty?.monthlyRent ??
+        currentProperty?.rent ??
+        cachedProperty?.monthlyRent ??
+        cachedProperty?.rent ??
+        0
+      );
       const moveInDate = new Date().toISOString().split("T")[0];
+      const ownerUpiId = firstValidValue(owner?.checkinUpiId, owner?.profile?.upiId);
       let payload;
       let assignedTenantName = "Tenant";
       let assignedTenantId = selectedTenantId || `TNT-${Date.now()}`;
+
+      if (!agreedRent || agreedRent <= 0) {
+        setErrorMsg("Room rent is missing. Add a valid room rent before assigning a tenant.");
+        return;
+      }
+      if (!ownerUpiId) {
+        setErrorMsg("Owner UPI details are missing. Update owner profile payment details before assigning a tenant.");
+        return;
+      }
 
       if (assignMode === "existing") {
         const existingTenant = tenants.find((tenant) => (tenant._id || tenant.id || tenant.loginId) === selectedTenantId);
@@ -946,7 +968,9 @@ export default function Rooms() {
         assignedTenantName = newTenantForm.name;
       }
 
-      await assignTenant(payload);
+      const response = await assignTenant(payload);
+      assignedTenantId = response?.tenant?.loginId || response?.tenant?.id || response?.tenant?._id || assignedTenantId;
+      assignedTenantName = response?.tenant?.name || assignedTenantName;
       await markBedOccupied(selectedRoom.id || selectedRoom._id, selectedBedIndex, assignedTenantId, assignedTenantName);
       setAssignModalOpen(false);
       await loadPage(owner);
@@ -1018,7 +1042,7 @@ export default function Rooms() {
       {errorMsg ? <div className="text-sm text-red-600 mb-4">{errorMsg}</div> : null}
 
       <div id="roomsGrid" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {!loading && rooms.map((room) => {
+        {!loading && vacantRooms.map((room) => {
           const beds = findVacantBeds(room);
           const roomOccupancy = getRoomOccupancyLabel(room);
           return (
@@ -1071,7 +1095,7 @@ export default function Rooms() {
         })}
       </div>
 
-      {!loading && rooms.length === 0 ? (
+      {!loading && vacantRooms.length === 0 ? (
         <div id="emptyState" className="flex flex-col items-center justify-center py-24 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">
           <div className="bg-purple-50 p-4 rounded-full mb-4">
             <i data-lucide="bed-double" className="w-10 h-10 text-purple-400"></i>
