@@ -276,7 +276,7 @@ export default function WebsiteFooter() {
           heading="Account"
           links={[
             { label: "Sign Up", href: "/website/signup" },
-            { label: "Login", href: "/website/login" },
+         
             { label: "Favorites", href: "/website/fav" },
             { label: "My Stays", href: "/website/mystays" },
             { label: "Profile", href: "/website/profile" }
