@@ -10,7 +10,7 @@ const mailer = require('../utils/mailer');
 /**
  * Assign a tenant to a room
  * POST /api/tenants/assign
- * Body: { name, phone, email, propertyId, roomNo, bedNo, moveInDate, agreedRent, securityDepositTotal, securityDepositPaid, securityDepositBalance }
+ * Body: { name, phone, email, propertyId, roomNo, bedNo, moveInDate, agreedRent, securityDepositTotal, securityDepositPaid, securityDepositBalance, electricityCharge, maintenanceCharge }
  */
 exports.assignTenant = async (req, res) => {
     try {
@@ -28,7 +28,9 @@ exports.assignTenant = async (req, res) => {
             locationCode,
             securityDepositTotal,
             securityDepositPaid,
-            securityDepositBalance
+            securityDepositBalance,
+            electricityCharge,
+            maintenanceCharge
         } = req.body;
         let assignedPropertyTitle = String(propertyTitle || '').trim();
         const normalizedOwnerLoginId = String(ownerLoginId || '').toUpperCase();
@@ -36,6 +38,8 @@ exports.assignTenant = async (req, res) => {
         const depositPaid = Math.max(0, parseInt(securityDepositPaid, 10) || 0);
         const explicitDepositBalance = parseInt(securityDepositBalance, 10);
         const depositBalance = Math.max(0, Number.isFinite(explicitDepositBalance) ? explicitDepositBalance : (depositTotal - depositPaid));
+        const electricityChargeAmount = Math.max(0, parseInt(electricityCharge, 10) || 0);
+        const maintenanceChargeAmount = Math.max(0, parseInt(maintenanceCharge, 10) || 0);
 
         // Validation
         if (!name || !phone || !email || !agreedRent) {
@@ -144,6 +148,8 @@ exports.assignTenant = async (req, res) => {
             securityDepositTotal: depositTotal,
             securityDepositPaid: depositPaid,
             securityDepositBalance: depositBalance,
+            electricityCharge: electricityChargeAmount,
+            maintenanceCharge: maintenanceChargeAmount,
             loginId,
             tempPassword, // Store for now; will be displayed once, then forgotten
             user: user._id,

@@ -14,9 +14,13 @@ export const useTenantAgreement = () => {
     if (params.get("loginId")) setLoginId(params.get("loginId"));
   }, []);
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async (signatureDataUrl = "") => {
     if (!loginId.trim() || !eSignName.trim() || !accepted) {
       setError("Login ID, e-sign and acceptance are required");
+      return;
+    }
+    if (!signatureDataUrl) {
+      setError("Tenant signature is required");
       return;
     }
 
@@ -25,13 +29,13 @@ export const useTenantAgreement = () => {
     try {
       const agreementResp = await postExpectSuccess(
         "/api/checkin/tenant/agreement",
-        { loginId: loginId.trim(), eSignName: eSignName.trim(), accepted: true },
+        { loginId: loginId.trim(), eSignName: eSignName.trim(), accepted: true, signatureDataUrl },
         apiBases
       );
-      if (!agreementResp.signUrl) {
-        throw new Error("Zoho Sign URL was not returned");
+      if (!agreementResp.nextUrl) {
+        throw new Error("Agreement completion URL was not returned");
       }
-      window.location.href = agreementResp.signUrl;
+      window.location.href = agreementResp.nextUrl;
     } catch (err) {
       setError(err.message || "Unable to submit tenant agreement");
     } finally {

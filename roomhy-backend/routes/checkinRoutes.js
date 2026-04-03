@@ -16,8 +16,7 @@ const {
     getDigilockerDocument
 } = require('../services/cashfreeDigilockerService');
 const {
-    createOwnerAgreementRequest,
-    createTenantAgreementRequest
+    createOwnerAgreementRequest
 } = require('../services/zohoSignService');
 
 const WEBSITE_URL = process.env.WEBSITE_URL || 'https://roomhy.com';
@@ -135,6 +134,91 @@ function buildTenantLoginEmail(tenant, dashboardUrl) {
                     <a href="${dashboardUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:700;">Open Tenant Login</a>
                 </p>
                 <p style="font-size:12px;color:#6b7280;">If button does not work, copy this link: ${dashboardUrl}</p>
+            </div>
+        </div>
+    `;
+}
+
+function buildTenantAgreementHtml(tenant, record = {}) {
+    const agreement = record?.tenantAgreement || {};
+    const profile = tenant?.digitalCheckin?.profile || {};
+    const propertyName = tenant.propertyTitle || profile.propertyName || 'RoomHy Property';
+    const tenantName = tenant.name || profile.name || 'Tenant';
+    const moveInDate = tenant.moveInDate ? new Date(tenant.moveInDate).toISOString().slice(0, 10) : (profile.moveInDate || '-');
+    const signedDate = agreement.signedAt ? new Date(agreement.signedAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+    const signatureDataUrl = agreement.signatureDataUrl || tenant?.digitalCheckin?.agreement?.signatureDataUrl || '';
+    const eSignName = tenant.agreementESignName || agreement.eSignName || tenantName;
+    const aadhaarNumber = tenant?.kyc?.aadhaarNumber || tenant?.kyc?.aadhar || record?.tenantKyc?.aadhaarNumber || '-';
+    const securityDepositTotal = tenant.securityDepositTotal || profile.securityDepositTotal || 0;
+    const securityDepositPaid = tenant.securityDepositPaid || profile.securityDepositPaid || 0;
+    const securityDepositBalance = tenant.securityDepositBalance || profile.securityDepositBalance || 0;
+    const electricityCharge = tenant.electricityCharge || profile.electricityCharge || 0;
+    const maintenanceCharge = tenant.maintenanceCharge || profile.maintenanceCharge || 0;
+
+    const clauseStyle = 'margin:0 0 10px;font-size:14px;line-height:1.7;color:#111827;';
+    return `
+        <div style="font-family:Arial,sans-serif;max-width:760px;margin:24px auto;border:1px solid #dbe3ef;border-radius:20px;overflow:hidden;background:#ffffff;">
+            <div style="padding:24px 28px;background:linear-gradient(135deg,#eff6ff,#ffffff);border-bottom:1px solid #dbe3ef;display:flex;justify-content:space-between;align-items:flex-start;gap:16px;">
+                <div>
+                    <p style="margin:0 0 8px;font-size:12px;letter-spacing:0.08em;color:#2563eb;font-weight:800;">ROOMHY RENTAL RECORD</p>
+                    <h2 style="margin:0;font-size:26px;color:#0f172a;">LICENCE & SUBSCRIPTION AGREEMENT</h2>
+                    <p style="margin:10px 0 0;font-size:14px;color:#475569;">Executed between RoomHy and ${tenantName}.</p>
+                </div>
+                <div style="min-width:140px;text-align:center;border:2px solid #1d4ed8;border-radius:18px;padding:12px 14px;color:#1d4ed8;font-weight:800;letter-spacing:0.08em;">
+                    ROOMHY
+                    <div style="font-size:11px;font-weight:700;letter-spacing:0.02em;">OFFICIAL SEAL</div>
+                </div>
+            </div>
+            <div style="padding:24px 28px;">
+                <p style="${clauseStyle}">This License & Subscription Agreement is executed between RoomHy and the Tenant named in Annexure A. The tenant occupies the allotted premises for residential purposes subject to the conditions below.</p>
+                <p style="${clauseStyle}"><strong>1. TERM:</strong> As per Annexure A.</p>
+                <p style="${clauseStyle}"><strong>2. PREMISES:</strong> As per Annexure A.</p>
+                <p style="${clauseStyle}"><strong>3. LICENSE FEE / RENT:</strong> As per Annexure A. Rent is payable in advance on or before the due date.</p>
+                <p style="${clauseStyle}"><strong>4. REFUNDABLE SECURITY DEPOSIT:</strong> As per Annexure A. Refund is processed after applicable deductions for dues or damages.</p>
+                <p style="${clauseStyle}"><strong>5. MINIMUM STAY DURATION:</strong> As per Annexure A. Early move-out before minimum stay may lead to deposit withholding.</p>
+                <p style="${clauseStyle}"><strong>6. LIMITED LICENSE:</strong> Tenant receives a limited right to use the premises subject to compliance and timely payments.</p>
+                <p style="${clauseStyle}"><strong>7. RENT DEFAULT:</strong> Delayed or unpaid rent may result in lockout, penalties, restricted services, and termination.</p>
+                <p style="${clauseStyle}"><strong>8. TERMINATION WITHOUT CAUSE:</strong> Either party may terminate subject to lock-in and notice requirements.</p>
+                <p style="${clauseStyle}"><strong>9. TERMINATION FOR CAUSE:</strong> RoomHy may terminate for illegal activity, non-payment, damage, nuisance, or policy breach.</p>
+                <p style="${clauseStyle}"><strong>10. MAINTENANCE OF PREMISES:</strong> Tenant must maintain the premises and is liable for damages beyond ordinary wear and tear.</p>
+                <p style="${clauseStyle}"><strong>11. RENEWAL:</strong> Renewal may occur with revised rent or updated terms based on market conditions.</p>
+                <p style="${clauseStyle}"><strong>12. NOTICES:</strong> Notices may be sent by email or physical delivery.</p>
+                <p style="${clauseStyle}"><strong>13. ENTIRE AGREEMENT:</strong> This document and Annexure A form the complete agreement between parties.</p>
+                <p style="${clauseStyle}"><strong>14. SEVERABILITY:</strong> Invalidity of one clause does not affect the balance of the agreement.</p>
+                <p style="${clauseStyle}"><strong>15. GOVERNING LAW & JURISDICTION:</strong> Laws of India apply and jurisdiction lies where the premises are situated.</p>
+                <p style="${clauseStyle}"><strong>16. ASSIGNING OF RECEIVABLES:</strong> RoomHy may assign receivables under this agreement.</p>
+                <p style="${clauseStyle}"><strong>17. STAMP DUTY:</strong> Any applicable stamp duty responsibility lies with the tenant.</p>
+                <p style="${clauseStyle}"><strong>18. OTHER TERMS & CONDITIONS:</strong> RoomHy policies may be updated from time to time.</p>
+
+                <div style="margin-top:24px;padding:18px;border:1px solid #dbe3ef;border-radius:16px;background:#f8fafc;">
+                    <h3 style="margin:0 0 12px;font-size:18px;color:#0f172a;">ANNEXURE A</h3>
+                    <p style="${clauseStyle}"><strong>Name of Tenant:</strong> ${tenantName}</p>
+                    <p style="${clauseStyle}"><strong>Tenant Email:</strong> ${tenant.email || '-'}</p>
+                    <p style="${clauseStyle}"><strong>Tenant Phone Number:</strong> ${tenant.phone || '-'}</p>
+                    <p style="${clauseStyle}"><strong>Tenant Aadhaar Number:</strong> ${aadhaarNumber}</p>
+                    <p style="${clauseStyle}"><strong>Helloworld Premises name and address:</strong> ${propertyName}</p>
+                    <p style="${clauseStyle}"><strong>Type of accommodation:</strong> ${tenant.roomNo ? `Room ${tenant.roomNo}` : 'RoomHy accommodation'}</p>
+                    <p style="${clauseStyle}"><strong>Monthly License Fee/Rent:</strong> ${tenant.agreedRent || profile.agreedRent || 0}</p>
+                    <p style="${clauseStyle}"><strong>License Start Date:</strong> ${moveInDate}</p>
+                    <p style="${clauseStyle}"><strong>Security Deposit Total:</strong> ${securityDepositTotal}</p>
+                    <p style="${clauseStyle}"><strong>Security Deposit Paid:</strong> ${securityDepositPaid}</p>
+                    <p style="${clauseStyle}"><strong>Security Deposit Balance:</strong> ${securityDepositBalance}</p>
+                    <p style="${clauseStyle}"><strong>Electricity Charge:</strong> ${electricityCharge}</p>
+                    <p style="${clauseStyle}"><strong>Maintenance Charge:</strong> ${maintenanceCharge}</p>
+                    <p style="${clauseStyle}"><strong>Minimum Stay Duration:</strong> 3 Months</p>
+                </div>
+
+                <div style="margin-top:28px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;">
+                    <div>
+                        <p style="margin:0 0 8px;font-size:13px;color:#475569;"><strong>Tenant E-sign:</strong> ${eSignName}</p>
+                        ${signatureDataUrl ? `<img src="${signatureDataUrl}" alt="Tenant Signature" style="display:block;width:220px;max-width:100%;height:90px;object-fit:contain;border-bottom:1px solid #94a3b8;padding-bottom:6px;" />` : ''}
+                        <p style="margin:8px 0 0;font-size:12px;color:#64748b;">Signed by ${eSignName} on ${signedDate}</p>
+                    </div>
+                    <div style="text-align:center;border:2px solid #1d4ed8;border-radius:18px;padding:16px 20px;color:#1d4ed8;font-weight:800;letter-spacing:0.08em;">
+                        ROOMHY
+                        <div style="font-size:11px;font-weight:700;letter-spacing:0.02em;">DIGITAL SEAL</div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -286,7 +370,12 @@ async function completeTenantAgreementAndNotify(loginId, { requestId = '', provi
     let loginEmailSent = false;
     if (tenant.email) {
         try {
-            await sendMail(tenant.email, 'RoomHy Tenant Login Link', '', buildTenantLoginEmail(tenant, dashboardUrl));
+            await sendMail(
+                tenant.email,
+                'RoomHy Tenant Agreement & Login Details',
+                '',
+                `${buildTenantLoginEmail(tenant, dashboardUrl)}${buildTenantAgreementHtml(tenant, record)}`
+            );
             loginEmailSent = true;
         } catch (emailErr) {
             console.error('[TENANT AGREEMENT COMPLETE] Email send error:', emailErr.message);
@@ -960,13 +1049,42 @@ router.post('/owner/agreement/callback', handleOwnerAgreementCallback);
 
 router.post('/tenant/profile', async (req, res) => {
     try {
-        const { loginId, name, dob, guardianNumber, moveInDate, email, propertyName, roomNo, agreedRent } = req.body || {};
+        const {
+            loginId,
+            name,
+            dob,
+            guardianNumber,
+            moveInDate,
+            email,
+            propertyName,
+            roomNo,
+            agreedRent,
+            securityDepositTotal,
+            securityDepositPaid,
+            securityDepositBalance,
+            electricityCharge,
+            maintenanceCharge
+        } = req.body || {};
         if (!loginId || !name || !dob || !guardianNumber || !moveInDate) {
             return res.status(400).json({ success: false, message: 'Missing required tenant profile fields' });
         }
         const normalizedLoginId = String(loginId).toUpperCase();
         const record = await upsertRecord(normalizedLoginId, 'tenant', {
-            tenantProfile: { name, dob, guardianNumber, moveInDate, email: email || '', propertyName: propertyName || '', roomNo: roomNo || '', agreedRent: agreedRent || null }
+            tenantProfile: {
+                name,
+                dob,
+                guardianNumber,
+                moveInDate,
+                email: email || '',
+                propertyName: propertyName || '',
+                roomNo: roomNo || '',
+                agreedRent: agreedRent || null,
+                securityDepositTotal: securityDepositTotal || 0,
+                securityDepositPaid: securityDepositPaid || 0,
+                securityDepositBalance: securityDepositBalance || 0,
+                electricityCharge: electricityCharge || 0,
+                maintenanceCharge: maintenanceCharge || 0
+            }
         });
 
         const tenant = await Tenant.findOne({ loginId: normalizedLoginId });
@@ -981,6 +1099,11 @@ router.post('/tenant/profile', async (req, res) => {
         if (propertyName) tenant.propertyTitle = propertyName;
         if (roomNo) tenant.roomNo = roomNo;
         if (agreedRent !== undefined && agreedRent !== null && agreedRent !== '') tenant.agreedRent = Number(agreedRent);
+        if (securityDepositTotal !== undefined && securityDepositTotal !== null && securityDepositTotal !== '') tenant.securityDepositTotal = Number(securityDepositTotal);
+        if (securityDepositPaid !== undefined && securityDepositPaid !== null && securityDepositPaid !== '') tenant.securityDepositPaid = Number(securityDepositPaid);
+        if (securityDepositBalance !== undefined && securityDepositBalance !== null && securityDepositBalance !== '') tenant.securityDepositBalance = Number(securityDepositBalance);
+        if (electricityCharge !== undefined && electricityCharge !== null && electricityCharge !== '') tenant.electricityCharge = Number(electricityCharge);
+        if (maintenanceCharge !== undefined && maintenanceCharge !== null && maintenanceCharge !== '') tenant.maintenanceCharge = Number(maintenanceCharge);
         if (moveInDate) tenant.moveInDate = new Date(moveInDate);
         tenant.digitalCheckin = tenant.digitalCheckin || {};
         tenant.digitalCheckin.profile = {
@@ -993,6 +1116,11 @@ router.post('/tenant/profile', async (req, res) => {
             propertyName: propertyName || tenant.propertyTitle || '',
             roomNo: roomNo || tenant.roomNo || '',
             agreedRent: Number(agreedRent || tenant.agreedRent || 0),
+            securityDepositTotal: Number(securityDepositTotal || tenant.securityDepositTotal || 0),
+            securityDepositPaid: Number(securityDepositPaid || tenant.securityDepositPaid || 0),
+            securityDepositBalance: Number(securityDepositBalance || tenant.securityDepositBalance || 0),
+            electricityCharge: Number(electricityCharge || tenant.electricityCharge || 0),
+            maintenanceCharge: Number(maintenanceCharge || tenant.maintenanceCharge || 0),
             submittedAt: new Date()
         };
         tenant.updatedAt = new Date();
@@ -1332,18 +1460,23 @@ router.post('/tenant/kyc/digilocker/complete', otpLimiter, async (req, res) => {
 
 router.post('/tenant/agreement', async (req, res) => {
     try {
-        const { loginId, eSignName, accepted } = req.body || {};
-        if (!loginId || !eSignName || accepted !== true) {
-            return res.status(400).json({ success: false, message: 'Agreement acceptance and e-sign are required' });
+        const { loginId, eSignName, accepted, signatureDataUrl } = req.body || {};
+        if (!loginId || !eSignName || accepted !== true || !signatureDataUrl) {
+            return res.status(400).json({ success: false, message: 'Agreement acceptance, e-sign, and tenant signature are required' });
         }
         const normalizedLoginId = String(loginId).toUpperCase();
         const acceptedAt = new Date();
         const existingRecord = await CheckinRecord.findOne({ loginId: normalizedLoginId, role: 'tenant' }).lean();
-        const record = await upsertRecord(normalizedLoginId, 'tenant', {
+        let record = await upsertRecord(normalizedLoginId, 'tenant', {
             tenantAgreement: {
                 ...((existingRecord && existingRecord.tenantAgreement) || {}),
                 eSignName,
-                acceptedAt
+                acceptedAt,
+                signatureDataUrl,
+                provider: 'roomhy-esign',
+                status: 'signed',
+                signedAt: acceptedAt,
+                completedAt: acceptedAt
             }
         });
 
@@ -1367,72 +1500,29 @@ router.post('/tenant/agreement', async (req, res) => {
         tenant.digitalCheckin.agreement = {
             ...(tenant.digitalCheckin.agreement || {}),
             eSignName,
-            acceptedAt
+            acceptedAt,
+            signatureDataUrl
         };
+        tenant.agreementSigned = true;
+        tenant.agreementSignedAt = acceptedAt;
+        tenant.agreementStatus = 'signed';
         tenant.updatedAt = new Date();
         await tenant.save();
-
-        if (record.tenantAgreement?.status === 'signed' || tenant.agreementSigned) {
-            const dashboardUrl = `${APP_URL}/tenant/tenantdashboard`;
-            return res.json({
-                success: true,
-                message: 'Tenant rental agreement already signed',
-                record,
-                tenant,
-                dashboardUrl,
-                agreementStatus: 'signed'
-            });
-        }
-
-        const callbackBase = process.env.ZOHO_SIGN_CALLBACK_URL || `${BACKEND_URL}/api/checkin/tenant/agreement/callback`;
-        const normalizedCallbackBase = callbackBase.includes('/owner/agreement/callback')
-            ? callbackBase.replace('/owner/agreement/callback', '/tenant/agreement/callback')
-            : callbackBase;
-        const callbackUrl = `${normalizedCallbackBase}${normalizedCallbackBase.includes('?') ? '&' : '?'}loginId=${encodeURIComponent(normalizedLoginId)}`;
-        const agreementRequest = await createTenantAgreementRequest({
-            tenant,
-            loginId: normalizedLoginId,
-            eSignName,
-            callbackUrl
+        const completion = await completeTenantAgreementAndNotify(normalizedLoginId, {
+            requestId: '',
+            provider: 'roomhy-esign',
+            callbackPayload: { source: 'roomhy-custom-esign' }
         });
-
-        record.tenantAgreement = {
-            ...(record.tenantAgreement || {}),
-            eSignName,
-            acceptedAt,
-            provider: agreementRequest.provider,
-            requestId: agreementRequest.requestId,
-            signUrl: agreementRequest.signUrl,
-            status: 'pending_signature',
-            initiatedAt: new Date()
-        };
-        await record.save();
-
-        tenant.agreementRequestId = agreementRequest.requestId;
-        tenant.agreementStatus = 'pending_signature';
-        await tenant.save();
-
-        try {
-            await sendTemplateToResolvedUser({
-                phone: tenant.phone || '',
-                email: tenant.email || '',
-                userId: normalizedLoginId,
-                templateName: 'roomhy_agreement_sign_link',
-                variables: [tenant.name || 'Tenant', agreementRequest.signUrl]
-            });
-        } catch (whatsAppErr) {
-            console.warn('tenant agreement sign link whatsapp failed:', whatsAppErr.message);
-        }
+        record = completion.record;
 
         return res.json({
             success: true,
-            message: 'Tenant rental agreement created. Continue to signing.',
+            message: 'Tenant rental agreement completed successfully.',
             record,
-            tenant,
-            agreementStatus: 'pending_signature',
-            provider: agreementRequest.provider,
-            requestId: agreementRequest.requestId,
-            signUrl: agreementRequest.signUrl
+            tenant: completion.tenant,
+            agreementStatus: 'signed',
+            provider: 'roomhy-esign',
+            nextUrl: `${DIGITAL_CHECKIN_URL}/digital-checkin/tenant-confirmation?loginId=${encodeURIComponent(normalizedLoginId)}&agreementSigned=1`
         });
     } catch (err) {
         console.error('tenant/agreement error:', err);

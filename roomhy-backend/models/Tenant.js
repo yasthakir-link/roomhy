@@ -20,6 +20,8 @@ const TenantSchema = new mongoose.Schema({
     securityDepositTotal: { type: Number, default: 0 },
     securityDepositPaid: { type: Number, default: 0 },
     securityDepositBalance: { type: Number, default: 0 },
+    electricityCharge: { type: Number, default: 0 },
+    maintenanceCharge: { type: Number, default: 0 },
     
     // Login Credentials (generated during assignment)
     loginId: { type: String, unique: true, sparse: true }, // e.g., ROOMHYTNT4821
@@ -65,6 +67,11 @@ const TenantSchema = new mongoose.Schema({
             propertyName: { type: String },
             roomNo: { type: String },
             agreedRent: { type: Number },
+            securityDepositTotal: { type: Number, default: 0 },
+            securityDepositPaid: { type: Number, default: 0 },
+            securityDepositBalance: { type: Number, default: 0 },
+            electricityCharge: { type: Number, default: 0 },
+            maintenanceCharge: { type: Number, default: 0 },
             submittedAt: { type: Date }
         },
         kyc: {
@@ -77,7 +84,8 @@ const TenantSchema = new mongoose.Schema({
         },
         agreement: {
             eSignName: { type: String },
-            acceptedAt: { type: Date }
+            acceptedAt: { type: Date },
+            signatureDataUrl: { type: String }
         },
         submittedAt: { type: Date }
     },

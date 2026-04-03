@@ -423,6 +423,8 @@ export default function Rooms() {
   const [assignDepositTotal, setAssignDepositTotal] = useState("");
   const [assignDepositPaidStatus, setAssignDepositPaidStatus] = useState("no");
   const [assignDepositPaid, setAssignDepositPaid] = useState("");
+  const [assignElectricityCharge, setAssignElectricityCharge] = useState("");
+  const [assignMaintenanceCharge, setAssignMaintenanceCharge] = useState("");
   const [newTenantForm, setNewTenantForm] = useState(initialTenantForm);
   const [vacateModalOpen, setVacateModalOpen] = useState(false);
   const [vacateContext, setVacateContext] = useState(null);
@@ -838,6 +840,8 @@ export default function Rooms() {
     setAssignDepositTotal("");
     setAssignDepositPaidStatus("no");
     setAssignDepositPaid("");
+    setAssignElectricityCharge("");
+    setAssignMaintenanceCharge("");
     setNewTenantForm(initialTenantForm);
     setAssignMode("new");
     setAssignModalOpen(true);
@@ -912,6 +916,8 @@ export default function Rooms() {
         ? Math.max(0, Number(assignDepositPaid || 0))
         : 0;
       const securityDepositBalance = Math.max(0, securityDepositTotal - securityDepositPaid);
+      const electricityCharge = Math.max(0, Number(assignElectricityCharge || 0));
+      const maintenanceCharge = Math.max(0, Number(assignMaintenanceCharge || 0));
       let payload;
       let assignedTenantName = "Tenant";
       let assignedTenantId = selectedTenantId || `TNT-${Date.now()}`;
@@ -951,6 +957,8 @@ export default function Rooms() {
           securityDepositTotal,
           securityDepositPaid,
           securityDepositBalance,
+          electricityCharge,
+          maintenanceCharge,
           ownerLoginId: owner.loginId,
           propertyTitle: firstValidValue(
             selectedRoom.propertyTitle,
@@ -979,6 +987,8 @@ export default function Rooms() {
           securityDepositTotal,
           securityDepositPaid,
           securityDepositBalance,
+          electricityCharge,
+          maintenanceCharge,
           ownerLoginId: owner.loginId,
           propertyTitle: firstValidValue(
             selectedRoom.propertyTitle,
@@ -1287,6 +1297,30 @@ export default function Rooms() {
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 text-gray-600 outline-none"
                   value={Math.max(0, Number(assignDepositTotal || 0) - (assignDepositPaidStatus === "yes" ? Number(assignDepositPaid || 0) : 0))}
                   readOnly
+                />
+              </div>
+            </div>
+            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Electricity Charge (Rs)</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none"
+                  placeholder="Enter electricity charge"
+                  value={assignElectricityCharge}
+                  onChange={(event) => setAssignElectricityCharge(event.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Maintenance Charge (Rs)</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none"
+                  placeholder="Enter maintenance charge"
+                  value={assignMaintenanceCharge}
+                  onChange={(event) => setAssignMaintenanceCharge(event.target.value)}
                 />
               </div>
             </div>

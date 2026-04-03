@@ -46,6 +46,26 @@ export default function DigitalCheckinTenantprofile() {
               <input value={form.agreedRent} onChange={(e) => updateForm({ agreedRent: e.target.value })} readOnly />
             </div>
             <div>
+              <label>Security Deposit Total</label>
+              <input value={form.securityDepositTotal} onChange={(e) => updateForm({ securityDepositTotal: e.target.value })} readOnly />
+            </div>
+            <div>
+              <label>Security Deposit Paid</label>
+              <input value={form.securityDepositPaid} onChange={(e) => updateForm({ securityDepositPaid: e.target.value })} readOnly />
+            </div>
+            <div>
+              <label>Security Deposit Balance</label>
+              <input value={form.securityDepositBalance} onChange={(e) => updateForm({ securityDepositBalance: e.target.value })} readOnly />
+            </div>
+            <div>
+              <label>Electricity Charge</label>
+              <input value={form.electricityCharge} onChange={(e) => updateForm({ electricityCharge: e.target.value })} readOnly />
+            </div>
+            <div>
+              <label>Maintenance Charge</label>
+              <input value={form.maintenanceCharge} onChange={(e) => updateForm({ maintenanceCharge: e.target.value })} readOnly />
+            </div>
+            <div>
               <label>Date of Birth</label>
               <input value={form.dob} onChange={(e) => updateForm({ dob: e.target.value })} type="date" required />
             </div>

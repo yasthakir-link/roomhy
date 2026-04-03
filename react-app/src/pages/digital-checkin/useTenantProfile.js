@@ -7,6 +7,11 @@ const emptyForm = {
   propertyName: "",
   roomNo: "",
   agreedRent: "",
+  securityDepositTotal: "",
+  securityDepositPaid: "",
+  securityDepositBalance: "",
+  electricityCharge: "",
+  maintenanceCharge: "",
   dob: "",
   guardianNumber: "",
   moveInDate: "",
@@ -59,7 +64,12 @@ export const useTenantProfile = () => {
         email: tenant.email || "",
         moveInDate: tenant.moveInDate ? String(tenant.moveInDate).slice(0, 10) : "",
         guardianNumber: tenant.guardianNumber || tenant.emergencyContact || "",
-        dob: tenant.dob || ""
+        dob: tenant.dob || "",
+        securityDepositTotal: tenant.securityDepositTotal ? `INR ${tenant.securityDepositTotal}` : "",
+        securityDepositPaid: tenant.securityDepositPaid ? `INR ${tenant.securityDepositPaid}` : "",
+        securityDepositBalance: tenant.securityDepositBalance ? `INR ${tenant.securityDepositBalance}` : "",
+        electricityCharge: tenant.electricityCharge ? `INR ${tenant.electricityCharge}` : "",
+        maintenanceCharge: tenant.maintenanceCharge ? `INR ${tenant.maintenanceCharge}` : ""
       });
 
       const rawPropertyName =
@@ -106,12 +116,22 @@ export const useTenantProfile = () => {
     async (event) => {
       event.preventDefault();
       const rentRaw = (form.agreedRent || "").replace(/[^\d.]/g, "");
+      const securityDepositTotalRaw = (form.securityDepositTotal || "").replace(/[^\d.]/g, "");
+      const securityDepositPaidRaw = (form.securityDepositPaid || "").replace(/[^\d.]/g, "");
+      const securityDepositBalanceRaw = (form.securityDepositBalance || "").replace(/[^\d.]/g, "");
+      const electricityChargeRaw = (form.electricityCharge || "").replace(/[^\d.]/g, "");
+      const maintenanceChargeRaw = (form.maintenanceCharge || "").replace(/[^\d.]/g, "");
       const payload = {
         loginId: form.loginId.trim().toUpperCase(),
         name: form.name.trim(),
         propertyName: form.propertyName.trim(),
         roomNo: form.roomNo.trim(),
         agreedRent: rentRaw ? Number(rentRaw) : null,
+        securityDepositTotal: securityDepositTotalRaw ? Number(securityDepositTotalRaw) : 0,
+        securityDepositPaid: securityDepositPaidRaw ? Number(securityDepositPaidRaw) : 0,
+        securityDepositBalance: securityDepositBalanceRaw ? Number(securityDepositBalanceRaw) : 0,
+        electricityCharge: electricityChargeRaw ? Number(electricityChargeRaw) : 0,
+        maintenanceCharge: maintenanceChargeRaw ? Number(maintenanceChargeRaw) : 0,
         dob: form.dob,
         guardianNumber: form.guardianNumber.trim(),
         moveInDate: form.moveInDate,
@@ -138,6 +158,11 @@ export const useTenantProfile = () => {
           list[idx].propertyTitle = payload.propertyName || list[idx].propertyTitle;
           list[idx].roomNo = payload.roomNo || list[idx].roomNo;
           if (payload.agreedRent !== null) list[idx].agreedRent = payload.agreedRent;
+          list[idx].securityDepositTotal = payload.securityDepositTotal;
+          list[idx].securityDepositPaid = payload.securityDepositPaid;
+          list[idx].securityDepositBalance = payload.securityDepositBalance;
+          list[idx].electricityCharge = payload.electricityCharge;
+          list[idx].maintenanceCharge = payload.maintenanceCharge;
           localStorage.setItem("roomhy_tenants", JSON.stringify(list));
         }
       } catch (_) {}

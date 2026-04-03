@@ -140,7 +140,15 @@ const checkinRecordSchema = new mongoose.Schema(
             dob: String,
             guardianNumber: String,
             moveInDate: String,
-            email: String
+            email: String,
+            propertyName: String,
+            roomNo: String,
+            agreedRent: Number,
+            securityDepositTotal: Number,
+            securityDepositPaid: Number,
+            securityDepositBalance: Number,
+            electricityCharge: Number,
+            maintenanceCharge: Number
         },
         tenantKyc: {
             aadhaarLinkedPhone: String,
@@ -152,6 +160,7 @@ const checkinRecordSchema = new mongoose.Schema(
         tenantAgreement: {
             eSignName: String,
             acceptedAt: Date,
+            signatureDataUrl: String,
             provider: String,
             requestId: String,
             signUrl: String,
