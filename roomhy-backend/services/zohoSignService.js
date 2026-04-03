@@ -54,6 +54,16 @@ function getTemplateValue(kind) {
     return process.env.ZOHO_SIGN_TEMPLATE_ID || '';
 }
 
+function getActionId(kind) {
+    if (kind === 'tenant') {
+        return process.env.ZOHO_SIGN_TENANT_ACTION_ID || process.env.ZOHO_SIGN_ACTION_ID || '';
+    }
+    if (kind === 'owner') {
+        return process.env.ZOHO_SIGN_OWNER_ACTION_ID || process.env.ZOHO_SIGN_ACTION_ID || '';
+    }
+    return process.env.ZOHO_SIGN_ACTION_ID || '';
+}
+
 function getZohoEndpoint(templateValue) {
     const raw = String(templateValue || '').trim();
     if (/^https?:\/\//i.test(raw)) return raw;
@@ -62,11 +72,13 @@ function getZohoEndpoint(templateValue) {
 
 function toZohoTemplateRequestData(payload) {
     const signer = payload.tenant || payload.owner || {};
+    const actionId = String(payload.actionId || '').trim();
     return {
         templates: {
             request_name: payload.documentName,
             actions: [
                 {
+                    ...(actionId ? { action_id: actionId } : {}),
                     action_type: 'SIGN',
                     signing_order: 1,
                     verify_recipient: false,
@@ -93,6 +105,7 @@ function buildOwnerAgreementPayload({ owner = {}, loginId, aadhaarNumber, callba
     const normalizedLoginId = String(loginId || '').toUpperCase();
     return {
         templateId: getTemplateValue('owner'),
+        actionId: getActionId('owner'),
         documentName: `RoomHy Owner Agreement - ${normalizedLoginId}`,
         callbackUrl,
         redirectUrl: getOwnerCompleteUrl(normalizedLoginId),
@@ -128,6 +141,7 @@ function buildTenantAgreementPayload({ tenant = {}, loginId, eSignName, callback
 
     return {
         templateId: getTemplateValue('tenant'),
+        actionId: getActionId('tenant'),
         documentName: `RoomHy Tenant Rental Agreement - ${normalizedLoginId}`,
         callbackUrl,
         redirectUrl: getTenantCompleteUrl(normalizedLoginId),
@@ -173,6 +187,14 @@ async function createZohoRequest({ payload, loginId, providerLabel, completeUrl 
 
     const endpoint = getZohoEndpoint(payload.templateId);
     const isTemplateEndpoint = /\/templates\/.+\/createdocument/i.test(String(endpoint || ''));
+    if (isTemplateEndpoint && !String(payload.actionId || '').trim()) {
+        const error = new Error('Zoho template action id is missing');
+        error.status = 400;
+        error.data = {
+            message: 'Zoho template action id is missing. Set ZOHO_SIGN_TENANT_ACTION_ID or ZOHO_SIGN_ACTION_ID in backend environment.'
+        };
+        throw error;
+    }
     const requestOptions = isTemplateEndpoint
         ? (() => {
             const formData = new FormData();
