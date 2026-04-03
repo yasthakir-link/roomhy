@@ -282,8 +282,16 @@
             mutations.forEach(function(mutation) {
                 mutation.addedNodes.forEach(function(node) {
                     if (node.nodeType !== 1) return;
-                    var id = (node.id || '').toLowerCase();
-                    var cls = (node.className || '').toLowerCase();
+                    var id = String(node.id || '').toLowerCase();
+                    var rawClass = '';
+                    if (typeof node.className === 'string') {
+                        rawClass = node.className;
+                    } else if (node.className && typeof node.className.baseVal === 'string') {
+                        rawClass = node.className.baseVal;
+                    } else if (node.getAttribute) {
+                        rawClass = node.getAttribute('class') || '';
+                    }
+                    var cls = String(rawClass || '').toLowerCase();
                     if (
                         (id.includes('auth') || id.includes('login') || id.includes('signup') || cls.includes('auth-modal')) &&
                         node.id !== 'roomhy-auth-modal'

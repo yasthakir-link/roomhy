@@ -50,9 +50,16 @@ export const fetchJson = async (path, options = {}) => {
       }
 
       if (!res.ok) {
-        const err = new Error(`Request failed: ${res.status} ${res.statusText}`);
+        const messageFromBody =
+          typeof parsed === "string"
+            ? parsed
+            : (parsed && typeof parsed === "object" && (parsed.message || parsed.error))
+              ? String(parsed.message || parsed.error)
+              : "";
+        const err = new Error(messageFromBody || `Request failed: ${res.status} ${res.statusText}`);
         err.status = res.status;
-        err.body = parsed;
+        err.body = messageFromBody || (typeof parsed === "string" ? parsed : JSON.stringify(parsed || {}));
+        err.rawBody = parsed;
         throw err;
       }
       return parsed;
