@@ -142,10 +142,6 @@ const mergeRoomSources = (ownerLoginId, property, backendRooms) => {
     merged.push(room);
   });
 
-  if (merged.length === 0) {
-    return buildSnapshotRooms(property, ownerLoginId, property);
-  }
-
   return merged;
 };
 
@@ -955,7 +951,7 @@ export default function Rooms() {
   return (
     <PropertyOwnerLayout
       owner={owner}
-      title="Manage Beds"
+      title="Manage Rooms & Beds"
       navVariant="default"
       headerVariant="compact"
       onLogout={() => {
@@ -983,7 +979,7 @@ export default function Rooms() {
         </div>
         <button type="button" onClick={() => setRoomModalOpen(true)} className="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg hover:shadow-purple-500/30 transition-all font-medium">
           <i data-lucide="plus-circle" className="w-5 h-5"></i>
-          Add New Bed
+          Add New Room
         </button>
       </div>
 
@@ -1044,9 +1040,9 @@ export default function Rooms() {
           <div className="bg-purple-50 p-4 rounded-full mb-4">
             <i data-lucide="bed-double" className="w-10 h-10 text-purple-400"></i>
           </div>
-          <h3 className="text-lg font-semibold text-gray-700">No beds added yet</h3>
-          <p className="text-sm">Start by adding beds to manage occupancy and tenants.</p>
-          <button type="button" onClick={() => setRoomModalOpen(true)} className="mt-4 text-purple-600 font-medium hover:underline">Add Bed Now</button>
+          <h3 className="text-lg font-semibold text-gray-700">No rooms added yet</h3>
+          <p className="text-sm">Start by creating rooms and then add beds manually for each room.</p>
+          <button type="button" onClick={() => setRoomModalOpen(true)} className="mt-4 text-purple-600 font-medium hover:underline">Add Room Now</button>
         </div>
       ) : null}
 
@@ -1056,8 +1052,8 @@ export default function Rooms() {
             <i data-lucide="x" className="w-5 h-5"></i>
           </button>
           <div className="mb-6">
-            <h3 className="text-xl font-bold text-gray-900">Add New Bed</h3>
-            <p className="text-sm text-gray-500">Add bed capacity for tenant assignment.</p>
+            <h3 className="text-xl font-bold text-gray-900">Add New Room</h3>
+            <p className="text-sm text-gray-500">Create a room first, then manage its beds manually.</p>
           </div>
           <form id="roomForm" onSubmit={handleCreateRoom}>
             <div className="space-y-5">
