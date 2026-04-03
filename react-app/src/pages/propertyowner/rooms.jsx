@@ -83,6 +83,26 @@ const writeJson = (key, value) => {
   }
 };
 
+const isPlaceholderTenantName = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return !normalized || normalized === "occupied" || normalized === "tenant" || normalized === "unknown";
+};
+
+const isBedOccupied = (bed) => {
+  if (!bed) return false;
+  const status = String(bed.status || "").trim().toLowerCase();
+  if (status === "available" || status === "vacant" || status === "empty") return false;
+  if (status === "occupied" && (bed?.tenantId || bed?.loginId || !isPlaceholderTenantName(bed?.tenantName || bed?.name))) {
+    return true;
+  }
+  return Boolean(
+    bed?.tenantId ||
+    bed?.loginId ||
+    (bed?.tenantName && !isPlaceholderTenantName(bed.tenantName)) ||
+    (bed?.name && !isPlaceholderTenantName(bed.name))
+  );
+};
+
 const toLegacyBeds = (room) => {
   const existingBeds = Array.isArray(room?.beds)
     ? room.beds
@@ -218,7 +238,7 @@ const findCachedPropertyRecord = (ownerLoginId, currentProperty) => {
 const findVacantBeds = (room) =>
   toLegacyBeds(room).map((bed, index) => ({
     index,
-    occupied: bed?.status === "occupied" || Boolean(bed?.tenantName || bed?.loginId || bed?.tenantId),
+    occupied: isBedOccupied(bed),
     tenant: bed
   }));
 
@@ -226,9 +246,7 @@ const getRoomOccupancyLabel = (room) => {
   const explicitType = String(room?.type || room?.roomType || "").toLowerCase();
   if (explicitType.includes("occupied")) return "Occupied";
   if (explicitType.includes("vacant")) return "Vacant";
-  const hasOccupiedBeds = toLegacyBeds(room).some(
-    (bed) => bed?.status === "occupied" || bed?.tenantName || bed?.tenantId || bed?.loginId
-  );
+  const hasOccupiedBeds = toLegacyBeds(room).some((bed) => isBedOccupied(bed));
   return hasOccupiedBeds ? "Occupied" : "Vacant";
 };
 
@@ -242,7 +260,7 @@ const summarizeOccupancy = (rooms = []) => {
   };
   (rooms || []).forEach((room) => {
     const beds = toLegacyBeds(room);
-    const occupiedBeds = beds.filter((bed) => bed?.status === "occupied" || bed?.tenantName || bed?.tenantId || bed?.loginId).length;
+    const occupiedBeds = beds.filter((bed) => isBedOccupied(bed)).length;
     const vacantBeds = Math.max(0, beds.length - occupiedBeds);
     summary.totalRooms += 1;
     summary.occupiedBeds += occupiedBeds;
@@ -314,7 +332,11 @@ const buildSnapshotRooms = (record, ownerLoginId, property) => {
       roomType: "Occupied",
       rent: Number(property?.monthlyRent ?? 0),
       gender: property?.gender || "Mixed",
-      beds: Array.from({ length: bedCount }, () => ({ status: "occupied", tenantId: null, tenantName: "Occupied" }))
+      beds: Array.from({ length: bedCount }, (_, index) => ({
+        status: "occupied",
+        tenantId: `SNAP-OCC-${ownerLoginId}-${sequence - 1}-${index + 1}`,
+        tenantName: "Occupied"
+      }))
     }, ownerLoginId)
   );
 
