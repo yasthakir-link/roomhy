@@ -17,7 +17,7 @@ export default function DigitalCheckinTenantagreement() {
     inlineScripts: []
   });
 
-  const { loginId, setLoginId, eSignName, setESignName, accepted, setAccepted, submitting, handleSubmit } =
+  const { loginId, setLoginId, eSignName, setESignName, accepted, setAccepted, submitting, error, handleSubmit } =
     useTenantAgreement();
 
   return (
@@ -47,6 +47,11 @@ export default function DigitalCheckinTenantagreement() {
           />{" "}
           I accept the rental agreement and provide my e-sign consent.
         </label>
+
+        {error ? <div style={{ color: "#dc2626", marginTop: "12px", fontSize: "14px" }}>{error}</div> : null}
+        <p style={{ marginTop: "12px", color: "#6b7280", fontSize: "14px" }}>
+          After validation, the tenant will be redirected to the Zoho agreement signing page.
+        </p>
 
         <button onClick={handleSubmit} disabled={submitting} type="button">
           {submitting ? "Submitting..." : "Final Submit"}

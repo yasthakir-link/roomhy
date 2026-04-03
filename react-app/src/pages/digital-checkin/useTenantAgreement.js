@@ -7,6 +7,7 @@ export const useTenantAgreement = () => {
   const [eSignName, setESignName] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -15,11 +16,12 @@ export const useTenantAgreement = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!loginId.trim() || !eSignName.trim() || !accepted) {
-      alert("Login ID, e-sign and acceptance are required");
+      setError("Login ID, e-sign and acceptance are required");
       return;
     }
 
     setSubmitting(true);
+    setError("");
     try {
       const agreementResp = await postExpectSuccess(
         "/api/checkin/tenant/agreement",
@@ -31,7 +33,7 @@ export const useTenantAgreement = () => {
       }
       window.location.href = agreementResp.signUrl;
     } catch (err) {
-      alert(err.message || "Unable to submit tenant agreement");
+      setError(err.message || "Unable to submit tenant agreement");
     } finally {
       setSubmitting(false);
     }
@@ -45,6 +47,7 @@ export const useTenantAgreement = () => {
     accepted,
     setAccepted,
     submitting,
+    error,
     handleSubmit
   };
 };
