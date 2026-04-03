@@ -5,6 +5,11 @@ import {
   isWebsiteLoggedIn,
   logoutWebsite
 } from "./websiteSession";
+import {
+  headerHtml as sharedHeaderHtml,
+  menuOverlayHtml as sharedMenuOverlayHtml,
+  mobileMenuHtml as sharedMobileMenuHtml
+} from "../components/website/WebsiteHeader";
 
 const SHARED_FOOTER_CITY_DATA = {
   Indore: [
@@ -275,6 +280,29 @@ const ensureSharedFooter = () => {
   window.addEventListener("resize", applyLayout);
 };
 
+const ensureSharedHeader = () => {
+  const existingShared = document.querySelector("[data-roomhy-shared-header='1']");
+  if (existingShared) return;
+
+  // If any page already renders the website header component, skip duplicate injection.
+  if (document.getElementById("menu-toggle") && document.getElementById("mobile-menu")) {
+    return;
+  }
+
+  const html = [sharedHeaderHtml, sharedMenuOverlayHtml, sharedMobileMenuHtml]
+    .filter(Boolean)
+    .join("\n");
+  if (!html) return;
+
+  const mount = document.createElement("div");
+  mount.setAttribute("data-roomhy-shared-header", "1");
+  mount.innerHTML = html;
+
+  const target = document.querySelector(".html-page") || document.body;
+  if (!target) return;
+  target.insertBefore(mount, target.firstChild || null);
+};
+
 export const useLucideIcons = (deps = []) => {
   useEffect(() => {
     if (window.lucide?.createIcons) {
@@ -315,6 +343,12 @@ export const useWebsiteCommon = () => {
 
   useEffect(() => {
     window.globalLogout = () => logoutWebsite("login");
+
+    try {
+      ensureSharedHeader();
+    } catch (error) {
+      console.error("Shared header injection failed:", error);
+    }
 
     updateMobileMenuState();
     updateWelcomeMessage();
