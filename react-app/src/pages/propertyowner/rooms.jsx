@@ -420,6 +420,9 @@ export default function Rooms() {
   const [selectedBedIndex, setSelectedBedIndex] = useState(null);
   const [selectedTenantId, setSelectedTenantId] = useState("");
   const [assignRent, setAssignRent] = useState("");
+  const [assignDepositTotal, setAssignDepositTotal] = useState("");
+  const [assignDepositPaidStatus, setAssignDepositPaidStatus] = useState("no");
+  const [assignDepositPaid, setAssignDepositPaid] = useState("");
   const [newTenantForm, setNewTenantForm] = useState(initialTenantForm);
   const [vacateModalOpen, setVacateModalOpen] = useState(false);
   const [vacateContext, setVacateContext] = useState(null);
@@ -832,6 +835,9 @@ export default function Rooms() {
       cachedProperty?.rent ??
       ""
     ));
+    setAssignDepositTotal("");
+    setAssignDepositPaidStatus("no");
+    setAssignDepositPaid("");
     setNewTenantForm(initialTenantForm);
     setAssignMode("new");
     setAssignModalOpen(true);
@@ -901,6 +907,11 @@ export default function Rooms() {
       const agreedRent = Number(assignRent || 0);
       const moveInDate = new Date().toISOString().split("T")[0];
       const ownerUpiId = firstValidValue(owner?.checkinUpiId, owner?.profile?.upiId);
+      const securityDepositTotal = Math.max(0, Number(assignDepositTotal || 0));
+      const securityDepositPaid = assignDepositPaidStatus === "yes"
+        ? Math.max(0, Number(assignDepositPaid || 0))
+        : 0;
+      const securityDepositBalance = Math.max(0, securityDepositTotal - securityDepositPaid);
       let payload;
       let assignedTenantName = "Tenant";
       let assignedTenantId = selectedTenantId || `TNT-${Date.now()}`;
@@ -911,6 +922,10 @@ export default function Rooms() {
       }
       if (!ownerUpiId) {
         setErrorMsg("Owner UPI details are missing. Update owner profile payment details before assigning a tenant.");
+        return;
+      }
+      if (securityDepositPaid > securityDepositTotal) {
+        setErrorMsg("Security deposit paid cannot be greater than total security deposit.");
         return;
       }
 
@@ -933,6 +948,9 @@ export default function Rooms() {
           bedNo: Number(selectedBedIndex) + 1,
           moveInDate,
           agreedRent,
+          securityDepositTotal,
+          securityDepositPaid,
+          securityDepositBalance,
           ownerLoginId: owner.loginId,
           propertyTitle: firstValidValue(
             selectedRoom.propertyTitle,
@@ -958,6 +976,9 @@ export default function Rooms() {
           bedNo: Number(selectedBedIndex) + 1,
           moveInDate,
           agreedRent,
+          securityDepositTotal,
+          securityDepositPaid,
+          securityDepositBalance,
           ownerLoginId: owner.loginId,
           propertyTitle: firstValidValue(
             selectedRoom.propertyTitle,
@@ -1217,6 +1238,57 @@ export default function Rooms() {
                 value={assignRent}
                 onChange={(event) => setAssignRent(event.target.value)}
               />
+            </div>
+            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Security Deposit Total (Rs)</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none"
+                  placeholder="Enter total deposit"
+                  value={assignDepositTotal}
+                  onChange={(event) => setAssignDepositTotal(event.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Deposit Paid?</label>
+                <select
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none bg-white"
+                  value={assignDepositPaidStatus}
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    setAssignDepositPaidStatus(nextValue);
+                    if (nextValue !== "yes") setAssignDepositPaid("");
+                  }}
+                >
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </div>
+            </div>
+            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Security Deposit Paid (Rs)</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none"
+                  placeholder="Enter paid deposit"
+                  value={assignDepositPaid}
+                  onChange={(event) => setAssignDepositPaid(event.target.value)}
+                  disabled={assignDepositPaidStatus !== "yes"}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Security Deposit Balance (Rs)</label>
+                <input
+                  type="number"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 bg-gray-50 text-gray-600 outline-none"
+                  value={Math.max(0, Number(assignDepositTotal || 0) - (assignDepositPaidStatus === "yes" ? Number(assignDepositPaid || 0) : 0))}
+                  readOnly
+                />
+              </div>
             </div>
             {assignMode === "existing" ? (
               <div className="space-y-4">
