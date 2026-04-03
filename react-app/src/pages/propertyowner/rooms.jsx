@@ -162,10 +162,6 @@ const mergeRoomSources = (ownerLoginId, property, backendRooms) => {
     merged.push(room);
   });
 
-  if (merged.length === 0) {
-    return buildSnapshotRooms(property, ownerLoginId, property);
-  }
-
   return merged;
 };
 
@@ -509,10 +505,6 @@ export default function Rooms() {
       getSnapshotOccupancy(owner) ||
       summarizeOccupancy(rooms),
     [cachedProperty, currentProperty, owner, rooms]
-  );
-  const vacantRoomsToDisplay = useMemo(
-    () => rooms.filter((room) => getRoomOccupancyLabel(room) === "Vacant"),
-    [rooms]
   );
 
   const persistRooms = async (updater) => {
@@ -991,7 +983,7 @@ export default function Rooms() {
   return (
     <PropertyOwnerLayout
       owner={owner}
-      title="Manage Rooms"
+      title="Manage Rooms & Beds"
       navVariant="default"
       headerVariant="compact"
       onLogout={() => {
@@ -1026,7 +1018,7 @@ export default function Rooms() {
       {errorMsg ? <div className="text-sm text-red-600 mb-4">{errorMsg}</div> : null}
 
       <div id="roomsGrid" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {!loading && vacantRoomsToDisplay.map((room) => {
+        {!loading && rooms.map((room) => {
           const beds = findVacantBeds(room);
           const roomOccupancy = getRoomOccupancyLabel(room);
           return (
@@ -1065,6 +1057,9 @@ export default function Rooms() {
                     )}
                   </div>
                 ))}
+                <button type="button" onClick={() => handleAddBed(room.id || room._id)} className="w-full rounded-xl border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-500 hover:bg-gray-50">
+                  Add Bed
+                </button>
               </div>
               <div className="mt-4 flex justify-end">
                 <button type="button" onClick={() => handleDeleteRoom(room.id || room._id)} className="text-xs text-red-500 hover:underline">
@@ -1076,13 +1071,13 @@ export default function Rooms() {
         })}
       </div>
 
-      {!loading && vacantRoomsToDisplay.length === 0 ? (
+      {!loading && rooms.length === 0 ? (
         <div id="emptyState" className="flex flex-col items-center justify-center py-24 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">
           <div className="bg-purple-50 p-4 rounded-full mb-4">
             <i data-lucide="bed-double" className="w-10 h-10 text-purple-400"></i>
           </div>
-          <h3 className="text-lg font-semibold text-gray-700">No vacant rooms available</h3>
-          <p className="text-sm">Add a room to start assigning tenants in vacant beds.</p>
+          <h3 className="text-lg font-semibold text-gray-700">No rooms added yet</h3>
+          <p className="text-sm">Add a room first, then add beds manually and assign tenants when needed.</p>
           <button type="button" onClick={() => setRoomModalOpen(true)} className="mt-4 text-purple-600 font-medium hover:underline">Add Room Now</button>
         </div>
       ) : null}
