@@ -1494,10 +1494,21 @@ export default function WebsiteOurproperty() {
                     setShowFloatingCoachmark(false);
                     setShowFloatingActions((prev) => !prev);
                   }}
-                  className={`relative flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white shadow-[0_20px_45px_rgba(34,197,94,0.35)] transition duration-300 hover:bg-green-600 ${showFloatingCoachmark ? "animate-pulse scale-110" : "hover:scale-110"}`}
+                  className={`group relative flex items-center gap-3 overflow-hidden rounded-[28px] bg-gradient-to-r from-blue-700 via-cyan-600 to-sky-500 px-4 py-3 text-white shadow-[0_20px_50px_rgba(14,116,144,0.35)] ring-1 ring-white/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(14,116,144,0.45)] ${showFloatingCoachmark ? "animate-pulse scale-110" : ""}`}
               >
                   {showFloatingCoachmark && <span className="absolute -top-1 right-0 h-3.5 w-3.5 rounded-full bg-amber-300 ring-4 ring-white"></span>}
-                  <i data-lucide="message-circle" className="w-8 h-8"></i>
+                  <span className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.35),transparent_45%)] opacity-80"></span>
+                  <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white/18 backdrop-blur-sm ring-1 ring-white/20">
+                      <i data-lucide="gavel" className="h-7 w-7 transition-transform duration-300 group-hover:rotate-[-10deg] group-hover:scale-110"></i>
+                  </span>
+                  <span className="relative flex flex-col leading-tight text-left">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-100">Roomhy</span>
+                      <span className="text-base font-extrabold">Start Fast Bidding</span>
+                      <span className="text-xs text-blue-50/90">Bid or explore more</span>
+                  </span>
+                  <span className="relative ml-1 flex h-10 w-10 items-center justify-center rounded-full bg-white text-sky-700 shadow-lg transition-transform duration-300 group-hover:translate-x-1">
+                      <i data-lucide="arrow-right" className="h-5 w-5"></i>
+                  </span>
               </button>
           </div>
           
@@ -1722,5 +1733,4 @@ export default function WebsiteOurproperty() {
     </div>
   );
 }
-
 

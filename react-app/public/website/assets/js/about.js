@@ -41,8 +41,9 @@ lucide.createIcons();
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     if (entry.isIntersecting) {
-                        // Use the 'animate-slide-in' class which is now defined in tailwind.config
+                        // Keep elements visible and let the CSS animation run naturally.
                         entry.target.classList.add('animate-slide-in');
+                        entry.target.style.opacity = '1';
                         observer.unobserve(entry.target);
                     }
                 });
@@ -50,8 +51,6 @@ lucide.createIcons();
 
             // Select all elements that should animate
             document.querySelectorAll('.animate-slide-in').forEach(el => {
-                // Set initial opacity to 0 so they fade in
-                el.style.opacity = '0';
                 observer.observe(el);
             });
         } else {

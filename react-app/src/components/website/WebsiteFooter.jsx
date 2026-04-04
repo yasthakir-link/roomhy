@@ -178,7 +178,7 @@ export default function WebsiteFooter() {
             </div>
             <div>
               <div style={{ fontSize: "1.2rem", fontWeight: 800, letterSpacing: "-0.03em", color: "#ffffff" }}>Roomhy</div>
-              <div style={{ fontSize: "12px", color: "#a3a3a3", letterSpacing: "0.08em", textTransform: "uppercase" }}>Black Label Stays</div>
+              <div style={{ fontSize: "12px", color: "#a3a3a3", letterSpacing: "0.08em", textTransform: "uppercase" }}></div>
             </div>
           </div>
           <p style={{ margin: 0, maxWidth: "280px", color: "#cfcfcf", fontSize: "14px", lineHeight: 1.8 }}>

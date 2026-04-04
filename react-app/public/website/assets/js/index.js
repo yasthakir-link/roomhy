@@ -1672,16 +1672,26 @@ document.addEventListener("DOMContentLoaded", function() {
         const menuClose = document.getElementById('menu-close');
         const mobileMenu = document.getElementById('mobile-menu');
         const menuOverlay = document.getElementById('menu-overlay');
+        const floatingFastBiddingBtn = document.getElementById('floatingFastBiddingBtn');
 
         if (menuToggle && mobileMenu && menuClose && menuOverlay) {
+            const syncFloatingFastBiddingVisibility = (isMenuOpen) => {
+                if (!floatingFastBiddingBtn) return;
+                floatingFastBiddingBtn.classList.toggle('opacity-0', isMenuOpen);
+                floatingFastBiddingBtn.classList.toggle('translate-y-3', isMenuOpen);
+                floatingFastBiddingBtn.classList.toggle('pointer-events-none', isMenuOpen);
+            };
+
             menuToggle.addEventListener('click', () => {
                 mobileMenu.classList.remove('translate-x-full');
                 menuOverlay.classList.remove('hidden');
+                syncFloatingFastBiddingVisibility(true);
             });
 
             const closeMenu = () => {
                 mobileMenu.classList.add('translate-x-full');
                 menuOverlay.classList.add('hidden');
+                syncFloatingFastBiddingVisibility(false);
             };
 
             menuClose.addEventListener('click', closeMenu);
@@ -1690,6 +1700,8 @@ document.addEventListener("DOMContentLoaded", function() {
             mobileMenu.querySelectorAll('a').forEach(link => {
                 link.addEventListener('click', closeMenu);
             });
+
+            syncFloatingFastBiddingVisibility(false);
         }
         
         // ======================================================

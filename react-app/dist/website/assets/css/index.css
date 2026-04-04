@@ -47,7 +47,36 @@ body {
         }
 
         .offering-card-item {
-            opacity: 0;
+            opacity: 1;
+            width: min(84vw, 22rem);
+        }
+
+        .offering-card-wide {
+            width: min(84vw, 22rem);
+        }
+
+        .offering-card-compact {
+            width: min(84vw, 20rem);
+        }
+
+        @media (min-width: 768px) {
+            .offering-card-wide {
+                width: 20rem;
+            }
+
+            .offering-card-compact {
+                width: 18rem;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .offering-card-wide {
+                width: 21rem;
+            }
+
+            .offering-card-compact {
+                width: 18rem;
+            }
         }
 
         @keyframes slide-in {

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import routes from "./routes";
 import SharedShell from "./components/SharedShell.jsx";
@@ -6,12 +6,26 @@ import { resolveSectionFromPath } from "./components/sharedNavConfig";
 import { getOwnerSession } from "./utils/ownerSession";
 
 const wrapWithShell = (path, element) => {
-  if (path.startsWith("/superadmin/")) return element;
-  if (path.startsWith("/employee/")) return element;
-  if (path.startsWith("/tenant/")) return element;
+  const wrappedElement = (
+    <Suspense
+      fallback={
+        <div className="min-h-[40vh] flex items-center justify-center px-4 py-12 text-sm text-slate-500">
+          Loading page...
+        </div>
+      }
+    >
+      {element}
+    </Suspense>
+  );
+
+  if (path.startsWith("/superadmin/")) return wrappedElement;
+  if (path.startsWith("/employee/")) return wrappedElement;
+  if (path.startsWith("/tenant/")) return wrappedElement;
+  if (path.startsWith("/propertyowner/")) return wrappedElement;
+  if (path.startsWith("/digital-checkin/")) return wrappedElement;
   const section = resolveSectionFromPath(path);
-  if (!section) return element;
-  return <SharedShell>{element}</SharedShell>;
+  if (!section) return wrappedElement;
+  return <SharedShell>{wrappedElement}</SharedShell>;
 };
 
 const renderRoutes = (items) =>

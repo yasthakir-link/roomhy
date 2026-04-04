@@ -5,6 +5,7 @@ import App from "./App.jsx";
 import "./index.css";
 
 window.React = React;
+window.__TAILWIND_LOCAL__ = true;
 
 const root = createRoot(document.getElementById("root"));
 

@@ -416,13 +416,26 @@ export default function WebsiteList() {
         </div>
       </main>
 
-      <a href="/website/contact" className="fixed bottom-6 right-6 z-50 p-4 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-transform hover:scale-110">
-        <i data-lucide="message-circle" className="w-8 h-8"></i>
+      <a
+        href="/website/fast-bidding"
+        className="group fixed bottom-5 right-5 z-50 flex items-center gap-3 overflow-hidden rounded-[28px] bg-gradient-to-r from-blue-700 via-cyan-600 to-sky-500 px-4 py-3 text-white shadow-[0_20px_50px_rgba(14,116,144,0.35)] ring-1 ring-white/30 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_60px_rgba(14,116,144,0.45)]"
+      >
+        <span className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.35),transparent_45%)] opacity-80"></span>
+        <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white/18 backdrop-blur-sm ring-1 ring-white/20">
+          <i data-lucide="gavel" className="h-7 w-7 transition-transform duration-300 group-hover:rotate-[-10deg] group-hover:scale-110"></i>
+        </span>
+        <span className="relative flex flex-col leading-tight">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-100">Roomhy</span>
+          <span className="text-base font-extrabold">Start Fast Bidding</span>
+          <span className="text-xs text-blue-50/90">Get rooms within your budget</span>
+        </span>
+        <span className="relative ml-1 flex h-10 w-10 items-center justify-center rounded-full bg-white text-sky-700 shadow-lg transition-transform duration-300 group-hover:translate-x-1">
+          <i data-lucide="arrow-right" className="h-5 w-5"></i>
+        </span>
       </a>
 
       <WebsiteFooter />
     </div>
   );
 }
-
 

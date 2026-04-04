@@ -463,9 +463,9 @@
             <div class="relative -m-2">
                 <button id="offer-prev" class="absolute -left-2 top-1/2 -translate-y-1/2 z-10 p-2 bg-white rounded-full shadow-md hover:bg-gray-100 text-gray-700 sm:block"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
                 <div id="offerings-slider" class="flex gap-5 overflow-x-auto pb-2 pt-2 -mx-4 px-4 snap-x snap-mandatory scroll-smooth horizontal-slider" style="padding-left:100px;">
-                    <a href="ourproperty.html?type=hostel" class="group block flex-shrink-0 snap-start w-102 md:w-164 lg:w-172 offering-card-item">
+                    <a href="ourproperty.html?type=hostel" class="group block flex-shrink-0 snap-start offering-card-item offering-card-wide">
                         <div class="relative rounded-xl shadow-md hover:shadow-lg overflow-hidden h-40 sm:h-44 cursor-pointer offering-card transition-shadow duration-300">
-                            <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990227/roomhy/website/angels-hostel-taipei-taiwan-9.jpg" class="w-550px h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="Hostel">
+                            <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990227/roomhy/website/angels-hostel-taipei-taiwan-9.jpg" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="Hostel">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-500 group-hover:opacity-0">
                                 <div class="absolute bottom-0 left-0 right-0 p-4"><h3 class="text-white text-center text-sm sm:text-base font-bold leading-tight">Hostel</h3></div>
                             </div>
@@ -477,9 +477,9 @@
                             </div>
                         </div>
                     </a>
-                    <a href="ourproperty.html?type=pg" class="group block flex-shrink-0 snap-start w-102 md:w-164 lg:w-172 offering-card-item">
+                    <a href="ourproperty.html?type=pg" class="group block flex-shrink-0 snap-start offering-card-item offering-card-wide">
                         <div class="relative rounded-xl shadow-md hover:shadow-lg overflow-hidden h-40 sm:h-44 cursor-pointer offering-card transition-shadow duration-300">
-                            <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990226/roomhy/website/401230348.jpg" class="w-550px h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="PG">
+                            <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990226/roomhy/website/401230348.jpg" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="PG">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-500 group-hover:opacity-0">
                                 <div class="absolute bottom-0 left-0 right-0 p-4"><h3 class="text-white text-center text-sm sm:text-base font-bold leading-tight">PG</h3></div>
                             </div>
@@ -491,9 +491,9 @@
                             </div>
                         </div>
                     </a>
-                    <a href="ourproperty.html?type=apartment" class="group block flex-shrink-0 snap-start w-102 md:w-164 lg:w-172 offering-card-item">
+                    <a href="ourproperty.html?type=apartment" class="group block flex-shrink-0 snap-start offering-card-item offering-card-wide">
                         <div class="relative rounded-xl shadow-md hover:shadow-lg overflow-hidden h-40 sm:h-44 cursor-pointer offering-card transition-shadow duration-300">
-                            <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990264/roomhy/website/pg.jpg" class="w-550px h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="Apartment">
+                            <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990264/roomhy/website/pg.jpg" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="Apartment">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-500 group-hover:opacity-0">
                                 <div class="absolute bottom-0 left-0 right-0 p-4"><h3 class="text-white text-center text-sm sm:text-base font-bold leading-tight">Apartment</h3></div>
                             </div>
@@ -505,7 +505,7 @@
                             </div>
                         </div>
                     </a>
-                    <a href="list.html" class="group block flex-shrink-0 snap-start w-full md:w-64 lg:w-72 offering-card-item">
+                    <a href="list.html" class="group block flex-shrink-0 snap-start offering-card-item offering-card-compact">
                         <div class="relative rounded-xl shadow-md hover:shadow-lg overflow-hidden h-40 sm:h-44 cursor-pointer offering-card transition-shadow duration-300">
                             <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990266/roomhy/website/post.png" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" alt="List Your Property">
                             <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-500 group-hover:opacity-0">
@@ -751,75 +751,26 @@
 
     </main>
 
-    <!-- FLOATING CHAT BUTTON -->
-    <div id="floatingActionWrap" class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-        <button id="floatingActionBtn" type="button" class="is-guided relative flex h-16 w-16 items-center justify-center rounded-full bg-green-500 text-white shadow-[0_20px_45px_rgba(34,197,94,0.35)] transition-all duration-300 hover:scale-110 hover:bg-green-600" aria-label="Open bidding and chat options">
-            <span id="floatingDot" class="absolute -top-1 right-0 h-3.5 w-3.5 rounded-full bg-amber-300 ring-4 ring-white"></span>
-            <i data-lucide="message-circle" class="w-8 h-8"></i>
-        </button>
-        <div id="floatingCoachmark" class="relative max-w-[250px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-2xl opacity-100 visible translate-y-0 transition-all duration-300">
-            <div class="absolute -top-2 right-7 h-4 w-4 rotate-45 border-l border-t border-slate-200 bg-white"></div>
-            <div class="flex items-start gap-3">
-                <div id="pointingHand" class="text-3xl is-animating absolute -top-10 right-6 z-10">&#128070;</div>
-                <div class="pr-6"><p class="font-bold text-slate-900">Need help choosing?</p><p class="leading-5">Bid on your budget or chat to explore more.</p></div>
-            </div>
-        </div>
-        <div id="actionMenu" class="w-[250px] rounded-[24px] border border-gray-200 bg-white/95 p-3 shadow-2xl backdrop-blur-sm opacity-0 invisible translate-y-2 scale-95 pointer-events-none transition-all duration-300">
-            <button id="budgetActionBtn" type="button" class="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-blue-50">
-                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-100 text-blue-700 flex-shrink-0"><i data-lucide="zap" class="w-5 h-5"></i></span>
-                <span><span class="block text-sm font-bold text-gray-900">Bid on your budget</span><span class="block text-xs text-gray-500">Find rooms that fit your pocket</span></span>
-            </button>
-            <button id="chatExploreBtn" type="button" class="mt-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-green-50">
-                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-green-100 text-green-700 flex-shrink-0"><i data-lucide="message-circle" class="w-5 h-5"></i></span>
-                <span><span class="block text-sm font-bold text-gray-900">Chat to explore more</span><span class="block text-xs text-gray-500">Talk to us before you decide</span></span>
-            </button>
-        </div>
+    <!-- FLOATING BID BUTTON -->
+    <div id="floatingFastBiddingBtn" class="fixed bottom-5 right-5 z-50 transition-all duration-300">
+        <a
+            href="/website/fast-bidding"
+            class="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-900 shadow-[0_18px_45px_rgba(15,23,42,0.16)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(15,23,42,0.22)]"
+            aria-label="Open fast bidding page"
+        >
+            <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm transition-transform duration-300 group-hover:scale-105">
+                <i data-lucide="gavel" class="h-5 w-5"></i>
+            </span>
+            <span class="hidden sm:flex flex-col leading-tight">
+                <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Roomhy</span>
+                <span class="text-sm font-bold text-slate-900">Fast Bidding</span>
+                <span class="text-xs text-slate-500">Negotiate within budget</span>
+            </span>
+            <span class="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition-transform duration-300 group-hover:translate-x-1">
+                <i data-lucide="arrow-up-right" class="h-4 w-4"></i>
+            </span>
+        </a>
     </div>
-
-    <style>
-        @keyframes roomhyHandTap {
-            0%, 100% { transform: translate3d(0,0,0) rotate(0deg); }
-            30%       { transform: translate3d(10px,18px,0) rotate(-10deg); }
-            55%       { transform: translate3d(4px,8px,0) rotate(-4deg); }
-            80%       { transform: translate3d(10px,18px,0) rotate(-10deg); }
-        }
-        @keyframes roomhyCoachPulse {
-            0%, 100% { transform: scale(1); }
-            50%       { transform: scale(1.08); }
-        }
-        #pointingHand.is-animating { animation: roomhyHandTap 1.4s ease-in-out infinite; transform-origin: top center; }
-        #floatingActionBtn.is-guided { animation: roomhyCoachPulse 1.2s ease-in-out infinite; }
-        #floatingActionWrap { cursor: default; }
-    </style>
-
-    <script>
-        /* ── Floating action menu ── */
-        const floatingActionBtn  = document.getElementById('floatingActionBtn');
-        const actionMenu         = document.getElementById('actionMenu');
-        const budgetActionBtn    = document.getElementById('budgetActionBtn');
-        const chatExploreBtn     = document.getElementById('chatExploreBtn');
-        const floatingActionWrap = document.getElementById('floatingActionWrap');
-        const whatsappExploreUrl = 'https://wa.me/917413040868?text=' + encodeURIComponent('Hi');
-        let menuOpen = false;
-
-        function setFloatingMenu(open) {
-            menuOpen = open;
-            if (open) {
-                actionMenu.classList.remove('opacity-0','invisible','translate-y-2','scale-95','pointer-events-none');
-                actionMenu.classList.add('opacity-100','visible','translate-y-0','scale-100');
-                floatingActionBtn.classList.add('scale-110');
-            } else {
-                actionMenu.classList.add('opacity-0','invisible','translate-y-2','scale-95','pointer-events-none');
-                actionMenu.classList.remove('opacity-100','visible','translate-y-0','scale-100');
-                floatingActionBtn.classList.remove('scale-110');
-            }
-        }
-
-        floatingActionBtn.addEventListener('click', (e) => { e.stopPropagation(); setFloatingMenu(!menuOpen); });
-        budgetActionBtn.addEventListener('click', () => { window.location.href = 'fast-bidding.html'; });
-        chatExploreBtn.addEventListener('click', () => { window.open(whatsappExploreUrl, '_blank'); });
-        document.addEventListener('click', (e) => { if (!floatingActionWrap.contains(e.target)) setFloatingMenu(false); });
-    </script>
 
     <!-- FOOTER -->
     <footer class="footer container mx-auto px-4 sm:px-6 mt-16">

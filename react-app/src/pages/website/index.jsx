@@ -5,8 +5,6 @@ import { useHtmlPage } from "../../utils/htmlPage";
 import { buildOrganizationJsonLd, buildSeoConfig, buildWebsiteJsonLd } from "../../utils/websiteSeo";
 import { useWebsiteCommon } from "../../utils/websiteUi";
 
-const WHATSAPP_SUPPORT_NUMBER = "917413040868";
-
 const parseAttributes = (input = "") => {
   const attrs = {};
   const regex = /([^\s=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;
@@ -62,6 +60,96 @@ const rewriteBodyAssetPaths = (html) =>
     }
   );
 
+const serializeAttributes = (attrs = {}) =>
+  Object.entries(attrs)
+    .filter(([, value]) => value !== false && value != null)
+    .map(([key, value]) => (value === true ? key : `${key}="${String(value).replace(/"/g, "&quot;")}"`))
+    .join(" ");
+
+const optimizeImageSrc = (src, { width = 960, quality = 72 } = {}) => {
+  if (!src || typeof src !== "string") return src;
+
+  if (src.includes("images.unsplash.com/")) {
+    const normalized = src.replace("auto:format", "auto=format");
+    try {
+      const url = new URL(normalized);
+      url.searchParams.set("auto", "format");
+      url.searchParams.set("fit", "crop");
+      url.searchParams.set("q", String(quality));
+      url.searchParams.set("w", String(width));
+      return url.toString();
+    } catch {
+      return normalized;
+    }
+  }
+
+  if (src.includes("res.cloudinary.com/") && src.includes("/upload/")) {
+    const transform = `f_auto,q_auto,w_${width}`;
+    if (src.includes("/upload/f_auto")) return src;
+    return src.replace("/upload/", `/upload/${transform}/`);
+  }
+
+  return src;
+};
+
+const optimizeImageTag = (tag) => {
+  const match = tag.match(/^<img\b([^>]*)>$/i);
+  if (!match) return tag;
+
+  const attrs = parseAttributes(match[1] || "");
+  const alt = String(attrs.alt || "").toLowerCase();
+  const className = String(attrs.class || "");
+  const isLogo = alt.includes("logo");
+  const isHeroPrimary = alt.includes("hero background 1");
+  const isBackgroundVisual = isHeroPrimary || /^bg[123]$/.test(alt) || alt.includes("hero background");
+  const isCardImage = ["hostel", "pg", "apartment", "list your property"].includes(alt);
+
+  let width = 800;
+  let height = 600;
+
+  if (isLogo) {
+    width = 180;
+    height = 40;
+  } else if (isBackgroundVisual || className.includes("object-cover")) {
+    width = 1600;
+    height = 900;
+  } else if (isCardImage) {
+    width = 880;
+    height = 520;
+  }
+
+  attrs.decoding = "async";
+
+  if (isHeroPrimary) {
+    attrs.fetchpriority = "high";
+    attrs.loading = "eager";
+    attrs.src = optimizeImageSrc(attrs.src, { width: 1280, quality: 70 });
+  } else {
+    attrs.fetchpriority = "low";
+    attrs.loading = "lazy";
+    attrs.src = optimizeImageSrc(attrs.src, {
+      width: isLogo ? 240 : isBackgroundVisual ? 960 : 900,
+      quality: 68,
+    });
+  }
+
+  if (!attrs.width) attrs.width = width;
+  if (!attrs.height) attrs.height = height;
+
+  if (isBackgroundVisual) {
+    attrs.sizes = "100vw";
+  } else if (isCardImage) {
+    attrs.sizes = "(max-width: 768px) 100vw, 33vw";
+  } else if (isLogo) {
+    attrs.sizes = "180px";
+  }
+
+  return `<img ${serializeAttributes(attrs)}>`;
+};
+
+const optimizeBodyImages = (html) =>
+  html.replace(/<img\b[^>]*>/gi, (tag) => optimizeImageTag(tag));
+
 const extractTagAttributes = (tagName, source) => {
   const match = source.match(new RegExp(`<${tagName}\\b([^>]*)>`, "i"));
   return parseAttributes(match?.[1] || "");
@@ -103,8 +191,46 @@ const extractBodyContent = (source) => {
       'onclick="globalLogout()"'
     );
 
-  return rewriteBodyAssetPaths(cleanedBody).trim();
+  return optimizeBodyImages(rewriteBodyAssetPaths(cleanedBody)).trim();
 };
+
+const PERFORMANCE_STYLES = `
+  .html-page main > section {
+    content-visibility: auto;
+    contain-intrinsic-size: 900px;
+  }
+
+  .html-page #top-cities-categories,
+  .html-page #offerings,
+  .html-page #hero-image-wrapper,
+  .html-page #contact-us {
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
+  }
+
+  @media (max-width: 768px), (prefers-reduced-motion: reduce) {
+    .html-page .animate-kenburns,
+    .html-page .animate-slide-in,
+    .html-page .animate-slide-left-infinite,
+    .html-page .animate-slide-right-infinite,
+    .html-page .animate-dash-flow-dotted,
+    .html-page .animate-light-dot-move,
+    .html-page .animate-pulse-pop,
+    .html-page .animate-float-subtle {
+      animation: none !important;
+    }
+
+    .html-page [class*="transition-"] {
+      transition-duration: 0.01ms !important;
+    }
+
+    .html-page .animate-slide-in,
+    .html-page .card-animate {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+`;
 
 const title = templateHtml.match(/<title>([\s\S]*?)<\/title>/i)?.[1]?.trim() || "";
 const htmlAttrs = extractTagAttributes("html", templateHtml);
@@ -139,12 +265,7 @@ const scripts = scriptEntries
   }));
 const inlineScripts = scriptEntries
   .filter((entry) => !entry.attrs.src)
-  .map((entry) =>
-    entry.content.replace(
-      /https:\/\/wa\.me\/\d+\?text=/g,
-      `https://wa.me/${WHATSAPP_SUPPORT_NUMBER}?text=`
-    )
-  )
+  .map((entry) => entry.content)
   .filter(Boolean);
 const styles = extractWrappedTagEntries("style", templateHtml)
   .map((entry) => entry.content)
@@ -176,10 +297,17 @@ export default function WebsiteIndex() {
     bodyClass: bodyAttrs.class === true ? "" : bodyAttrs.class || "",
     htmlAttrs,
     metas: [...metas, ...seo.metas],
-    links: [...links, ...seo.links],
+    links: [
+      { rel: "preconnect", href: "https://res.cloudinary.com", crossorigin: true },
+      { rel: "preconnect", href: "https://images.unsplash.com", crossorigin: true },
+      { rel: "preconnect", href: "https://cdnjs.cloudflare.com", crossorigin: true },
+      { rel: "preconnect", href: "https://unpkg.com", crossorigin: true },
+      ...links,
+      ...seo.links
+    ],
     headScripts: seo.headScripts,
     scripts,
-    styles,
+    styles: [...styles, PERFORMANCE_STYLES],
     inlineScripts,
     scriptSequence,
   });

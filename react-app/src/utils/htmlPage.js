@@ -513,10 +513,14 @@ export const useHtmlPage = ({
       window._tailwindHelperInitialized = true;
     }
 
+    const currentPathName = window.location?.pathname || "";
+    const isWebsiteHtmlRoute = /^\/website(?:\/|$)/.test(currentPathName);
+    const shouldHideUntilReady = !isWebsiteHtmlRoute;
+
     // Reset fade-in effect for new page (remove css-ready class initially)
     // Note: Global CSS in the app index already hides .html-page by default with opacity: 0
     const htmlPageEl = document.querySelector(".html-page");
-    if (htmlPageEl) {
+    if (htmlPageEl && shouldHideUntilReady) {
       // Ensure css-ready is removed to reset opacity to 0
       htmlPageEl.classList.remove("css-ready");
       // Force a synchronous repaint to ensure page is hidden
@@ -592,10 +596,11 @@ export const useHtmlPage = ({
     });
 
     const forcedLinks = [];
-    const pathName = window.location?.pathname || "";
+    const pathName = currentPathName;
     const isSuperadminRoute = pathName.startsWith("/superadmin");
     const isEmployeeRoute = pathName.startsWith("/employee");
-    const isWebsiteHtmlRoute = isWebsiteRoute();
+    const isWebsiteHtmlRouteLegacy = isWebsiteRoute();
+    const preferLocalTailwindForWebsite = isWebsiteHtmlRouteLegacy && Boolean(window.__TAILWIND_LOCAL__);
     const isEmbed = (() => {
       try {
         return new URLSearchParams(window.location.search || "").get("embed") === "1";
@@ -744,7 +749,7 @@ export const useHtmlPage = ({
       .filter((script) => {
         if (!script?.src) return true;
         const isTailwindCdn = String(script.src).includes("cdn.tailwindcss.com");
-        if (isTailwindCdn && window.__TAILWIND_LOCAL__ && !isSuperadminRoute && !isWebsiteHtmlRoute) {
+        if (isTailwindCdn && preferLocalTailwindForWebsite) {
           return false;
         }
         return true;
@@ -771,7 +776,7 @@ export const useHtmlPage = ({
           if (entry.type === "external" && entry.attrs?.src) {
             const nextAttrs = { ...entry.attrs };
             const isTailwindCdn = String(nextAttrs.src).includes("cdn.tailwindcss.com");
-            if (isTailwindCdn && window.__TAILWIND_LOCAL__ && !isSuperadminRoute && !isWebsiteHtmlRoute) {
+            if (isTailwindCdn && preferLocalTailwindForWebsite) {
               return null;
             }
             if (isSuperadminRoute && nextAttrs.src.startsWith("./")) {
