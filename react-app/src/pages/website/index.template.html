@@ -321,20 +321,20 @@
                         <a href="contact.html" class="text-gray-600 hover:text-blue-600 font-medium transition-colors">Contact</a>
                     </nav>
                     <div class="relative hidden md:block">
-                        <a href="fast-bidding.html" id="fastBiddingBtn" class="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-semibold hover:shadow-lg transition-all flex items-center gap-1">
+                        <a href="fast-bidding.html" id="fastBiddingBtn" class="bg-blue-600 text-white border border-blue-600 px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-semibold hover:bg-blue-600 hover:shadow-lg transition-all flex items-center gap-1">
                             <i data-lucide="zap" class="w-4 h-4"></i> <span class="hidden sm:inline">Fast Bidding</span>
                         </a>
-                        <div id="fastBiddingPopup" class="absolute top-full mt-3 left-1/2 -translate-x-1/2 w-56 bg-white rounded-xl shadow-2xl border border-blue-100 p-4 opacity-0 invisible transition-all duration-300 z-50 pointer-events-none">
-                            <div class="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-blue-100 rounded-sm transform rotate-45"></div>
+                        <div id="fastBiddingPopup" class="absolute top-full mt-3 left-1/2 -translate-x-1/2 w-56 bg-white rounded-xl shadow-2xl border border-slate-200 p-4 opacity-0 invisible transition-all duration-300 z-50 pointer-events-none">
+                            <div class="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-t border-l border-slate-200 rounded-sm transform rotate-45"></div>
                             <div class="text-center">
                                 <div class="flex items-center justify-center mb-3">
-                                    <div class="p-2 bg-blue-100 rounded-full">
-                                        <i data-lucide="zap" class="w-6 h-6 text-blue-600"></i>
+                                    <div class="p-2 bg-blue-600 rounded-full">
+                                        <i data-lucide="zap" class="w-6 h-6 text-white"></i>
                                     </div>
                                 </div>
                                 <h3 class="font-bold text-gray-900 text-sm mb-1">Fast Bidding</h3>
                                 <p class="text-gray-600 text-xs leading-relaxed">Find and bid property based on your budget</p>
-                                <p class="text-blue-600 text-xs font-semibold mt-3">Click to explore →</p>
+                                <p class="text-slate-900 text-xs font-semibold mt-3">Click to explore →</p>
                             </div>
                         </div>
                     </div>
@@ -653,7 +653,7 @@
                     <p class="text-gray-600 mb-8 max-w-2xl mx-auto">Join hundreds of students who've already found their ideal accommodation through Roomhy. Start your bidding journey today!</p>
                     <div class="flex flex-col md:flex-row gap-4 justify-center">
                         <a href="ourproperty.html" class="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition-colors"><i data-lucide="search" class="w-5 h-5"></i>Explore Properties</a>
-                        <a href="fast-bidding.html" class="inline-flex items-center gap-2 bg-white hover:bg-gray-50 text-blue-600 font-bold py-3 px-8 rounded-xl border-2 border-blue-600 transition-colors"><i data-lucide="zap" class="w-5 h-5"></i>Try Fast Bidding</a>
+                        <a href="fast-bidding.html" class="inline-flex items-center gap-2 bg-slate-950 hover:bg-black text-white font-bold py-3 px-8 rounded-xl border border-slate-950 transition-colors"><i data-lucide="zap" class="w-5 h-5"></i>Try Fast Bidding</a>
                     </div>
                 </div>
             </div>
@@ -755,18 +755,18 @@
     <div id="floatingFastBiddingBtn" class="fixed bottom-5 right-5 z-50 transition-all duration-300">
         <a
             href="/website/fast-bidding"
-            class="group flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 py-3 text-slate-900 shadow-[0_18px_45px_rgba(15,23,42,0.16)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_50px_rgba(15,23,42,0.22)]"
+            class="group flex max-w-[13rem] items-center gap-3 rounded-2xl border border-slate-950 bg-slate-950 px-3 py-3 text-white shadow-[0_18px_45px_rgba(15,23,42,0.2)] transition-all duration-300 hover:-translate-y-1 hover:bg-black hover:shadow-[0_22px_50px_rgba(15,23,42,0.26)] sm:max-w-none sm:items-center"
             aria-label="Open fast bidding page"
         >
-            <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm transition-transform duration-300 group-hover:scale-105">
+            <span class="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-slate-950 shadow-sm transition-transform duration-300 group-hover:scale-105">
                 <i data-lucide="gavel" class="h-5 w-5"></i>
             </span>
-            <span class="hidden sm:flex flex-col leading-tight">
-                <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Roomhy</span>
-                <span class="text-sm font-bold text-slate-900">Fast Bidding</span>
-                <span class="text-xs text-slate-500">Negotiate within budget</span>
+            <span class="flex flex-col leading-tight">
+                <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300">Roomhy</span>
+                <span class="text-sm font-bold text-white">Fast Bidding</span>
+                <span class="hidden text-xs text-slate-300 sm:block">Negotiate within budget</span>
             </span>
-            <span class="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition-transform duration-300 group-hover:translate-x-1">
+            <span class="hidden sm:flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-950 transition-transform duration-300 group-hover:translate-x-1">
                 <i data-lucide="arrow-up-right" class="h-4 w-4"></i>
             </span>
         </a>

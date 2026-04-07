@@ -1,1 +1,0 @@
-import{u as p}from"./htmlPage-Ds81bKEl.js";const H=({title:a,metas:e=[],links:l=[],scripts:m=[],htmlAttrs:o={},bodyAttrs:s={},bases:u=[],styles:c=[],inlineScripts:t=[],disableMobileSidebar:f=!1}={})=>{p({title:a,metas:e,links:l,scripts:m,bases:u,styles:c,inlineScripts:t,htmlAttrs:o,bodyClass:s.class||s.className||"",disableMobileSidebar:f})};export{H as u};

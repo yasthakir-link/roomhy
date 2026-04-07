@@ -62,7 +62,7 @@ const toRoomBedArrays = (roomInventory = [], fallback = initialForm) => {
 export default function PropertyownerOwnerprofile() {
   useHtmlPage({
     title: "Roomhy - Owner Profile",
-    bodyClass: "text-slate-800",
+    bodyClass: "bg-slate-100 text-slate-800",
     htmlAttrs: { lang: "en" },
     metas: [
       { charset: "UTF-8" },
@@ -72,7 +72,8 @@ export default function PropertyownerOwnerprofile() {
       {
         href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
         rel: "stylesheet"
-      }
+      },
+      { rel: "stylesheet", href: "/propertyowner/assets/css/ownerprofile.css" }
     ],
     scripts: [{ src: "https://cdn.tailwindcss.com" }, { src: "https://unpkg.com/lucide@latest" }],
     inlineScripts: []
