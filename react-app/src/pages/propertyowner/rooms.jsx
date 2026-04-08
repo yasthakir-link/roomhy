@@ -1075,7 +1075,7 @@ export default function Rooms() {
       {errorMsg ? <div className="text-sm text-red-600 mb-4">{errorMsg}</div> : null}
 
       <div id="roomsGrid" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {!loading && vacantRooms.map((room) => {
+        {!loading && rooms.map((room) => {
           const beds = findVacantBeds(room);
           const roomOccupancy = getRoomOccupancyLabel(room);
           return (
@@ -1128,7 +1128,7 @@ export default function Rooms() {
         })}
       </div>
 
-      {!loading && vacantRooms.length === 0 ? (
+      {!loading && rooms.length === 0 ? (
         <div id="emptyState" className="flex flex-col items-center justify-center py-24 text-gray-400 bg-white rounded-xl border border-dashed border-gray-300">
           <div className="bg-purple-50 p-4 rounded-full mb-4">
             <i data-lucide="bed-double" className="w-10 h-10 text-purple-400"></i>

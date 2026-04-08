@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { fetchJson } from "../../utils/api";
 
 const DEFAULT_DESKTOP_ITEMS = [
   { href: "/propertyowner/admin", label: "Dashboard", icon: "layout-dashboard" },
@@ -85,7 +86,35 @@ export default function PropertyOwnerLayout({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [addAccountOpen, setAddAccountOpen] = useState(false);
+  const [newAccountLoginId, setNewAccountLoginId] = useState("");
+  const [newAccountPassword, setNewAccountPassword] = useState("");
+  const [addAccountError, setAddAccountError] = useState("");
+  const [addAccountLoading, setAddAccountLoading] = useState(false);
   const navConfig = useMemo(() => getPropertyOwnerNavConfig(navVariant), [navVariant]);
+
+  useEffect(() => {
+    let cancelled = false;
+    let attempts = 0;
+
+    const syncIcons = () => {
+      if (cancelled) return;
+      if (window.lucide?.createIcons) {
+        window.lucide.createIcons();
+        return;
+      }
+      attempts += 1;
+      if (attempts < 20) {
+        window.setTimeout(syncIcons, 50);
+      }
+    };
+
+    syncIcons();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, mobileOpen, notificationOpen, profileOpen, navVariant, headerVariant, notificationCount, notifications.length, showNotificationSettings]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -96,6 +125,83 @@ export default function PropertyOwnerLayout({
   const displayName = useMemo(() => owner?.name || owner?.ownerName || "Owner", [owner]);
   const ownerInitial = useMemo(() => String(displayName).charAt(0).toUpperCase() || "O", [displayName]);
   const accountLabel = useMemo(() => (owner?.loginId ? `Account: ${owner.loginId}` : "Property Owner"), [owner]);
+
+  const readLinkedAccounts = () => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = localStorage.getItem("roomhy_owner_accounts");
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  };
+
+  const writeLinkedAccounts = (accounts) => {
+    if (typeof window === "undefined") return;
+    try {
+      localStorage.setItem("roomhy_owner_accounts", JSON.stringify(accounts));
+    } catch (_) {
+      // ignore
+    }
+  };
+
+  const persistOwnerSession = (nextOwner) => {
+    if (!nextOwner) return;
+    const payload = JSON.stringify(nextOwner);
+    try {
+      sessionStorage.setItem("owner_session", payload);
+      localStorage.setItem("owner_session", payload);
+      sessionStorage.setItem("owner_user", payload);
+      localStorage.setItem("owner_user", payload);
+      sessionStorage.setItem("user", payload);
+      localStorage.setItem("user", payload);
+    } catch (_) {
+      // ignore
+    }
+  };
+
+  const addOwnerAccount = async (event) => {
+    event.preventDefault();
+    const loginId = String(newAccountLoginId || "").trim();
+    const password = String(newAccountPassword || "").trim();
+    if (!loginId || !password) {
+      setAddAccountError("Please enter login ID and password.");
+      return;
+    }
+
+    setAddAccountError("");
+    setAddAccountLoading(true);
+
+    try {
+      const data = await fetchJson("/api/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ identifier: loginId, password })
+      });
+      const nextOwner = data?.user || data?.owner || null;
+      if (!nextOwner?.loginId) {
+        throw new Error("Account not found.");
+      }
+
+      persistOwnerSession(nextOwner);
+
+      const currentAccounts = readLinkedAccounts();
+      const nextAccounts = [
+        { loginId: nextOwner.loginId, name: nextOwner.name || nextOwner.ownerName || "Owner" },
+        ...currentAccounts.filter((item) => String(item?.loginId || "").toUpperCase() !== String(nextOwner.loginId || "").toUpperCase())
+      ];
+      writeLinkedAccounts(nextAccounts);
+
+      setAddAccountOpen(false);
+      setNewAccountLoginId("");
+      setNewAccountPassword("");
+      window.location.href = "/propertyowner/admin";
+    } catch (error) {
+      setAddAccountError(error?.body || error?.message || "Failed to add account.");
+    } finally {
+      setAddAccountLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     if (typeof onLogout === "function") {
@@ -334,10 +440,59 @@ export default function PropertyOwnerLayout({
                   <div className="text-sm font-medium text-white">{displayName}</div>
                   <div className="text-[11px] text-gray-400">{owner?.loginId || "No account id"}</div>
                 </div>
-                <button type="button" className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  onClick={() => {
+                    setAddAccountOpen((prev) => !prev);
+                    setAddAccountError("");
+                  }}
+                >
                   <i data-lucide="plus" className="w-4 h-4"></i>
                   Add Account
                 </button>
+                {addAccountOpen && (
+                  <form onSubmit={addOwnerAccount} className="mt-3 space-y-3 rounded-lg border border-gray-800 bg-[#111827] p-3">
+                    <div>
+                      <input
+                        type="text"
+                        value={newAccountLoginId}
+                        onChange={(e) => setNewAccountLoginId(e.target.value)}
+                        placeholder="Login ID"
+                        className="w-full rounded-md border border-gray-700 bg-[#0f172a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <input
+                        type="password"
+                        value={newAccountPassword}
+                        onChange={(e) => setNewAccountPassword(e.target.value)}
+                        placeholder="Password"
+                        className="w-full rounded-md border border-gray-700 bg-[#0f172a] px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:border-blue-500 focus:outline-none"
+                      />
+                    </div>
+                    {addAccountError ? <p className="text-xs text-red-400">{addAccountError}</p> : null}
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={addAccountLoading}
+                        className="flex-1 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {addAccountLoading ? "Adding..." : "Add & Switch"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddAccountOpen(false);
+                          setAddAccountError("");
+                        }}
+                        className="rounded-md border border-gray-700 px-3 py-2 text-sm font-semibold text-gray-300 hover:bg-[#0f172a]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             )}
           </nav>

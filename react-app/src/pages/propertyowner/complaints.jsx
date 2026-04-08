@@ -41,6 +41,110 @@ const priorityBadge = (p) => {
   return map[p] || "bg-gray-50 text-gray-500";
 };
 
+const readJson = (key, fallback) => {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+const getPropertyAliases = (property = {}) => [
+  property?._id,
+  property?.id,
+  property?.propertyId,
+  property?.title,
+  property?.name,
+  property?.propertyName,
+  property?.area,
+  property?.city,
+  property?.locationCode
+]
+  .map(normalizeText)
+  .filter(Boolean);
+
+const getOwnerPropertyIndex = (ownerLoginId) => {
+  const ownerId = String(ownerLoginId || "").trim().toUpperCase();
+  const cachedProperties = readJson("roomhy_properties", []);
+  const cachedRooms = readJson("roomhy_rooms", []);
+  const properties = [
+    ...cachedProperties,
+    ...cachedRooms.map((room) => ({
+      _id: room?.propertyId || room?.property?._id || room?.property?.id || "",
+      id: room?.propertyId || room?.property?._id || room?.property?.id || "",
+      propertyId: room?.propertyId || room?.property?._id || room?.property?.id || "",
+      title: room?.propertyTitle || room?.property?.title || "",
+      name: room?.propertyTitle || room?.property?.title || "",
+      propertyName: room?.propertyTitle || room?.property?.title || "",
+      area: room?.property?.area || room?.area || "",
+      city: room?.property?.city || room?.city || "",
+      locationCode: room?.property?.locationCode || room?.locationCode || "",
+      ownerLoginId: room?.ownerLoginId || room?.ownerId || room?.owner || ""
+    }))
+  ].filter((item) => {
+    const itemOwner = String(item?.ownerLoginId || item?.ownerId || item?.owner || "").trim().toUpperCase();
+    return !ownerId || !itemOwner || itemOwner === ownerId;
+  });
+
+  const ids = new Set();
+  const aliases = new Set();
+  properties.forEach((property) => {
+    [property?._id, property?.id, property?.propertyId].forEach((value) => {
+      const normalized = normalizeText(value);
+      if (normalized) ids.add(normalized);
+    });
+    getPropertyAliases(property).forEach((alias) => aliases.add(alias));
+  });
+
+  return { ids, aliases };
+};
+
+const matchesOwner = (complaint, ownerLoginId, propertyIndex) => {
+  const ownerId = String(ownerLoginId || "").trim().toUpperCase();
+  if (!ownerId) return false;
+  const complaintPropertyId = normalizeText(complaint?.propertyId || complaint?.property_id || complaint?.property?.id || complaint?.property?._id || complaint?.property?.propertyId || "");
+  const candidates = [
+    complaint?.ownerLoginId,
+    complaint?.ownerId,
+    complaint?.owner_id,
+    complaint?.owner_login_id,
+    complaint?.propertyOwnerId,
+    complaint?.property?.ownerLoginId,
+    complaint?.property?.ownerId,
+    complaint?.property?.owner,
+    complaint?.property?.owner_id,
+    complaint?.propertyId,
+    complaint?.property_id,
+    complaint?.property?.id,
+    complaint?.property?._id
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).trim().toUpperCase());
+  if (candidates.includes(ownerId)) return true;
+  if (!propertyIndex) return false;
+
+  if (complaintPropertyId && propertyIndex.ids.has(complaintPropertyId)) return true;
+
+  const complaintAliases = [
+    complaint?.property,
+    complaint?.propertyName,
+    complaint?.title,
+    complaint?.name,
+    complaint?.area,
+    complaint?.locationCode,
+    complaint?.city,
+    complaint?.address
+  ]
+    .map(normalizeText)
+    .filter(Boolean);
+
+  return complaintAliases.some((alias) => propertyIndex.aliases.has(alias));
+};
+
 export default function Complaints() {
   useHtmlPage({
     title: "Roomhy - Tenant Complaints Management",
@@ -60,6 +164,7 @@ export default function Complaints() {
 
   const [owner, setOwner] = useState(null);
   const [complaints, setComplaints] = useState([]);
+  const [propertyIndex, setPropertyIndex] = useState({ ids: new Set(), aliases: new Set() });
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
   const [filter, setFilter] = useState("all");
@@ -76,20 +181,45 @@ export default function Complaints() {
     const session = requireOwnerSession();
     if (!session) return;
     setOwner(session);
-    loadComplaints(session);
+    (async () => {
+      const ownerProperties = await loadOwnerProperties(session);
+      setPropertyIndex(getOwnerPropertyIndex(session.loginId || session.ownerId || ""));
+      loadComplaints(session, ownerProperties);
+    })();
   }, []);
 
-  const loadComplaints = async (session) => {
+  const loadOwnerProperties = async (session) => {
+    const ownerSession = session || owner;
+    if (!ownerSession) return [];
+    try {
+      const data = await fetchJson(`/api/owners/${encodeURIComponent(ownerSession.loginId || ownerSession.ownerId || "")}/properties`);
+      const list = Array.isArray(data?.properties) ? data.properties : [];
+      return list;
+    } catch (_) {
+      return [];
+    }
+  };
+
+  const loadComplaints = async (session, ownerProperties = []) => {
     const ownerSession = session || owner;
     if (!ownerSession) return;
     try {
       setLoading(true);
-      // Fetch complaints filtered by ownerLoginId
-      const data = await fetchJson(
-        `/api/complaints?ownerLoginId=${encodeURIComponent(ownerSession.loginId || ownerSession.ownerId || "")}`
-      );
+      const data = await fetchJson("/api/complaints");
       const list = Array.isArray(data) ? data : data?.complaints || data?.data || [];
-      setComplaints(list);
+      const nextIndex = {
+        ids: new Set([
+          ...Array.from(getOwnerPropertyIndex(ownerSession.loginId || ownerSession.ownerId || "").ids),
+          ...ownerProperties.flatMap((property) => getPropertyAliases(property).filter(Boolean))
+        ].map(normalizeText).filter(Boolean)),
+        aliases: new Set([
+          ...Array.from(getOwnerPropertyIndex(ownerSession.loginId || ownerSession.ownerId || "").aliases),
+          ...ownerProperties.flatMap((property) => getPropertyAliases(property))
+        ].map(normalizeText).filter(Boolean))
+      };
+      const filteredList = list.filter((complaint) => matchesOwner(complaint, ownerSession.loginId || ownerSession.ownerId || "", nextIndex));
+      setComplaints(filteredList);
+      setPropertyIndex(nextIndex);
     } catch (err) {
       setErrorMsg(err?.body || err?.message || "Failed to load complaints.");
     } finally {
@@ -168,7 +298,10 @@ export default function Complaints() {
           <p className="text-gray-500 mt-1 text-sm">Manage and resolve complaints from your tenants.</p>
         </div>
         <button
-          onClick={() => loadComplaints(owner)}
+          onClick={async () => {
+            const ownerProperties = await loadOwnerProperties(owner);
+            await loadComplaints(owner, ownerProperties);
+          }}
           className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 border border-slate-200 px-3 py-2 rounded-lg hover:bg-slate-50 transition"
         >
           <i data-lucide="refresh-cw" className="w-4 h-4"></i> Refresh

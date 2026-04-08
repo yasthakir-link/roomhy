@@ -34,6 +34,18 @@ const priorityColor = (p) => {
   return map[p] || "text-slate-500";
 };
 
+const resolveOwnerLoginId = (tenantRecord = {}) =>
+  String(
+    tenantRecord.ownerLoginId ||
+    tenantRecord.ownerId ||
+    tenantRecord.owner_id ||
+    tenantRecord.property?.ownerLoginId ||
+    tenantRecord.property?.ownerId ||
+    tenantRecord.property?.owner ||
+    tenantRecord.owner ||
+    ""
+  ).trim().toUpperCase();
+
 export default function Tenantcomplints() {
   useHtmlPage({
     title: "Roomhy - My Complaints & Requests",
@@ -90,8 +102,16 @@ export default function Tenantcomplints() {
         (t) => String(t.loginId || "").toUpperCase() === String(stored.loginId || "").toUpperCase()
       );
       if (!match) throw new Error("Tenant profile not found.");
-      setTenant(match);
-      return match;
+      const nextTenant = {
+        ...stored,
+        ...match,
+        ownerLoginId: resolveOwnerLoginId(match) || resolveOwnerLoginId(stored),
+        propertyId: match.propertyId || match.property?._id || stored.propertyId || stored.property?._id || "",
+        roomNo: match.roomNo || stored.roomNo || stored.roomNumber || "",
+        bedNo: match.bedNo || stored.bedNo || ""
+      };
+      setTenant(nextTenant);
+      return nextTenant;
     } catch (err) {
       setErrorMsg(err?.body || err?.message || "Failed to load tenant data.");
       return null;
@@ -152,7 +172,7 @@ export default function Tenantcomplints() {
           tenantEmail: tenant.email,
           property: tenant.propertyTitle || tenant.property?.title,
           propertyId: tenant.propertyId || tenant.property?._id,
-          ownerLoginId: tenant.ownerLoginId,
+          ownerLoginId: resolveOwnerLoginId(tenant),
           roomNo: tenant.roomNo,
           bedNo: tenant.bedNo,
           category: minorCategory,
@@ -205,7 +225,7 @@ export default function Tenantcomplints() {
           tenantEmail: tenant.email,
           property: tenant.propertyTitle || tenant.property?.title,
           propertyId: tenant.propertyId || tenant.property?._id,
-          ownerLoginId: tenant.ownerLoginId,
+          ownerLoginId: resolveOwnerLoginId(tenant),
           roomNo: tenant.roomNo,
           bedNo: tenant.bedNo,
           category: "Major Issue",

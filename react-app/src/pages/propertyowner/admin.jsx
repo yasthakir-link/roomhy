@@ -9,6 +9,74 @@ import {
   getOwnerRuntimeSession
 } from "../../utils/propertyowner";
 
+const readJson = (key, fallback) => {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const isPlaceholderTenantName = (value) => {
+  const normalized = String(value || "").trim().toLowerCase();
+  return !normalized || normalized === "occupied" || normalized === "tenant" || normalized === "unknown";
+};
+
+const toLegacyBeds = (room) => {
+  if (Array.isArray(room?.beds)) return room.beds;
+  const bedCount = Number(room?.beds || room?.capacity || room?.totalBeds || room?.bedCount || 0);
+  return Array.from({ length: bedCount > 0 ? bedCount : 0 }, (_, index) => {
+    const assignment = room?.bedAssignments?.[index] || room?.bedsInfo?.[index] || null;
+    return assignment && (assignment.tenantName || assignment.name || assignment.loginId || assignment.tenantId)
+      ? {
+          status: "occupied",
+          tenantId: assignment.tenantId || assignment.loginId || assignment._id || assignment.id || null,
+          tenantName: assignment.tenantName || assignment.name || "Tenant"
+        }
+      : { status: "available", tenantId: null, tenantName: null };
+  });
+};
+
+const isBedOccupied = (bed) => {
+  if (!bed) return false;
+  const status = String(bed.status || "").trim().toLowerCase();
+  if (status === "available" || status === "vacant" || status === "empty") return false;
+  if (status === "occupied" && (bed?.tenantId || bed?.loginId || !isPlaceholderTenantName(bed?.tenantName || bed?.name))) {
+    return true;
+  }
+  return Boolean(
+    bed?.tenantId ||
+    bed?.loginId ||
+    (bed?.tenantName && !isPlaceholderTenantName(bed.tenantName)) ||
+    (bed?.name && !isPlaceholderTenantName(bed.name))
+  );
+};
+
+const summarizeOccupancy = (rooms = []) => {
+  const summary = {
+    vacantRooms: 0,
+    occupiedRooms: 0,
+    vacantBeds: 0,
+    occupiedBeds: 0,
+    totalRooms: 0
+  };
+
+  (Array.isArray(rooms) ? rooms : []).forEach((room) => {
+    const beds = toLegacyBeds(room);
+    const occupiedBeds = beds.filter((bed) => isBedOccupied(bed)).length;
+    const vacantBeds = Math.max(0, beds.length - occupiedBeds);
+    summary.totalRooms += 1;
+    summary.occupiedBeds += occupiedBeds;
+    summary.vacantBeds += vacantBeds;
+    if (occupiedBeds > 0) summary.occupiedRooms += 1;
+    else summary.vacantRooms += 1;
+  });
+
+  return summary;
+};
+
 export default function Admin() {
   useHtmlPage({
     title: "Roomhy - Owner Dashboard",
@@ -31,6 +99,13 @@ export default function Admin() {
   const [tenantsCount, setTenantsCount] = useState(0);
   const [rentTotal, setRentTotal] = useState(0);
   const [enquiries, setEnquiries] = useState([]);
+  const [occupancySummary, setOccupancySummary] = useState({
+    vacantRooms: 0,
+    occupiedRooms: 0,
+    vacantBeds: 0,
+    occupiedBeds: 0,
+    totalRooms: 0
+  });
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -55,7 +130,14 @@ export default function Admin() {
         fetchJson(`/api/owners/${encodeURIComponent(loginId)}/enquiries`)
       ]);
       setOwner((prev) => ({ ...prev, ...(ownerRes || {}) }));
-      setRoomsCount((roomsRes?.rooms || []).length);
+      const roomList = Array.isArray(roomsRes?.rooms) && roomsRes.rooms.length > 0
+        ? roomsRes.rooms
+        : readJson("roomhy_rooms", []).filter((room) => {
+            const candidateOwner = String(room?.ownerLoginId || room?.ownerId || room?.owner || "").toUpperCase();
+            return !candidateOwner || candidateOwner === String(loginId || "").toUpperCase();
+          });
+      setRoomsCount(roomList.length);
+      setOccupancySummary(summarizeOccupancy(roomList));
       setTenantsCount((Array.isArray(tenantsRes) ? tenantsRes : tenantsRes?.tenants || []).length);
       setRentTotal(rentRes?.totalRent || 0);
       setEnquiries(Array.isArray(enquiryRes) ? enquiryRes : enquiryRes?.enquiries || []);
@@ -89,6 +171,23 @@ export default function Admin() {
       setErrorMsg(err?.body || err?.message || "Failed to update enquiry.");
     }
   };
+
+  const chartTotal = Math.max(
+    Number(roomsCount || 0),
+    Number(occupancySummary.totalRooms || 0),
+    Number((occupancySummary.occupiedRooms || 0) + (occupancySummary.vacantRooms || 0))
+  );
+  const occupiedRooms = Math.min(Number(occupancySummary.occupiedRooms || 0), chartTotal);
+  const notOccupiedRooms = Math.max(chartTotal - occupiedRooms, 0);
+  const occupiedPercent = chartTotal ? Math.round((occupiedRooms / chartTotal) * 100) : 0;
+  const notOccupiedPercent = chartTotal ? Math.round((notOccupiedRooms / chartTotal) * 100) : 0;
+  const pieStyle = chartTotal
+    ? {
+        background: `conic-gradient(#a855f7 0% ${occupiedPercent}%, #e5e7eb ${occupiedPercent}% 100%)`
+      }
+    : {
+        background: "conic-gradient(#cbd5e1 0% 100%)"
+      };
 
   return (
     <PropertyOwnerLayout
@@ -146,19 +245,60 @@ export default function Admin() {
       </div>
 
       <div className="grid grid-cols-1 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-          <div className="flex justify-between items-center mb-6">
+        <div className="owner-occupancy-card bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+          <div className="owner-occupancy-header flex justify-between items-center mb-6">
             <h3 className="font-bold text-gray-800">Occupancy Overview</h3>
             <select className="text-xs border-gray-300 rounded text-gray-600">
               <option>This Month</option>
               <option>Last Month</option>
             </select>
           </div>
-          <div className="h-64 w-full flex items-center justify-center bg-gray-50 rounded border border-dashed border-gray-300">
-            <p className="text-gray-400 text-sm flex items-center gap-2">
-              <i data-lucide="bar-chart-2" className="w-5 h-5"></i>
-              Chart Data Loading...
-            </p>
+          <div
+            className="owner-occupancy-grid grid grid-cols-1 gap-6 items-center"
+            style={{ gridTemplateColumns: "minmax(0, 280px) minmax(0, 1fr)" }}
+          >
+            <div className="owner-occupancy-chart-wrap flex items-center justify-center">
+              <div className="owner-occupancy-donut relative h-64 w-64">
+                <div className="absolute inset-0 rounded-full shadow-inner" style={pieStyle}></div>
+                <div className="owner-occupancy-donut-center absolute inset-[22%] rounded-full bg-white border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center px-4">
+                  <p className="text-[11px] uppercase tracking-wider text-gray-400">Owner Rooms</p>
+                  <p className="text-2xl font-bold text-gray-900">{chartTotal || 0}</p>
+                  <p className="text-xs text-gray-500">total from data</p>
+                </div>
+              </div>
+            </div>
+            <div className="owner-occupancy-details space-y-4">
+              <div className="owner-occupancy-stats grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl border border-purple-100 bg-purple-50 p-4">
+                  <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Occupied</p>
+                  <p className="mt-2 text-2xl font-bold text-purple-900">{occupiedRooms}</p>
+                  <p className="text-xs text-purple-600">{occupiedPercent}% of rooms</p>
+                </div>
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Not Occupied</p>
+                  <p className="mt-2 text-2xl font-bold text-gray-900">{notOccupiedRooms}</p>
+                  <p className="text-xs text-gray-500">{notOccupiedPercent}% of rooms</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Total</p>
+                  <p className="mt-2 text-2xl font-bold text-slate-900">{chartTotal || 0}</p>
+                  <p className="text-xs text-slate-500">rooms tracked</p>
+                </div>
+              </div>
+              <div className="owner-occupancy-legend flex flex-wrap gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-purple-500"></span>
+                  <span className="text-gray-600">Occupied rooms</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full bg-gray-300"></span>
+                  <span className="text-gray-600">Not occupied rooms</span>
+                </div>
+              </div>
+              <p className="owner-occupancy-note text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                This pie chart shows owner room data at a glance, so you can quickly see how many rooms are occupied and how many are not occupied.
+              </p>
+            </div>
           </div>
         </div>
       </div>
