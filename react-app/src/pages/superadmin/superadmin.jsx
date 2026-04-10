@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useHeadAssets } from "../../utils/useHeadAssets.js";
 import { useTailwindProcessor } from "../../utils/useTailwindProcessor.js";
@@ -277,6 +278,240 @@ const bodyHtml = `<!-- Mobile Overlay -->
 export default function SuperadminSuperadminPage() {
   useHeadAssets({ title, metas, links, scripts, htmlAttrs, bodyAttrs });
   useTailwindProcessor();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const asList = (value) => {
+      if (Array.isArray(value)) return value;
+      if (value && Array.isArray(value.data)) return value.data;
+      if (value && Array.isArray(value.tenants)) return value.tenants;
+      if (value && Array.isArray(value.owners)) return value.owners;
+      if (value && Array.isArray(value.properties)) return value.properties;
+      if (value && Array.isArray(value.rents)) return value.rents;
+      if (value && Array.isArray(value.users)) return value.users;
+      return [];
+    };
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (!el || cancelled) return;
+      el.textContent = value;
+    };
+
+    const renderRecentSignups = (tenants) => {
+      const signupList = document.getElementById("recent-signups-list");
+      if (!signupList || cancelled) return;
+
+      const recent = asList(tenants).slice(-5).reverse();
+      if (!recent.length) {
+        signupList.innerHTML =
+          '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400">No recent signups found</td></tr>';
+        return;
+      }
+
+      signupList.innerHTML = recent
+        .map((user) => {
+          const name = String(user?.name || user?.firstName || user?.fullName || "User").trim();
+          const initial = name.charAt(0).toUpperCase() || "U";
+          const status = String(user?.kycStatus || user?.status || "pending").toLowerCase();
+          const statusClass = status === "verified"
+            ? "bg-green-100 text-green-700"
+            : status === "rejected"
+              ? "bg-red-100 text-red-700"
+              : "bg-yellow-100 text-yellow-700";
+          return `
+            <tr class="hover:bg-slate-50 transition-colors">
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xs">
+                    ${initial}
+                  </div>
+                  <span class="text-sm font-bold text-slate-700">${name}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4 text-sm text-slate-500 capitalize">${String(user?.role || "tenant")}</td>
+              <td class="px-6 py-4 text-sm text-slate-500">${user?.moveInDate || user?.createdAt?.slice?.(0, 10) || "Today"}</td>
+              <td class="px-6 py-4">
+                <span class="px-2 py-1 rounded-full text-[10px] font-bold ${statusClass} uppercase">
+                  ${status}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <button class="text-slate-400 hover:text-purple-600"><i data-lucide="eye" class="w-4 h-4"></i></button>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      window.lucide?.createIcons?.();
+    };
+
+    const destroyChart = (chart) => {
+      if (chart && typeof chart.destroy === "function") {
+        chart.destroy();
+      }
+    };
+
+    const renderCharts = (months, monthBuckets, tenants, owners) => {
+      if (cancelled || typeof window.Chart !== "function") return;
+
+      const revenueCanvas = document.getElementById("revenueChart");
+      const distributionCanvas = document.getElementById("userDistChart");
+      if (!revenueCanvas || !distributionCanvas) return;
+
+      const chartMonths = Array.isArray(months) && months.length ? months : ["Jun", "Jul", "Aug", "Sep", "Oct", "Nov"];
+      const chartValues = chartMonths.map((month) => Math.round(monthBuckets?.[month] || 0));
+
+      destroyChart(window.revenueChartInstance);
+      destroyChart(window.userDistChartInstance);
+
+      window.revenueChartInstance = new window.Chart(revenueCanvas.getContext("2d"), {
+        type: "line",
+        data: {
+          labels: chartMonths,
+          datasets: [
+            {
+              label: "Revenue (₹)",
+              data: chartValues.some((value) => value > 0) ? chartValues : [120000, 190000, 170000, 250000, 310000, 425000],
+              borderColor: "#a855f7",
+              tension: 0.4,
+              fill: true,
+              backgroundColor: "rgba(168, 85, 247, 0.1)",
+              pointRadius: 4,
+              pointBackgroundColor: "#a855f7"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { grid: { color: "#f1f5f9" }, ticks: { font: { size: 10 } } },
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+
+      const tenantsCount = Array.isArray(tenants) ? tenants.length : 0;
+      const ownersCount = Array.isArray(owners) ? owners.length : 0;
+      const staffCount = Math.max(1, Math.round((tenantsCount + ownersCount) * 0.15) || 1);
+
+      window.userDistChartInstance = new window.Chart(distributionCanvas.getContext("2d"), {
+        type: "doughnut",
+        data: {
+          labels: ["Tenants", "Owners", "Staff"],
+          datasets: [
+            {
+              data: [tenantsCount, ownersCount, staffCount],
+              backgroundColor: ["#a855f7", "#3b82f6", "#f59e0b"],
+              borderWidth: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "70%",
+          plugins: { legend: { position: "bottom", labels: { boxWidth: 10, font: { size: 10 } } } }
+        }
+      });
+    };
+
+    const loadLiveDashboard = async () => {
+      try {
+        const apiUrl =
+          window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+            ? "http://localhost:5001"
+            : "https://api.roomhy.com";
+        const token =
+          localStorage.getItem("token") ||
+          localStorage.getItem("areaAdminToken") ||
+          localStorage.getItem("superAdminToken") ||
+          "";
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const loadJson = async (path) => {
+          const res = await fetch(`${apiUrl}${path}`, { headers });
+          const text = await res.text();
+          let data = {};
+          try {
+            data = text ? JSON.parse(text) : {};
+          } catch {
+            data = {};
+          }
+          if (!res.ok) {
+            throw new Error(`Request failed: ${res.status}`);
+          }
+          return data;
+        };
+
+        const [tenantsRes, ownersRes, propertiesRes, rentsRes] = await Promise.allSettled([
+          loadJson("/api/tenants"),
+          loadJson("/api/owners"),
+          loadJson("/api/approved-properties/public/approved"),
+          loadJson("/api/rents")
+        ]);
+
+        const tenants = tenantsRes.status === "fulfilled" ? asList(tenantsRes.value) : JSON.parse(localStorage.getItem("roomhy_tenants") || "[]");
+        const owners = ownersRes.status === "fulfilled"
+          ? asList(ownersRes.value)
+          : Object.values(JSON.parse(localStorage.getItem("roomhy_owners_db") || "{}"));
+        const properties = propertiesRes.status === "fulfilled"
+          ? asList(propertiesRes.value)
+          : JSON.parse(localStorage.getItem("roomhy_properties") || "[]");
+        const rents = rentsRes.status === "fulfilled" ? asList(rentsRes.value) : [];
+
+        setText("stat-tenants", String(asList(tenants).length));
+        setText("stat-properties", String(asList(properties).length));
+        setText("stat-owners", String(asList(owners).length));
+
+        let totalBookingAmount = 0;
+        let platformCommission = 0;
+        let serviceFee = 0;
+        const monthBuckets = {};
+
+        asList(rents).forEach((rent) => {
+          const rentAmount = Number(rent?.rentAmount || rent?.totalDue || 0);
+          const commission = Number(rent?.commissionAmount || rentAmount * 0.1 || 0);
+          const fee = Number(rent?.serviceFeeAmount || 50);
+          const month = String(rent?.collectionMonth || rent?.paidAt || rent?.createdAt || "").slice(0, 7) || "Unknown";
+
+          totalBookingAmount += rentAmount;
+          platformCommission += commission;
+          serviceFee += fee;
+          monthBuckets[month] = (monthBuckets[month] || 0) + commission + fee;
+        });
+
+        const formatCurrency = (value) => `₹${Math.round(Number(value || 0)).toLocaleString()}`;
+        setText("booking-amount", formatCurrency(totalBookingAmount));
+        setText("platform-commission", formatCurrency(platformCommission));
+        setText("service-fee", formatCurrency(serviceFee));
+        setText("net-revenue", formatCurrency(platformCommission + serviceFee));
+        setText("stat-revenue", formatCurrency(platformCommission + serviceFee));
+
+        const months = Object.keys(monthBuckets).slice(-6);
+        if (window.revenueChartInstance && months.length) {
+          window.revenueChartInstance.data.labels = months;
+          window.revenueChartInstance.data.datasets[0].data = months.map((month) => Math.round(monthBuckets[month] || 0));
+          window.revenueChartInstance.update();
+        }
+
+        renderCharts(months, monthBuckets, tenants, owners);
+        renderRecentSignups(tenants);
+        window.lucide?.createIcons?.();
+      } catch (error) {
+        console.error("Failed to load superadmin dashboard data:", error);
+      }
+    };
+
+    const timer = window.setTimeout(loadLiveDashboard, 150);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const runDashboardInit = () => {

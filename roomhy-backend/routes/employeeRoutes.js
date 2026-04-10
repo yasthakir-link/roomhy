@@ -190,7 +190,7 @@ router.post('/', async (req, res) => {
                     role === 'areamanager' ? 'Area Manager' : 'Employee'
                 );
                 if (!emailSent) {
-                    emailError = 'Credential email delivery failed (Mailjet not configured or provider rejected request)';
+                    emailError = 'Credential email delivery failed (SMTP not configured or provider rejected request)';
                     console.warn('Mail send failed for employee:', loginId, email);
                 }
             } else {

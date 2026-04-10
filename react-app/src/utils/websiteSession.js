@@ -9,6 +9,11 @@ export const getWebsiteApiUrl = () =>
     ? "http://localhost:5001"
     : "https://api.roomhy.com";
 
+const notifyWebsiteSessionChange = () => {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("roomhy:website-session-changed"));
+};
+
 const safeParse = (value) => {
   if (!value) return null;
   try {
@@ -77,6 +82,7 @@ export const setWebsiteSession = (user, token) => {
       localStorage.setItem(TOKEN_KEY, safeToken);
       sessionStorage.setItem(TOKEN_KEY, safeToken);
     }
+    notifyWebsiteSessionChange();
   } catch (error) {
     console.error("Failed to store website session:", error);
   }
@@ -95,6 +101,7 @@ export const clearWebsiteSession = () => {
     sessionStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     sessionStorage.removeItem(USER_KEY);
+    notifyWebsiteSessionChange();
   } catch (error) {
     console.error("Failed to clear website session:", error);
   }
@@ -115,7 +122,10 @@ export const getWebsiteUserId = () => {
 export const getWebsiteUserName = () => {
   const user = getWebsiteUser();
   if (!user) return "Guest";
-  return user.firstName || user.name || user.fullName || "User";
+  const firstName = user.firstName || user.givenName || "";
+  const lastName = user.lastName || user.surname || "";
+  const combinedName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  return combinedName || user.name || user.fullName || "User";
 };
 
 export const getWebsiteUserEmail = () => {

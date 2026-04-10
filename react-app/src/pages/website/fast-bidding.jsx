@@ -10,7 +10,7 @@ import {
   getWebsiteUserName,
   isWebsiteLoggedIn
 } from "../../utils/websiteSession";
-import { useLucideIcons, useWebsiteCommon } from "../../utils/websiteUi";
+import { useLucideIcons, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
 
 const defaultCities = [
   { _id: "kota", name: "Kota, Rajasthan" },
@@ -33,13 +33,13 @@ const fallbackAreasByCity = {
 
 export default function WebsiteFastBidding() {
   useWebsiteCommon();
+  useWebsiteMenu();
 
   const apiUrl = useMemo(() => getWebsiteApiUrl(), []);
   const [citiesData, setCitiesData] = useState([]);
   const [areasData, setAreasData] = useState([]);
   const [propertiesData, setPropertiesData] = useState([]);
   const [loadingProperties, setLoadingProperties] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
   const [showSignupModal, setShowSignupModal] = useState(false);
   const [signupEmail, setSignupEmail] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -55,7 +55,7 @@ export default function WebsiteFastBidding() {
     maxPrice: ""
   });
 
-  useLucideIcons([citiesData, areasData, propertiesData, selectedIds, showSignupModal, showSuccessModal]);
+  useLucideIcons([citiesData, areasData, propertiesData, showSignupModal, showSuccessModal]);
 
   useEffect(() => {
     const user = getWebsiteUser();
@@ -161,8 +161,10 @@ export default function WebsiteFastBidding() {
         });
 
         setPropertiesData(filtered);
+        setSuccessCount(filtered.length);
       } catch (error) {
         setPropertiesData([]);
+        setSuccessCount(0);
       } finally {
         setLoadingProperties(false);
       }
@@ -173,13 +175,6 @@ export default function WebsiteFastBidding() {
   const handleFormChange = (event) => {
     const { id, value } = event.target;
     setForm((prev) => ({ ...prev, [id]: value }));
-  };
-
-  const toggleProperty = (propertyId) => {
-    setSelectedIds((prev) => {
-      if (prev.includes(propertyId)) return prev.filter((id) => id !== propertyId);
-      return [...prev, propertyId];
-    });
   };
 
   const validateForm = () => {
@@ -204,13 +199,13 @@ export default function WebsiteFastBidding() {
       return;
     }
 
-    if (selectedIds.length === 0) {
-      window.alert("Please select at least one property to bid on");
+    if (propertiesData.length === 0) {
+      window.alert("No matching properties found in this area");
       return;
     }
 
     setShowSuccessModal(true);
-    setSuccessCount(selectedIds.length);
+    setSuccessCount(propertiesData.length);
 
     const userId = getWebsiteUserId() || (getWebsiteUser()?.loginId || "");
     if (form.gmail) {
@@ -225,10 +220,13 @@ export default function WebsiteFastBidding() {
     const bidMinValue = parseInt(form.minPrice || 0, 10);
     const bidMaxValue = parseInt(form.maxPrice || 0, 10);
 
-    for (const propertyId of selectedIds) {
+    for (const [index, property] of propertiesData.entries()) {
       try {
-        const property = propertiesData.find((p) => p._id === propertyId || p.propertyId === propertyId || p.visitId === propertyId);
-        if (!property) continue;
+        const propertyId =
+          property._id ||
+          property.propertyNumber ||
+          property.propertyId ||
+          `${property.property_name || property.propertyInfo?.name || "property"}-${index}`;
         const propertyOwnerId =
           (property.generatedCredentials && property.generatedCredentials.loginId) ||
           property.ownerLoginId ||
@@ -408,10 +406,10 @@ export default function WebsiteFastBidding() {
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div>
                   <h3 className="section-title text-lg">Properties found in your area</h3>
-                  <p className="section-subtitle mt-1 text-sm">Select one or more matches before submitting your bid.</p>
+                  <p className="section-subtitle mt-1 text-sm">All matching properties are selected automatically and will receive your bid.</p>
                 </div>
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
-                  Selected {selectedIds.length}
+                  All {propertiesData.length} selected
                 </span>
               </div>
               {loadingProperties && (
@@ -436,9 +434,8 @@ export default function WebsiteFastBidding() {
                   const rent = prop.monthlyRent || prop.rent || propInfo.rent || propInfo.monthlyRent || 0;
                   const gender = prop.gender || propInfo.gender || prop.genderSuitability || "Not specified";
                   const propertyType = propInfo.propertyType || prop.propertyType || "Property";
-                  const isSelected = selectedIds.includes(propertyId);
                   return (
-                    <div key={propertyId} className={`property-item ${isSelected ? "selected" : ""}`} onClick={() => toggleProperty(propertyId)}>
+                    <div key={propertyId} className="property-item selected">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h4 className="text-base font-semibold text-slate-950">{propertyName}</h4>
@@ -453,13 +450,8 @@ export default function WebsiteFastBidding() {
                             <span className="rounded-full border border-slate-200 px-3 py-1 text-slate-700">{propertyType}</span>
                           </div>
                         </div>
-                        <div className="ml-4">
-                          <input
-                            type="checkbox"
-                            className="property-checkbox h-5 w-5 rounded border-slate-300 text-slate-950"
-                            checked={isSelected}
-                            onChange={() => toggleProperty(propertyId)}
-                          />
+                        <div className="ml-4 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                          Auto included
                         </div>
                       </div>
                     </div>
@@ -1158,5 +1150,3 @@ export default function WebsiteFastBidding() {
 //     </div>
 //   );
 // }
-
-

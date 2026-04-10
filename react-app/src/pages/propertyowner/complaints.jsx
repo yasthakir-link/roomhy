@@ -172,6 +172,7 @@ export default function Complaints() {
   const [responseText, setResponseText] = useState("");
   const [responseSubmitting, setResponseSubmitting] = useState(false);
   const [updatingId, setUpdatingId] = useState("");
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     if (window.lucide?.createIcons) window.lucide.createIcons();
@@ -274,11 +275,22 @@ export default function Complaints() {
     try {
       await fetchJson(`/api/complaints/${responseModal._id}/response`, {
         method: "PUT",
-        body: JSON.stringify({ ownerResponse: responseText.trim() })
+        body: JSON.stringify({
+          ownerResponse: responseText.trim(),
+          ownerResponseBy: owner?.name || owner?.ownerName || owner?.loginId || "Owner",
+          ownerResponseByLoginId: owner?.loginId || owner?.ownerId || ""
+        })
       });
       setComplaints((prev) =>
         prev.map((item) =>
-          item._id === responseModal._id ? { ...item, ownerResponse: responseText.trim() } : item
+          item._id === responseModal._id
+            ? {
+                ...item,
+                ownerResponse: responseText.trim(),
+                ownerResponseBy: owner?.name || owner?.ownerName || owner?.loginId || "Owner",
+                ownerResponseByLoginId: owner?.loginId || owner?.ownerId || ""
+              }
+            : item
         )
       );
       setResponseModal(null);
@@ -402,7 +414,7 @@ export default function Complaints() {
                   {/* Title row */}
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <h3 className="font-semibold text-gray-800">
-                      {complaint.category || complaint.title || "Complaint"}
+                      {complaint.issueType || complaint.category || complaint.title || "Complaint"}
                     </h3>
                     {escalated && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">
@@ -417,6 +429,21 @@ export default function Complaints() {
                   </div>
 
                   <p className="text-sm text-gray-600 mt-1">{complaint.description || "-"}</p>
+
+                  {(complaint.imageStr || complaint.imageUrl) && (
+                    <button
+                      type="button"
+                      onClick={() => setImagePreview(complaint.imageStr || complaint.imageUrl)}
+                      className="mt-3 block"
+                      aria-label="Open complaint image preview"
+                    >
+                      <img
+                        src={complaint.imageStr || complaint.imageUrl}
+                        alt="Complaint proof"
+                        className="h-24 w-24 rounded-lg object-cover border border-gray-200 cursor-zoom-in transition hover:scale-105"
+                      />
+                    </button>
+                  )}
 
                   {/* Meta info */}
                   <div className="flex flex-wrap gap-3 mt-3 text-xs text-gray-400">
@@ -444,7 +471,9 @@ export default function Complaints() {
                   {/* Owner response if exists */}
                   {complaint.ownerResponse && (
                     <div className="mt-3 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
-                      <p className="text-xs font-semibold text-blue-600 mb-1">Your Response:</p>
+                      <p className="text-xs font-semibold text-blue-600 mb-1">
+                        Response by {complaint.ownerResponseBy || owner?.name || owner?.ownerName || "Owner"}:
+                      </p>
                       <p className="text-sm text-gray-700">{complaint.ownerResponse}</p>
                     </div>
                   )}
@@ -524,6 +553,32 @@ export default function Complaints() {
                 {responseSubmitting ? "Saving..." : "Send Response"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {imagePreview && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setImagePreview(null)}
+        >
+          <div
+            className="relative max-w-5xl max-h-[90vh] w-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setImagePreview(null)}
+              className="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-white text-slate-700 shadow-lg flex items-center justify-center hover:bg-slate-100"
+              aria-label="Close image preview"
+            >
+              <span className="text-xl leading-none">×</span>
+            </button>
+            <img
+              src={imagePreview}
+              alt="Complaint proof enlarged"
+              className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain bg-white"
+            />
           </div>
         </div>
       )}

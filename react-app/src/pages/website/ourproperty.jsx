@@ -146,8 +146,6 @@ export default function WebsiteOurproperty() {
   const [showBidModal, setShowBidModal] = useState(false);
   const [showBidSuccess, setShowBidSuccess] = useState(false);
   const [successCount, setSuccessCount] = useState(0);
-  const [showFloatingActions, setShowFloatingActions] = useState(false);
-  const [showFloatingCoachmark, setShowFloatingCoachmark] = useState(false);
 
   const initialParams = useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -188,8 +186,6 @@ export default function WebsiteOurproperty() {
     showBidModal,
     showBidSuccess,
     showFilterDrawer,
-    showFloatingActions,
-    showFloatingCoachmark
   ]);
 
   useEffect(() => {
@@ -310,52 +306,6 @@ export default function WebsiteOurproperty() {
       window.removeEventListener("storage", handleStorage);
     };
   }, [apiUrl]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      const actionRoot = event.target.closest?.("[data-floating-actions]");
-      if (!actionRoot) {
-        setShowFloatingActions(false);
-        setShowFloatingCoachmark(false);
-      }
-    };
-
-    document.addEventListener("click", handleClickOutside);
-    return () => {
-      document.removeEventListener("click", handleClickOutside);
-    };
-  }, []);
-
-  useEffect(() => {
-    let shouldShowCoachmark = false;
-    try {
-      shouldShowCoachmark = sessionStorage.getItem("roomhy_floating_cta_seen") !== "true";
-    } catch (_) {
-      shouldShowCoachmark = true;
-    }
-
-    if (!shouldShowCoachmark) return;
-
-    const openTimer = window.setTimeout(() => {
-      setShowFloatingCoachmark(true);
-      setShowFloatingActions(true);
-    }, 900);
-
-    const closeTimer = window.setTimeout(() => {
-      setShowFloatingCoachmark(false);
-    }, 6500);
-
-    try {
-      sessionStorage.setItem("roomhy_floating_cta_seen", "true");
-    } catch (_) {
-      // ignore storage failures
-    }
-
-    return () => {
-      window.clearTimeout(openTimer);
-      window.clearTimeout(closeTimer);
-    };
-  }, []);
 
   const normalizeProperty = (prop) => {
     const info = prop.propertyInfo || {};
@@ -620,18 +570,6 @@ export default function WebsiteOurproperty() {
       return;
     }
     setShowBidModal(true);
-  };
-
-  const handleFloatingBidClick = () => {
-    setShowFloatingActions(false);
-    setShowFloatingCoachmark(false);
-    openBidModal();
-  };
-
-  const handleFloatingChatClick = () => {
-    setShowFloatingActions(false);
-    setShowFloatingCoachmark(false);
-    window.location.href = "/website/websitechat";
   };
 
   const submitAllBids = async () => {
@@ -1439,64 +1377,14 @@ export default function WebsiteOurproperty() {
       
           </main>
       
-          <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3" data-floating-actions>
-              {showFloatingCoachmark && (
-                  <div className="relative max-w-[240px] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-2xl">
-                      <div className="absolute -bottom-2 right-8 h-4 w-4 rotate-45 border-b border-r border-slate-200 bg-white"></div>
-                      <div className="flex items-start gap-3">
-                          <span className="text-2xl animate-bounce">👆</span>
-                          <p className="leading-5">
-                              <span className="block font-semibold text-slate-900">Need help choosing?</span>
-                              Bid on your budget or chat to explore more.
-                          </p>
-                      </div>
-                  </div>
-              )}
-
-              {showFloatingActions && (
-                  <div className="w-[250px] rounded-3xl border border-slate-200 bg-white/95 p-3 shadow-2xl backdrop-blur">
-                      <button
-                          type="button"
-                          onClick={handleFloatingBidClick}
-                          className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-emerald-50"
-                      >
-                          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                              <i data-lucide="badge-indian-rupee" className="h-5 w-5"></i>
-                          </span>
-                          <span>
-                              <span className="block text-sm font-semibold text-slate-900">Bid on your budget</span>
-                              <span className="block text-xs text-slate-500">Send your budget to matching owners</span>
-                          </span>
-                      </button>
-
-                      <button
-                          type="button"
-                          onClick={handleFloatingChatClick}
-                          className="mt-2 flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition hover:bg-sky-50"
-                      >
-                          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
-                              <i data-lucide="message-circle-more" className="h-5 w-5"></i>
-                          </span>
-                          <span>
-                              <span className="block text-sm font-semibold text-slate-900">Chat to explore more</span>
-                              <span className="block text-xs text-slate-500">Talk to us before you decide</span>
-                          </span>
-                      </button>
-                  </div>
-              )}
-
+          <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
               <button
                   id="websiteChatBtn"
                   type="button"
-                  aria-label="Open bidding and chat options"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    setShowFloatingCoachmark(false);
-                    setShowFloatingActions((prev) => !prev);
-                  }}
-                  className={`group relative flex max-w-[13rem] items-center gap-3 overflow-hidden rounded-[28px] border border-slate-950 bg-slate-950 px-3 py-3 text-white shadow-[0_20px_50px_rgba(15,23,42,0.2)] transition-all duration-300 hover:-translate-y-1 hover:bg-black hover:shadow-[0_24px_60px_rgba(15,23,42,0.26)] sm:max-w-none ${showFloatingCoachmark ? "animate-pulse scale-110" : ""}`}
+                  aria-label="Open fast bidding"
+                  onClick={openBidModal}
+                  className="group relative flex items-center gap-3 overflow-hidden rounded-[28px] border border-slate-950 bg-slate-950 px-4 py-3 text-white shadow-[0_20px_50px_rgba(15,23,42,0.2)] transition-all duration-300 hover:-translate-y-1 hover:bg-black hover:shadow-[0_24px_60px_rgba(15,23,42,0.26)]"
               >
-                  {showFloatingCoachmark && <span className="absolute -top-1 right-0 h-3.5 w-3.5 rounded-full bg-amber-300 ring-4 ring-white"></span>}
                   <span className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.12),transparent_45%)] opacity-80"></span>
                   <span className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-950 shadow-sm">
                       <i data-lucide="gavel" className="h-7 w-7 transition-transform duration-300 group-hover:rotate-[-10deg] group-hover:scale-110"></i>
@@ -1504,10 +1392,7 @@ export default function WebsiteOurproperty() {
                   <span className="relative flex flex-col leading-tight text-left">
                       <span className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300">Roomhy</span>
                       <span className="text-base font-extrabold">Fast Bidding</span>
-                      <span className="hidden text-xs text-slate-300 sm:block">Bid or explore more</span>
-                  </span>
-                  <span className="relative ml-1 hidden h-10 w-10 items-center justify-center rounded-full bg-white text-slate-950 shadow-lg transition-transform duration-300 group-hover:translate-x-1 sm:flex">
-                      <i data-lucide="arrow-right" className="h-5 w-5"></i>
+                      <span className="hidden text-xs text-slate-300 sm:block">Tap to place your bid</span>
                   </span>
               </button>
           </div>

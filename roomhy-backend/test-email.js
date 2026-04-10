@@ -12,7 +12,7 @@ async function testEmail() {
 
         const sent = await mailer.sendCredentials(recipient, 'TEST123', 'password123', 'Test');
         if (!sent) {
-            throw new Error('Mailer returned false. Check SMTP/Mailjet logs above.');
+            throw new Error('Mailer returned false. Check SMTP logs above.');
         }
 
         console.log('Test email sent successfully to', recipient);

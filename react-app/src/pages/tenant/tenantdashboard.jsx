@@ -243,6 +243,7 @@ export default function Tenantdashboard() {
   const [actionMsg, setActionMsg] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [documentViewer, setDocumentViewer] = useState(null);
 
   // PDF state
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -267,6 +268,43 @@ export default function Tenantdashboard() {
           : "Agreement available in tenant records",
         icon: "file-text",
         accent: "purple",
+        actionLabel: "View Agreement",
+        onView: () => {
+          setDocumentViewer({
+            title: "Rental Agreement",
+            type: "agreement",
+            body: (
+              <div className="space-y-4 text-sm text-slate-600">
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Agreement Status</p>
+                  <p className="font-semibold text-slate-900">
+                    {tenant?.agreementSignedAt ? `Signed on ${formatDate(tenant.agreementSignedAt)}` : "Not signed yet"}
+                  </p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="p-4 rounded-xl border border-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Tenant</p>
+                    <p className="font-semibold text-slate-900">{tenantUser?.name || tenant?.name || "Tenant"}</p>
+                    <p>{tenantUser?.email || tenant?.email || "-"}</p>
+                  </div>
+                  <div className="p-4 rounded-xl border border-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Property</p>
+                    <p className="font-semibold text-slate-900">{propertyName}</p>
+                    <p>{roomInfo}</p>
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl border border-purple-100 bg-purple-50">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-purple-600 mb-2">Agreement Summary</p>
+                  <ul className="space-y-2 list-disc pl-5">
+                    <li>Monthly rent: {formatCurrency(tenant?.agreedRent || tenant?.rentAmount || rentAmount)}</li>
+                    <li>Move-in date: {formatDate(tenant?.moveInDate)}</li>
+                    <li>Status: {tenant?.agreementSignedAt ? "Completed" : "Pending signature"}</li>
+                  </ul>
+                </div>
+              </div>
+            )
+          });
+        }
       },
     ];
     const latestPaid = history.find((item) =>
@@ -281,10 +319,41 @@ export default function Tenantdashboard() {
         accent: "green",
         rentItem: latestPaid,
         downloadable: true,
+        actionLabel: "View Bill",
+        onView: () => {
+          setDocumentViewer({
+            title: "Rent Receipt",
+            type: "receipt",
+            body: (
+              <div className="space-y-4 text-sm text-slate-600">
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Receipt Details</p>
+                  <p className="font-semibold text-slate-900">{latestPaid.collectionMonth || "Current"} Rent Receipt</p>
+                  <p>{formatDate(latestPaid.paymentDate || latestPaid.updatedAt || latestPaid.createdAt, true)}</p>
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="p-4 rounded-xl border border-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Payment Method</p>
+                    <p className="font-semibold text-slate-900">{paymentMethodLabel(latestPaid.paymentMethod)}</p>
+                  </div>
+                  <div className="p-4 rounded-xl border border-slate-200">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Paid Amount</p>
+                    <p className="font-semibold text-slate-900">{formatCurrency(latestPaid.paidAmount || latestPaid.totalDue || latestPaid.rentAmount)}</p>
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl border border-green-100 bg-green-50">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-green-600 mb-2">Receipt Status</p>
+                  <p className="font-semibold text-slate-900">Paid</p>
+                  <p className="mt-1 text-slate-600">You can preview the bill here and download the PDF if needed.</p>
+                </div>
+              </div>
+            )
+          });
+        }
       });
     }
     return items;
-  }, [history, tenant]);
+  }, [history, tenant, tenantUser, propertyName, roomInfo, rentAmount]);
 
   // ─── Data fetchers ───────────────────────────────────────────────────────────
   const loadTenant = async () => {
@@ -395,6 +464,7 @@ export default function Tenantdashboard() {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────────
   const openGenericModal = (title, body, footer = null) => setGenericModal({ title, body, footer });
+  const closeDocumentViewer = () => setDocumentViewer(null);
 
   const clearSession = () => {
     try { localStorage.removeItem("tenant_user"); localStorage.removeItem("user"); } catch {}
@@ -764,19 +834,25 @@ export default function Tenantdashboard() {
                         <p className="text-xs text-slate-500 mt-1">{doc.subtitle}</p>
                       </div>
                     </div>
-                    {/* ✅ Download button for paid receipts */}
-                    {doc.downloadable ? (
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={() => downloadReceiptPdf(doc.rentItem)}
-                        disabled={pdfBusy}
-                        className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition disabled:opacity-60"
+                        onClick={doc.onView}
+                        className="flex items-center gap-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold px-4 py-2 rounded-lg transition"
                       >
-                        <i data-lucide="download" className="w-3 h-3"></i>
-                        {pdfBusy ? "Generating..." : "Download PDF"}
+                        <i data-lucide="eye" className="w-3 h-3"></i>
+                        {doc.actionLabel || "View"}
                       </button>
-                    ) : (
-                      <span className="text-xs text-slate-400">Available</span>
-                    )}
+                      {doc.downloadable ? (
+                        <button
+                          onClick={() => downloadReceiptPdf(doc.rentItem)}
+                          disabled={pdfBusy}
+                          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition disabled:opacity-60"
+                        >
+                          <i data-lucide="download" className="w-3 h-3"></i>
+                          {pdfBusy ? "Generating..." : "Download PDF"}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -949,6 +1025,54 @@ export default function Tenantdashboard() {
                   Close
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {documentViewer ? (
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm"
+          onClick={closeDocumentViewer}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">{documentViewer.title}</h3>
+                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">
+                  {documentViewer.type === "receipt" ? "Bill Preview" : "Agreement Preview"}
+                </p>
+              </div>
+              <button onClick={closeDocumentViewer} className="text-slate-400 hover:text-slate-600">
+                <i data-lucide="x" className="w-5 h-5"></i>
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(85vh-140px)]">
+              {documentViewer.body}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+              {documentViewer.type === "receipt" ? (
+                <button
+                  onClick={() => {
+                    const item = docs.find((d) => d.key === "receipt")?.rentItem;
+                    if (item) downloadReceiptPdf(item);
+                  }}
+                  disabled={pdfBusy}
+                  className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg transition disabled:opacity-60"
+                >
+                  <i data-lucide="download" className="w-4 h-4"></i>
+                  {pdfBusy ? "Generating..." : "Download PDF"}
+                </button>
+              ) : null}
+              <button
+                onClick={closeDocumentViewer}
+                className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-lg transition"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

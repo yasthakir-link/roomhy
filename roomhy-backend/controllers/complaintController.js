@@ -46,8 +46,10 @@ exports.createComplaint = async (req, res) => {
             roomNo,
             bedNo,
             category,
+            issueType,
             description,
-            priority
+            priority,
+            imageStr
         } = req.body;
 
         const complaint = new Complaint({
@@ -62,7 +64,9 @@ exports.createComplaint = async (req, res) => {
             roomNo:         roomNo         || 'N/A',
             bedNo:          bedNo          || 'N/A',
             category:       category       || 'Other',
+            issueType:      issueType      || '',
             description,
+            imageStr:       imageStr       || '',
             priority:       priority       || 'Low',
             status:         'Open',
             escalated:      false,
@@ -130,15 +134,25 @@ exports.updateComplaintStatus = async (req, res) => {
 exports.updateOwnerResponse = async (req, res) => {
     try {
         const { id } = req.params;
-        const { ownerResponse } = req.body;
+        const { ownerResponse, ownerResponseBy, ownerResponseByLoginId } = req.body;
 
         if (!ownerResponse || !ownerResponse.trim()) {
             return res.status(400).json({ success: false, message: 'Response text is required' });
         }
 
+        const responseBy = String(ownerResponseBy || '').trim();
+        const responseByLoginId = String(ownerResponseByLoginId || '').trim().toUpperCase();
+
         const complaint = await Complaint.findByIdAndUpdate(
             id,
-            { $set: { ownerResponse: ownerResponse.trim(), updatedAt: new Date() } },
+            {
+                $set: {
+                    ownerResponse: ownerResponse.trim(),
+                    ownerResponseBy: responseBy,
+                    ownerResponseByLoginId: responseByLoginId,
+                    updatedAt: new Date()
+                }
+            },
             { new: true }
         );
 

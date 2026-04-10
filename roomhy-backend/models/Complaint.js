@@ -6,6 +6,11 @@ const complaintSchema = new mongoose.Schema({
         required: true,
         index: true
     },
+    tenantLoginId: {
+        type: String,
+        default: '',
+        index: true
+    },
     tenantName: {
         type: String,
         required: true
@@ -14,9 +19,23 @@ const complaintSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    tenantEmail: {
+        type: String,
+        default: ''
+    },
     property: {
         type: String,
         required: true
+    },
+    propertyId: {
+        type: String,
+        default: '',
+        index: true
+    },
+    ownerLoginId: {
+        type: String,
+        default: '',
+        index: true
     },
     roomNo: {
         type: String,
@@ -29,11 +48,19 @@ const complaintSchema = new mongoose.Schema({
     category: {
         type: String,
         required: true,
-        enum: ['Plumbing', 'Electrical', 'Furniture', 'Appliances', 'Cleaning', 'Internet', 'Other']
+        enum: ['Plumbing', 'Electrical', 'Furniture', 'Appliances', 'Cleaning', 'Internet', 'Ragging', 'Food Issue', 'Major Issue', 'Other']
+    },
+    issueType: {
+        type: String,
+        default: ''
     },
     description: {
         type: String,
         required: true
+    },
+    imageStr: {
+        type: String,
+        default: ''
     },
     priority: {
         type: String,
@@ -44,11 +71,31 @@ const complaintSchema = new mongoose.Schema({
     status: {
         type: String,
         required: true,
-        enum: ['Open', 'In Progress', 'Resolved'],
+        enum: ['Open', 'Taken', 'In Progress', 'Resolved', 'Rejected'],
         default: 'Open'
     },
     assignedTo: {
         type: String,
+        default: null
+    },
+    ownerResponse: {
+        type: String,
+        default: ''
+    },
+    ownerResponseBy: {
+        type: String,
+        default: ''
+    },
+    ownerResponseByLoginId: {
+        type: String,
+        default: ''
+    },
+    escalated: {
+        type: Boolean,
+        default: false
+    },
+    escalatedAt: {
+        type: Date,
         default: null
     },
     createdAt: {

@@ -67,6 +67,7 @@ export default function ComplaintHistory() {
   const [query, setQuery] = useState("");
   const [actionId, setActionId] = useState("");
   const [activeTab, setActiveTab] = useState("all"); // "all" | "escalated"
+  const [imagePreview, setImagePreview] = useState(null);
 
   const loadComplaints = async () => {
     try {
@@ -192,12 +193,27 @@ export default function ComplaintHistory() {
             </p>
 
             {/* Category + description */}
-            {complaint.category && (
-              <p className="text-xs font-semibold text-purple-600 mb-1">{complaint.category}</p>
+            {(complaint.issueType || complaint.category) && (
+              <p className="text-xs font-semibold text-purple-600 mb-1">{complaint.issueType || complaint.category}</p>
             )}
             <p className="text-sm text-gray-700">
               {complaint.description || complaint.message || complaint.complaint || complaint.title || "-"}
             </p>
+
+            {(complaint.imageStr || complaint.imageUrl) && (
+              <button
+                type="button"
+                onClick={() => setImagePreview(complaint.imageStr || complaint.imageUrl)}
+                className="mt-3 block"
+                aria-label="Open complaint image preview"
+              >
+                <img
+                  src={complaint.imageStr || complaint.imageUrl}
+                  alt="Complaint proof"
+                  className="h-24 w-24 rounded-lg object-cover border border-gray-200 cursor-zoom-in transition hover:scale-105"
+                />
+              </button>
+            )}
 
             {/* Owner response */}
             {complaint.ownerResponse && (
@@ -431,15 +447,41 @@ export default function ComplaintHistory() {
                     <p>{activeTab === "escalated" ? "No escalated complaints." : "No complaints found."}</p>
                   </div>
                 )}
-                {!loading && !errorMsg && filtered.map((complaint) => (
-                  <ComplaintRow key={complaint._id} complaint={complaint} />
-                ))}
+              {!loading && !errorMsg && filtered.map((complaint) => (
+                <ComplaintRow key={complaint._id} complaint={complaint} />
+              ))}
               </div>
 
             </div>
           </main>
         </div>
       </div>
+
+      {imagePreview && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setImagePreview(null)}
+        >
+          <div
+            className="relative max-w-5xl max-h-[90vh] w-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setImagePreview(null)}
+              className="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-white text-slate-700 shadow-lg flex items-center justify-center hover:bg-slate-100"
+              aria-label="Close image preview"
+            >
+              <span className="text-xl leading-none">×</span>
+            </button>
+            <img
+              src={imagePreview}
+              alt="Complaint proof enlarged"
+              className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain bg-white"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

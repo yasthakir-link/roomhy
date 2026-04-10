@@ -1208,25 +1208,25 @@ export default function Rooms() {
         </div>
       </div>
 
-      <div className={`fixed inset-0 bg-black/60 ${assignModalOpen ? "flex" : "hidden"} items-center justify-center z-50 backdrop-blur-sm`}>
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+      <div className={`fixed inset-0 bg-black/60 ${assignModalOpen ? "flex" : "hidden"} items-center justify-center z-50 backdrop-blur-sm p-4`}>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[calc(100vh-2rem)] overflow-y-auto p-5 sm:p-6 relative">
           <button type="button" onClick={() => setAssignModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-100 p-1 rounded-full">
             <i data-lucide="x" className="w-5 h-5"></i>
           </button>
-          <div className="text-center mb-6">
+          <div className="text-center mb-5 pr-8">
             <h3 className="text-xl font-bold text-gray-900">Assign Tenant</h3>
             <p className="text-sm text-gray-500">{`Assigning to ${selectedRoom?.number || selectedRoom?.roomNo || selectedRoom?.title || "Room"}`}</p>
           </div>
-          <div className="flex mb-4 bg-gray-100 p-1 rounded-lg">
+          <div className="flex mb-5 bg-gray-100 p-1 rounded-lg">
             <button type="button" onClick={() => setAssignMode("existing")} className={`tab-btn flex-1 py-2 text-sm font-medium rounded-md transition text-center ${assignMode === "existing" ? "active bg-white text-purple-600 shadow-sm" : "text-gray-500"}`}>Select Existing</button>
             <button type="button" onClick={() => setAssignMode("new")} className={`tab-btn flex-1 py-2 text-sm font-medium rounded-md transition text-center ${assignMode === "new" ? "active bg-white text-purple-600 shadow-sm" : "text-gray-500"}`}>New Tenant</button>
           </div>
           <form onSubmit={handleAssignTenant}>
-            <div className="mb-4 rounded-lg border border-purple-100 bg-purple-50 p-3">
-              <div className="grid grid-cols-3 gap-2 text-xs">
+            <div className="mb-5 rounded-xl border border-purple-100 bg-purple-50 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 <div>
                   <p className="text-gray-500 uppercase font-semibold">Property</p>
-                  <p className="text-gray-800 font-semibold truncate">{currentPropertyDisplay === "Loading Property..." ? "-" : currentPropertyDisplay}</p>
+                  <p className="text-gray-800 font-semibold break-words leading-snug">{currentPropertyDisplay === "Loading Property..." ? "-" : currentPropertyDisplay}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 uppercase font-semibold">Room</p>
@@ -1249,7 +1249,7 @@ export default function Rooms() {
                 onChange={(event) => setAssignRent(event.target.value)}
               />
             </div>
-            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Security Deposit Total (Rs)</label>
                 <input
@@ -1277,7 +1277,7 @@ export default function Rooms() {
                 </select>
               </div>
             </div>
-            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Security Deposit Paid (Rs)</label>
                 <input
@@ -1300,7 +1300,7 @@ export default function Rooms() {
                 />
               </div>
             </div>
-            <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Electricity Charge (Rs)</label>
                 <input
@@ -1342,19 +1342,19 @@ export default function Rooms() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Enter name" value={newTenantForm.name} onChange={(event) => setNewTenantForm((prev) => ({ ...prev, name: event.target.value }))} />
+                  <input type="text" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Enter name" value={newTenantForm.name} onChange={(event) => setNewTenantForm((prev) => ({ ...prev, name: event.target.value }))} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                  <input type="tel" className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Enter phone" value={newTenantForm.phone} onChange={(event) => setNewTenantForm((prev) => ({ ...prev, phone: event.target.value }))} />
+                  <input type="tel" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Enter phone" value={newTenantForm.phone} onChange={(event) => setNewTenantForm((prev) => ({ ...prev, phone: event.target.value }))} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input type="email" className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Enter email" value={newTenantForm.email} onChange={(event) => setNewTenantForm((prev) => ({ ...prev, email: event.target.value }))} />
+                  <input type="email" className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Enter email" value={newTenantForm.email} onChange={(event) => setNewTenantForm((prev) => ({ ...prev, email: event.target.value }))} />
                 </div>
               </div>
             )}
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="mt-6 flex flex-col-reverse sm:flex-row justify-end gap-3">
               <button type="button" onClick={() => setAssignModalOpen(false)} className="px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition">Cancel</button>
               <button type="submit" className="px-5 py-2.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 shadow-md hover:shadow-lg transition">Confirm Assignment</button>
             </div>

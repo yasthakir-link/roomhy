@@ -1,10 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { fetchJson } from "../../utils/api";
 import PropertyOwnerLayout from "../../components/propertyowner/PropertyOwnerLayout";
 import { useHtmlPage } from "../../utils/htmlPage";
 import {
   clearOwnerRuntimeSession,
   fetchOwnerTenants,
+  fetchBookingRequestsForOwner,
+  normalizeBooking,
   formatDate,
   getOwnerRuntimeSession
 } from "../../utils/propertyowner";
@@ -99,6 +101,7 @@ export default function Admin() {
   const [tenantsCount, setTenantsCount] = useState(0);
   const [rentTotal, setRentTotal] = useState(0);
   const [enquiries, setEnquiries] = useState([]);
+  const [dashboardNotifications, setDashboardNotifications] = useState([]);
   const [occupancySummary, setOccupancySummary] = useState({
     vacantRooms: 0,
     occupiedRooms: 0,
@@ -108,15 +111,69 @@ export default function Admin() {
   });
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const seenBidIdsRef = useRef(new Set());
+  const initialBidSyncRef = useRef(true);
+  const audioContextRef = useRef(null);
 
   const notificationCount = useMemo(
-    () => enquiries.filter((item) => ["pending", "hold"].includes(String(item.status || "").toLowerCase())).length,
-    [enquiries]
+    () => dashboardNotifications.length,
+    [dashboardNotifications]
   );
 
   useEffect(() => {
     if (window?.lucide?.createIcons) window.lucide.createIcons();
-  }, [owner, enquiries, loading]);
+  }, [owner, enquiries, dashboardNotifications, loading]);
+
+  const playBidAlertSound = () => {
+    if (typeof window === "undefined") return;
+
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      const ctx = audioContextRef.current;
+      if (ctx.state === "suspended") {
+        ctx.resume().catch(() => {});
+      }
+
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(980, now);
+      osc.frequency.exponentialRampToValueAtTime(620, now + 0.2);
+      gain.gain.setValueAtTime(0.9, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } catch (error) {
+      console.warn("Failed to play bid alert sound:", error?.message || error);
+    }
+  };
+
+  const buildBidNotification = (booking) => {
+    const bidderName = booking.userName || booking.name || booking.fullName || "Someone";
+    const propertyName = booking.propertyName || booking.property_name || "your property";
+    const budget = booking.budgetRange && booking.budgetRange !== "-" ? ` Budget ${booking.budgetRange}.` : ".";
+    return {
+      key: `bid-${booking.key}`,
+      title: "New bid interest",
+      message: `${bidderName} is interested in ${propertyName}${budget}`,
+      createdAt: booking.submittedAt || booking.createdAt || new Date().toISOString()
+    };
+  };
+
+  const buildEnquiryNotification = (item) => ({
+    key: `enquiry-${item._id || item.id || item.visitId || Math.random().toString(36).slice(2)}`,
+    title: item.propertyName || item.property?.name || "Enquiry",
+    message: `${item.name || item.tenantName || "Tenant"} | ${item.status || "pending"}`,
+    createdAt: item.createdAt || new Date().toISOString()
+  });
 
   const loadDashboard = async (loginId) => {
     setLoading(true);
@@ -140,7 +197,47 @@ export default function Admin() {
       setOccupancySummary(summarizeOccupancy(roomList));
       setTenantsCount((Array.isArray(tenantsRes) ? tenantsRes : tenantsRes?.tenants || []).length);
       setRentTotal(rentRes?.totalRent || 0);
-      setEnquiries(Array.isArray(enquiryRes) ? enquiryRes : enquiryRes?.enquiries || []);
+      const enquiryList = Array.isArray(enquiryRes) ? enquiryRes : enquiryRes?.enquiries || [];
+      setEnquiries(enquiryList);
+
+      let bookingRequestList = [];
+      try {
+        bookingRequestList = await fetchBookingRequestsForOwner(loginId);
+      } catch (_) {
+        bookingRequestList = readJson("roomhy_booking_requests", []).filter((item) => {
+          const candidateOwner = String(item?.owner_id || item?.ownerId || item?.owner_login_id || item?.ownerLoginId || item?.owner || "").toUpperCase();
+          return !candidateOwner || candidateOwner === String(loginId || "").toUpperCase();
+        });
+      }
+
+      const normalizedBookings = (Array.isArray(bookingRequestList) ? bookingRequestList : [])
+        .map((item) => normalizeBooking(item))
+        .filter((item) => String(item.request_type || item.type || "").toLowerCase() === "bid");
+      const activeBidRequests = normalizedBookings.filter((item) => ["pending", "submitted"].includes(String(item.status || "pending").toLowerCase()));
+
+      const nextBidIds = new Set(activeBidRequests.map((item) => String(item.key || item._id || item.id || "")));
+      if (initialBidSyncRef.current) {
+        seenBidIdsRef.current = nextBidIds;
+        initialBidSyncRef.current = false;
+      } else {
+        const newBidRequests = activeBidRequests.filter((item) => {
+          const key = String(item.key || item._id || item.id || "");
+          return key && !seenBidIdsRef.current.has(key);
+        });
+        if (newBidRequests.length > 0) {
+          playBidAlertSound();
+        }
+        newBidRequests.forEach((item) => {
+          const key = String(item.key || item._id || item.id || "");
+          if (key) seenBidIdsRef.current.add(key);
+        });
+      }
+
+      const bidNotifications = activeBidRequests.map(buildBidNotification);
+      const enquiryNotifications = enquiryList
+        .filter((item) => ["pending", "hold"].includes(String(item.status || "").toLowerCase()))
+        .map(buildEnquiryNotification);
+      setDashboardNotifications([...bidNotifications, ...enquiryNotifications]);
     } catch (err) {
       setErrorMsg(err?.body || err?.message || "Failed to load dashboard data.");
     } finally {
@@ -156,6 +253,10 @@ export default function Admin() {
     }
     setOwner(session);
     loadDashboard(session.loginId);
+    const timer = window.setInterval(() => {
+      loadDashboard(session.loginId);
+    }, 15000);
+    return () => window.clearInterval(timer);
   }, []);
 
   const handleEnquiryAction = async (enquiryId, status) => {
@@ -195,10 +296,7 @@ export default function Admin() {
       title="Dashboard"
       navVariant="default"
       notificationCount={notificationCount}
-      notifications={enquiries.slice(0, 5).map((item) => ({
-        title: item.propertyName || item.property?.name || "Enquiry",
-        message: `${item.name || item.tenantName || "Tenant"} | ${item.status || "pending"}`
-      }))}
+      notifications={dashboardNotifications}
       onLogout={() => {
         clearOwnerRuntimeSession();
         window.location.href = "/propertyowner/ownerlogin";

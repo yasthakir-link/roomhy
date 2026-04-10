@@ -26,20 +26,20 @@ async function sendEmail(to, subject, html) {
     try {
         if (!to) {
             console.warn('[Email] No recipient email provided');
-            return true; // Allow to continue in development
+            return false;
         }
 
         const sent = await mailer.sendMail(to, subject, '', html);
         if (!sent) {
-            console.warn('[Email] Mailjet delivery failed or not configured; continuing request flow.');
-            return true; // Keep auth flow non-blocking in development
+            console.warn('[Email] SMTP delivery failed or not configured.');
+            return false;
         }
 
-        console.log('[Email] Successfully sent email via Mailjet to:', to);
+        console.log('[Email] Successfully sent email via SMTP to:', to);
         return true;
     } catch (err) {
-        console.warn('[Email] Failed to send email - continuing anyway for development:', err.message);
-        return true; // Allow to continue even if email fails (for development)
+        console.warn('[Email] Failed to send email:', err.message);
+        return false;
     }
 }
 

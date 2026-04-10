@@ -10,11 +10,11 @@ function getMailerConfig() {
     return {
         fromEmail: process.env.FROM_EMAIL || 'no-reply@roomhy.com',
         fromName: process.env.FROM_NAME || 'RoomHy',
-        smtpHost: process.env.SMTP_HOST || 'smtp.gmail.com',
+        smtpHost: (process.env.SMTP_HOST || process.env.EMAIL_HOST || '').trim(),
         smtpPort: Number(process.env.SMTP_PORT || 587),
         smtpSecure: parseBooleanEnv(process.env.SMTP_SECURE, false),
         smtpUser: (process.env.SMTP_USER || '').trim(),
-        smtpPass: (process.env.SMTP_PASS || '').replace(/\s+/g, ''),
+        smtpPass: (process.env.SMTP_PASS || process.env.EMAIL_PASS || '').replace(/\s+/g, ''),
         smtpDebug: parseBooleanEnv(process.env.SMTP_DEBUG, false),
         smtpLogger: parseBooleanEnv(process.env.SMTP_LOGGER, false),
         smtpRequireTls: parseBooleanEnv(process.env.SMTP_REQUIRE_TLS, false),
@@ -25,11 +25,6 @@ function getMailerConfig() {
         smtpSocketTimeout: Number(process.env.SMTP_SOCKET_TIMEOUT || 30000),
         smtpName: (process.env.SMTP_NAME || '').trim(),
         smtpService: (process.env.SMTP_SERVICE || '').trim(),
-        mailjetHost: (process.env.MAILJET_SMTP_HOST || 'in-v3.mailjet.com').trim(),
-        mailjetPort: Number(process.env.MAILJET_SMTP_PORT || 587),
-        mailjetSecure: parseBooleanEnv(process.env.MAILJET_SMTP_SECURE, false),
-        mailjetUser: (process.env.MAILJET_API_KEY || '').trim(),
-        mailjetPass: (process.env.MAILJET_SECRET_KEY || '').trim(),
         whatsappAccessToken: process.env.WHATSAPP_ACCESS_TOKEN || '',
         whatsappPhoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || '',
         whatsappApiVersion: process.env.WHATSAPP_API_VERSION || 'v21.0',
@@ -38,16 +33,13 @@ function getMailerConfig() {
 }
 
 function isSmtpConfigured(cfg) {
-    return Boolean(cfg.smtpHost && cfg.smtpUser && cfg.smtpPass);
+    return Boolean((cfg.smtpHost || cfg.smtpService) && cfg.smtpUser && cfg.smtpPass);
 }
 
 function isWhatsAppConfigured(cfg) {
     return Boolean(cfg.whatsappAccessToken && cfg.whatsappPhoneNumberId);
 }
 
-function isMailjetConfigured(cfg) {
-    return Boolean(cfg.mailjetHost && cfg.mailjetUser && cfg.mailjetPass);
-}
 
 function normalizeRecipients(to) {
     if (!to) return [];
@@ -97,6 +89,36 @@ function postJson(urlString, body, headers = {}) {
         req.write(payload);
         req.end();
     });
+}
+
+function getSmtpHint(err, cfg) {
+    const message = String(err && err.message ? err.message : '');
+    if (/535-5\.7\.8|username and password not accepted|badcredentials/i.test(message)) {
+        if ((cfg.smtpHost || '').toLowerCase().includes('gmail')) {
+            return 'Gmail rejected the SMTP login. Use a Gmail App Password, not the normal account password.';
+        }
+        return 'SMTP authentication failed. Check SMTP_USER and SMTP_PASS for the configured provider.';
+    }
+    return '';
+}
+
+function getWhatsAppHint(responseBody, cfg) {
+    const body = String(responseBody || '');
+    if (!body) return '';
+
+    if (/Unsupported post request/i.test(body) || /cannot be loaded due to missing permissions/i.test(body)) {
+        return 'Verify WHATSAPP_PHONE_NUMBER_ID is the numeric WhatsApp phone number ID, not the business account ID or another Graph object ID.';
+    }
+
+    if (/OAuthException|Invalid OAuth access token|permissions/i.test(body)) {
+        return 'Verify WHATSAPP_ACCESS_TOKEN has whatsapp_business_messaging permission and is not expired.';
+    }
+
+    if (!cfg.whatsappPhoneNumberId) {
+        return 'Set WHATSAPP_PHONE_NUMBER_ID in the environment.';
+    }
+
+    return '';
 }
 
 function normalizePhoneNumber(rawPhone, defaultCountryCode = '91') {
@@ -216,6 +238,10 @@ async function sendWhatsAppMessage(toPhone, body, cfg) {
     }
 
     console.warn('WhatsApp send failed:', response.status, response.body);
+    const hint = getWhatsAppHint(response.body, cfg);
+    if (hint) {
+        console.warn('WhatsApp hint:', hint);
+    }
     return false;
 }
 
@@ -246,6 +272,22 @@ async function sendWhatsAppByEmailRecipients(recipients, subject, text, html, cf
     return deliveredPhones.size;
 }
 
+
+function buildSmtpLabel(cfg) {
+    if (cfg.smtpService) return `${cfg.smtpService} SMTP`;
+    if (cfg.smtpHost) return `${cfg.smtpHost}:${cfg.smtpPort}`;
+    return 'SMTP';
+}
+
+function getDefaultSmtpService(cfg) {
+    const host = String(cfg.smtpHost || '').toLowerCase();
+    if (cfg.smtpService) return cfg.smtpService;
+    if (host.includes('gmail.com')) return 'gmail';
+    if (host.includes('outlook.com') || host.includes('hotmail.com') || host.includes('live.com')) return 'hotmail';
+    if (host.includes('yahoo.com')) return 'yahoo';
+    return '';
+}
+
 function buildTransportOptions({ host, port, secure, user, pass, cfg, service = '', name = '' }) {
     const options = {
         host,
@@ -274,12 +316,22 @@ function buildTransportOptions({ host, port, secure, user, pass, cfg, service = 
     return options;
 }
 
-async function sendViaSmtp({ cfg, host, port, secure, user, pass, label, service = '', name = '' }, mailOptions) {
-    const transporter = nodemailer.createTransport(
-        buildTransportOptions({ host, port, secure, user, pass, cfg, service, name })
-    );
+let cachedTransporter = null;
+let cachedTransporterKey = '';
 
-    await transporter.verify();
+function getTransporter({ cfg, host, port, secure, user, pass, service = '', name = '' }) {
+    const key = JSON.stringify({ host, port, secure, user, pass, service, name, tls: cfg.smtpTlsRejectUnauthorized, requireTLS: cfg.smtpRequireTls, ignoreTLS: cfg.smtpIgnoreTls });
+    if (!cachedTransporter || cachedTransporterKey !== key) {
+        cachedTransporter = nodemailer.createTransport(
+            buildTransportOptions({ host, port, secure, user, pass, cfg, service, name })
+        );
+        cachedTransporterKey = key;
+    }
+    return cachedTransporter;
+}
+
+async function sendViaSmtp({ cfg, host, port, secure, user, pass, label, service = '', name = '' }, mailOptions) {
+    const transporter = getTransporter({ cfg, host, port, secure, user, pass, service, name });
     await transporter.sendMail(mailOptions);
     console.log(`Email sent via ${label} to`, mailOptions.to, 'subject:', mailOptions.subject);
     return true;
@@ -311,32 +363,20 @@ async function sendMail(to, subject, text, html, options = {}) {
                 secure: cfg.smtpSecure,
                 user: cfg.smtpUser,
                 pass: cfg.smtpPass,
-                label: 'primary SMTP',
-                service: cfg.smtpService,
+                label: buildSmtpLabel(cfg),
+                service: getDefaultSmtpService(cfg),
                 name: cfg.smtpName
             }, mailOptions);
             emailSent = true;
         } catch (err) {
             console.error('Failed sending email via SMTP:', err && err.message);
+            const smtpHint = getSmtpHint(err, cfg);
+            if (smtpHint) {
+                console.error('SMTP hint:', smtpHint);
+            }
         }
     }
 
-    if (!emailSent && isMailjetConfigured(cfg)) {
-        try {
-            await sendViaSmtp({
-                cfg,
-                host: cfg.mailjetHost,
-                port: cfg.mailjetPort,
-                secure: cfg.mailjetSecure,
-                user: cfg.mailjetUser,
-                pass: cfg.mailjetPass,
-                label: 'Mailjet SMTP'
-            }, mailOptions);
-            emailSent = true;
-        } catch (err) {
-            console.error('Failed sending email via Mailjet SMTP:', err && err.message);
-        }
-    }
 
     // WhatsApp copy for the same recipient (resolved by email -> phone), if configured.
     let whatsappSent = false;
@@ -347,8 +387,8 @@ async function sendMail(to, subject, text, html, options = {}) {
         console.warn('WhatsApp notification copy failed:', err && err.message);
     }
 
-    if (!emailSent && !isSmtpConfigured(cfg) && !isMailjetConfigured(cfg)) {
-        console.warn('sendMail skipped: no SMTP provider configured (set SMTP env values or Mailjet SMTP credentials)');
+    if (!emailSent && !isSmtpConfigured(cfg)) {
+        console.warn('sendMail skipped: no SMTP provider configured (set SMTP_HOST/SMTP_USER/SMTP_PASS or SMTP_SERVICE)');
     }
 
     return emailSent || whatsappSent;

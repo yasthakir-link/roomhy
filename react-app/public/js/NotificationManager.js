@@ -17,7 +17,8 @@ class NotificationManager {
         this.unreadCounts = {
             bookingRequests: 0,
             chatMessages: 0,
-            complaints: 0
+            complaints: 0,
+            biddingAlerts: 0
         };
         this.seenNotificationIds = new Set();
         this.lastCheckedTimestamps = {
@@ -365,6 +366,7 @@ class NotificationManager {
             let bookingCount = 0;
             let chatCount = 0;
             let complaintCount = 0;
+            let biddingCount = 0;
 
             notifications.forEach((note) => {
                 if (!note || !note._id) return;
@@ -372,6 +374,7 @@ class NotificationManager {
                 if (note.type === 'owner_new_booking_request') bookingCount += 1;
                 if (note.type === 'owner_new_chat') chatCount += 1;
                 if (note.type === 'complaint' || note.type === 'owner_new_complaint') complaintCount += 1;
+                if (note.type === 'owner_new_bidding' || note.type === 'new_bid' || note.type === 'bid') biddingCount += 1;
 
                 if (this.seenNotificationIds.has(note._id)) return;
                 this.seenNotificationIds.add(note._id);
@@ -384,6 +387,9 @@ class NotificationManager {
                     this.playSound();
                     this.triggerNotification('owner_new_chat', note.meta || {});
                     this.triggerNotification('chatMessages', note.meta || {});
+                } else if (note.type === 'owner_new_bidding' || note.type === 'new_bid' || note.type === 'bid') {
+                    this.playSound();
+                    this.triggerNotification('owner_new_bidding', note.meta || {});
                 } else if (note.type === 'complaint' || note.type === 'owner_new_complaint') {
                     this.playSound();
                     this.triggerNotification('complaints', note.meta || {});
@@ -393,6 +399,7 @@ class NotificationManager {
             this.unreadCounts.bookingRequests = bookingCount;
             this.unreadCounts.chatMessages = chatCount;
             this.unreadCounts.complaints = complaintCount;
+            this.unreadCounts.biddingAlerts = biddingCount;
         } catch (e) {
             console.log('Error checking owner notifications:', e.message);
         }
@@ -495,4 +502,3 @@ class NotificationManager {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = NotificationManager;
 }
-

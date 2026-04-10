@@ -5,6 +5,7 @@ import { fetchJson } from "../../utils/api";
 
 const FILTERS = ["All", "Open", "In Progress", "Resolved"];
 const ESCALATION_DAYS = 5;
+const LOCAL_MAJOR_DRAFT_KEY = "roomhy_tenant_major_issue_drafts";
 
 const daysSince = (dateStr) => {
   if (!dateStr) return 0;
@@ -46,6 +47,78 @@ const resolveOwnerLoginId = (tenantRecord = {}) =>
     ""
   ).trim().toUpperCase();
 
+const readLocalMajorDrafts = () => {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(LOCAL_MAJOR_DRAFT_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const writeLocalMajorDrafts = (drafts) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LOCAL_MAJOR_DRAFT_KEY, JSON.stringify(drafts));
+  } catch {
+    // Ignore storage quota / private mode failures.
+  }
+};
+
+const mergeLocalMajorDrafts = (serverComplaints, tenantRecord) => {
+  const tenantId = String(tenantRecord?._id || "");
+  const tenantLoginId = String(tenantRecord?.loginId || "").toUpperCase();
+  const drafts = readLocalMajorDrafts().filter((draft) => {
+    const draftTenantId = String(draft?.tenantId || "");
+    const draftLoginId = String(draft?.tenantLoginId || "").toUpperCase();
+    return draftTenantId === tenantId || draftLoginId === tenantLoginId;
+  });
+
+  const keyFor = (item) => {
+    const createdAt = item?.createdAt || item?.submittedAt || "";
+    const description = String(item?.description || "").trim().toLowerCase();
+    const priority = String(item?.priority || "").trim().toLowerCase();
+    const tenant = String(item?.tenantId || item?.tenantLoginId || "").trim().toLowerCase();
+    return `${tenant}|${createdAt}|${priority}|${description}`;
+  };
+
+  const draftByKey = new Map(drafts.map((draft) => [keyFor(draft), draft]));
+  const merged = [];
+
+  for (const complaint of serverComplaints || []) {
+    const key = keyFor(complaint);
+    const draft = draftByKey.get(key);
+    if (draft) {
+      merged.push({
+        ...complaint,
+        category: draft.issueType || complaint.category || "General",
+        imageStr: complaint.imageStr || complaint.imageUrl || draft.imageStr || "",
+        imageUrl: complaint.imageUrl || draft.imageStr || "",
+      });
+      draftByKey.delete(key);
+      continue;
+    }
+    merged.push(complaint);
+  }
+
+  draftByKey.forEach((draft) => {
+    merged.push({
+      ...draft,
+      _id: draft._id || `local-${draft.createdAt || Date.now()}`,
+      category: draft.issueType || draft.category || "General",
+      imageStr: draft.imageStr || "",
+      status: draft.status || "Open",
+      escalated: draft.escalated || false,
+      localDraft: true
+    });
+  });
+
+  writeLocalMajorDrafts([]);
+  return merged;
+};
+
 export default function Tenantcomplints() {
   useHtmlPage({
     title: "Roomhy - My Complaints & Requests",
@@ -82,6 +155,7 @@ export default function Tenantcomplints() {
   const [majorDesc, setMajorDesc] = useState("");
   const [majorImage, setMajorImage] = useState(null); // Will store base64 string
   const [majorStatus, setMajorStatus] = useState({ loading: false, error: "" });
+  const [imagePreview, setImagePreview] = useState(null);
 
   useEffect(() => {
     if (window?.lucide) window.lucide.createIcons();
@@ -123,7 +197,8 @@ export default function Tenantcomplints() {
     try {
       setLoading(true);
       const data = await fetchJson(`/api/complaints/tenant/${tenantRecord._id}`);
-      setComplaints(data?.complaints || data || []);
+      const list = data?.complaints || data || [];
+      setComplaints(mergeLocalMajorDrafts(list, tenantRecord));
     } catch (err) {
       setErrorMsg(err?.body || err?.message || "Failed to load complaints.");
     } finally {
@@ -213,41 +288,89 @@ export default function Tenantcomplints() {
       return;
     }
     setMajorStatus({ loading: true, error: "" });
-    
+
+    const createdAt = new Date().toISOString();
+    const basePayload = {
+      tenantId: tenant._id,
+      tenantLoginId: tenant.loginId,
+      tenantName: tenant.name,
+      tenantPhone: tenant.phone,
+      tenantEmail: tenant.email,
+      property: tenant.propertyTitle || tenant.property?.title,
+      propertyId: tenant.propertyId || tenant.property?._id,
+      ownerLoginId: resolveOwnerLoginId(tenant),
+      roomNo: tenant.roomNo,
+      bedNo: tenant.bedNo,
+      description: majorDesc,
+      priority: "High",
+      imageStr: majorImage,
+      status: "Open",
+      escalated: false,
+      createdAt
+    };
+
     try {
       await fetchJson("/api/complaints", {
         method: "POST",
         body: JSON.stringify({
-          tenantId: tenant._id,
-          tenantLoginId: tenant.loginId,
-          tenantName: tenant.name,
-          tenantPhone: tenant.phone,
-          tenantEmail: tenant.email,
-          property: tenant.propertyTitle || tenant.property?.title,
-          propertyId: tenant.propertyId || tenant.property?._id,
-          ownerLoginId: resolveOwnerLoginId(tenant),
-          roomNo: tenant.roomNo,
-          bedNo: tenant.bedNo,
+          ...basePayload,
           category: "Major Issue",
-          description: majorDesc,
-          priority: "High",
-          imageStr: majorImage, 
-          status: "Open",
-          escalated: false,
-          createdAt: new Date().toISOString()
+          issueType: "Major Issue"
         })
       });
+      writeLocalMajorDrafts(readLocalMajorDrafts().filter((draft) => draft?.createdAt !== createdAt));
       setMajorDesc("");
       setMajorImage(null);
-      
       const fileInput = document.getElementById("majorImageInput");
       if (fileInput) fileInput.value = "";
-
       setMajorStatus({ loading: false, error: "" });
-      setMajorModalOpen(false); // Close Modal on success
+      setMajorModalOpen(false);
       await loadComplaints(tenant);
-    } catch (err) {
-      setMajorStatus({ loading: false, error: err?.body || err?.message || "Failed to submit priority complaint." });
+      return;
+    } catch (firstErr) {
+      try {
+        await fetchJson("/api/complaints", {
+          method: "POST",
+          body: JSON.stringify({
+            ...basePayload,
+            category: "Other",
+            issueType: "Major Issue",
+            majorIssue: true
+          })
+        });
+
+        writeLocalMajorDrafts([
+          ...readLocalMajorDrafts().filter((draft) => draft?.createdAt !== createdAt),
+          {
+            ...basePayload,
+            category: "Other",
+            issueType: "Major Issue",
+            localDraft: true
+          }
+        ]);
+
+        setMajorDesc("");
+        setMajorImage(null);
+        const fileInput = document.getElementById("majorImageInput");
+        if (fileInput) fileInput.value = "";
+        setMajorStatus({ loading: false, error: "" });
+        setMajorModalOpen(false);
+        await loadComplaints(tenant);
+      } catch (fallbackErr) {
+        writeLocalMajorDrafts([
+          ...readLocalMajorDrafts().filter((draft) => draft?.createdAt !== createdAt),
+          {
+            ...basePayload,
+            category: "Other",
+            issueType: "Major Issue",
+            localDraft: true
+          }
+        ]);
+        setMajorStatus({
+          loading: false,
+          error: fallbackErr?.body || fallbackErr?.message || firstErr?.body || firstErr?.message || "Failed to submit priority complaint."
+        });
+      }
     }
   };
 
@@ -392,7 +515,7 @@ export default function Tenantcomplints() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <p className="text-sm font-semibold text-slate-900">
-                              {complaint.category || "General"}
+                              {complaint.issueType || complaint.category || "General"}
                             </p>
                             {escalated && (
                               <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 border border-orange-300">
@@ -403,8 +526,19 @@ export default function Tenantcomplints() {
                           <p className="text-sm text-slate-600">{complaint.description}</p>
                           
                           {/* Display Image Thumbnail if exists */}
-                          {complaint.imageStr && (
-                            <img src={complaint.imageStr} alt="Complaint Issue" className="h-16 w-16 object-cover rounded-md mt-2 border border-slate-200" />
+                          {(complaint.imageStr || complaint.imageUrl) && (
+                            <button
+                              type="button"
+                              onClick={() => setImagePreview(complaint.imageStr || complaint.imageUrl)}
+                              className="mt-2 block"
+                              aria-label="Open complaint image preview"
+                            >
+                              <img
+                                src={complaint.imageStr || complaint.imageUrl}
+                                alt="Complaint Issue"
+                                className="h-16 w-16 object-cover rounded-md border border-slate-200 cursor-zoom-in transition hover:scale-105"
+                              />
+                            </button>
                           )}
 
                           <div className="flex flex-wrap gap-3 mt-3 text-xs text-slate-400">
@@ -424,7 +558,9 @@ export default function Tenantcomplints() {
                       {/* Owner response if any */}
                       {complaint.ownerResponse && (
                         <div className="mt-3 pt-3 border-t border-slate-100">
-                          <p className="text-xs font-semibold text-slate-500 mb-1">Owner Response:</p>
+                          <p className="text-xs font-semibold text-slate-500 mb-1">
+                            Response by {complaint.ownerResponseBy || complaint.ownerLoginId || complaint.ownerId || "Owner"}:
+                          </p>
                           <p className="text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2">
                             {complaint.ownerResponse}
                           </p>
@@ -580,6 +716,32 @@ export default function Tenantcomplints() {
                 {majorStatus.loading ? "Submitting..." : "Submit Major Issue"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {imagePreview && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setImagePreview(null)}
+        >
+          <div
+            className="relative max-w-5xl max-h-[90vh] w-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setImagePreview(null)}
+              className="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-white text-slate-700 shadow-lg flex items-center justify-center hover:bg-slate-100"
+              aria-label="Close image preview"
+            >
+              <span className="text-xl leading-none">×</span>
+            </button>
+            <img
+              src={imagePreview}
+              alt="Complaint proof enlarged"
+              className="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain bg-white"
+            />
           </div>
         </div>
       )}

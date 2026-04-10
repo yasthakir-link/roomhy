@@ -6,7 +6,7 @@ async function getSuperadminEmails() {
     const users = await User.find({ role: 'superadmin' }).select('email').lean();
     const emails = users.map((u) => u.email).filter(Boolean);
     if (process.env.SUPERADMIN_EMAIL) emails.push(process.env.SUPERADMIN_EMAIL);
-    if (process.env.MAILJET_FROM_EMAIL) emails.push(process.env.MAILJET_FROM_EMAIL);
+    if (process.env.FROM_EMAIL) emails.push(process.env.FROM_EMAIL);
     return [...new Set(emails)];
 }
 

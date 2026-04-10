@@ -466,6 +466,16 @@ const applyEmployeeSidebarPermissions = (opts = {}) => {
   applyEmployeeHeader();
 };
 
+const refreshLucideIcons = () => {
+  try {
+    if (window.lucide?.createIcons) {
+      window.lucide.createIcons();
+    }
+  } catch (err) {
+    console.debug("Lucide refresh error:", err);
+  }
+};
+
 export const useHtmlPage = ({
   title,
   bodyClass,
@@ -877,6 +887,8 @@ export const useHtmlPage = ({
         });
       }
 
+      refreshLucideIcons();
+
       const hasTailwindScript = (normalizedScriptSequence?.length
         ? normalizedScriptSequence
             .filter((entry) => entry?.type === "external")
@@ -942,6 +954,7 @@ export const useHtmlPage = ({
           if (hasTailwindScript) {
             rescanTailwind();
           }
+          refreshLucideIcons();
         } catch (err) {
           console.debug("Initial rescan error:", err);
         }
@@ -968,6 +981,7 @@ export const useHtmlPage = ({
                 console.debug("Mobile sidebar init error:", err);
               }
             }
+            refreshLucideIcons();
             if (isEmployeeRoute) {
               try {
                 applyEmployeeSidebarPermissions();
@@ -1016,6 +1030,7 @@ export const useHtmlPage = ({
                 if (hasTailwindScript) {
                   rescanTailwind();
                 }
+                refreshLucideIcons();
               } catch (err) {
                 console.debug("Safety rescan error:", err);
               }

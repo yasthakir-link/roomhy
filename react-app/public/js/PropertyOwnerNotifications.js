@@ -99,9 +99,8 @@ class PropertyOwnerNotifications {
     showNotification(title, type, data) {
         console.log(`📢 ${title}`, data);
 
-        // Play sound
+        // Browser notification
         if (this.notificationManager) {
-            this.notificationManager.playSound();
             this.notificationManager.showBrowserNotification(title, {
                 body: this.getNotificationBody(type, data),
                 tag: `${type}-${Date.now()}`
@@ -127,7 +126,7 @@ class PropertyOwnerNotifications {
             case 'complaint':
                 return `Priority: ${data?.priority || 'Medium'} - ${data?.issue || 'New complaint'}`;
             case 'bidding':
-                return `${data?.bidderName || 'Bidder'} offered ₹${data?.bidAmount || '0'} for ${data?.propertyName || 'property'}`;
+                return `${data?.bidderName || 'A user'} is interested in ${data?.propertyName || 'your property'}${data?.bidAmount ? ` with an offer of ₹${data.bidAmount}` : ''}`;
             default:
                 return 'New notification';
         }
@@ -219,7 +218,7 @@ class PropertyOwnerNotifications {
 
         settingsBtn.addEventListener('click', () => {
             const counts = this.notificationManager?.getUnreadCounts() || {};
-            alert(`🔔 Notification Settings\n\nBooking Requests: ${counts.bookingRequests || 0}\nChat Messages: ${counts.chatMessages || 0}\nComplaints: ${counts.complaints || 0}\n\n✅ Sound: Enabled\n✅ Email: Enabled\n✅ Browser: Enabled\n\nNotifications check every 5 seconds`);
+            alert(`🔔 Notification Settings\n\nBooking Requests: ${counts.bookingRequests || 0}\nChat Messages: ${counts.chatMessages || 0}\nComplaints: ${counts.complaints || 0}\nBidding Alerts: ${counts.biddingAlerts || 0}\n\n✅ Sound: Enabled\n✅ Email: Enabled\n✅ Browser: Enabled\n\nNotifications check every 5 seconds`);
         });
     }
 
@@ -231,7 +230,7 @@ class PropertyOwnerNotifications {
         if (!badge || !this.notificationManager) return;
 
         const counts = this.notificationManager.getUnreadCounts();
-        const totalUnread = counts.bookingRequests + counts.chatMessages + counts.complaints;
+        const totalUnread = counts.bookingRequests + counts.chatMessages + counts.complaints + (counts.biddingAlerts || 0);
 
         if (totalUnread > 0) {
             badge.textContent = totalUnread;
@@ -247,7 +246,7 @@ class PropertyOwnerNotifications {
     getUnreadCount() {
         if (!this.notificationManager) return 0;
         const counts = this.notificationManager.getUnreadCounts();
-        return counts.bookingRequests + counts.chatMessages + counts.complaints;
+        return counts.bookingRequests + counts.chatMessages + counts.complaints + (counts.biddingAlerts || 0);
     }
 
     /**

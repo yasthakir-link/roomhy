@@ -62,6 +62,38 @@ function renderLoginOtpHtml(firstName, otp) {
     `;
 }
 
+function getDeliveryChannelLabel({ emailSent, whatsappSent }) {
+    if (emailSent && whatsappSent) return 'email and WhatsApp';
+    if (emailSent) return 'email';
+    if (whatsappSent) return 'WhatsApp';
+    return '';
+}
+
+async function sendOtpByEmailAndWhatsApp({
+    email,
+    phone,
+    subject,
+    text,
+    html,
+    templateName,
+    variables = []
+}) {
+    const emailPromise = mailer.sendMail(email, subject, text, html);
+    const whatsAppPromise = sendTemplateToResolvedUser({
+        phone,
+        email,
+        templateName,
+        variables
+    });
+
+    const [emailResult, whatsAppResult] = await Promise.allSettled([emailPromise, whatsAppPromise]);
+
+    return {
+        emailSent: emailResult.status === 'fulfilled' && emailResult.value === true,
+        whatsappSent: whatsAppResult.status === 'fulfilled' && whatsAppResult.value === true
+    };
+}
+
 // Request OTP for website signup
 router.post('/signup/request-otp', otpLimiter, captchaProtection({ required: false }), async (req, res) => {
     try {
@@ -114,27 +146,26 @@ router.post('/signup/request-otp', otpLimiter, captchaProtection({ required: fal
             );
         }
 
-        await mailer.sendMail(
+        const signupDelivery = await sendOtpByEmailAndWhatsApp({
             email,
-            'Roomhy - Your Signup Verification Code',
-            `Your Roomhy verification code is ${otp}. It is valid for 10 minutes.`,
-            renderOtpHtml(firstName, otp)
-        );
+            phone,
+            subject: 'Roomhy - Your Signup Verification Code',
+            text: `Your Roomhy verification code is ${otp}. It is valid for 10 minutes.`,
+            html: renderOtpHtml(firstName, otp),
+            templateName: 'roomhy_otp_verification',
+            variables: [otp, '10']
+        });
 
-        try {
-            await sendTemplateToResolvedUser({
-                phone,
-                email,
-                templateName: 'roomhy_otp_verification',
-                variables: [otp, '10']
-            });
-        } catch (whatsAppErr) {
-            console.warn('signup/request-otp whatsapp error:', whatsAppErr.message);
+        if (!signupDelivery.emailSent && !signupDelivery.whatsappSent) {
+            throw new Error('Unable to send signup verification code by email or WhatsApp');
         }
 
+        const deliveryChannel = getDeliveryChannelLabel(signupDelivery);
         return res.json({
             success: true,
-            message: 'Verification code sent to your email',
+            message: deliveryChannel
+                ? `Verification code sent via ${deliveryChannel}`
+                : 'Verification code sent',
             ...(process.env.NODE_ENV === 'development' && { demoOtp: otp })
         });
     } catch (error) {
@@ -306,28 +337,26 @@ router.post('/login/request-otp', otpLimiter, captchaProtection({ required: fals
             email
         });
 
-        await mailer.sendMail(
+        const loginDelivery = await sendOtpByEmailAndWhatsApp({
             email,
-            'Roomhy - Your Login Verification Code',
-            `Your Roomhy login verification code is ${otp}. It is valid for 10 minutes.`,
-            renderLoginOtpHtml(signup.firstName || user.name, otp)
-        );
+            phone: user.phone || '',
+            subject: 'Roomhy - Your Login Verification Code',
+            text: `Your Roomhy login verification code is ${otp}. It is valid for 10 minutes.`,
+            html: renderLoginOtpHtml(signup.firstName || user.name, otp),
+            templateName: 'roomhy_otp_verification',
+            variables: [otp, '10']
+        });
 
-        try {
-            await sendTemplateToResolvedUser({
-                phone: user.phone || '',
-                email,
-                userId: user.loginId || '',
-                templateName: 'roomhy_otp_verification',
-                variables: [otp, '10']
-            });
-        } catch (whatsAppErr) {
-            console.warn('login/request-otp whatsapp error:', whatsAppErr.message);
+        if (!loginDelivery.emailSent && !loginDelivery.whatsappSent) {
+            throw new Error('Unable to send login verification code by email or WhatsApp');
         }
 
+        const deliveryChannel = getDeliveryChannelLabel(loginDelivery);
         return res.json({
             success: true,
-            message: 'Login verification code sent to your email',
+            message: deliveryChannel
+                ? `Login verification code sent via ${deliveryChannel}`
+                : 'Login verification code sent',
             ...(process.env.NODE_ENV === 'development' && { demoOtp: otp })
         });
     } catch (error) {
@@ -458,7 +487,7 @@ router.post('/submit', formLimiter, captchaProtection({ required: false }), asyn
         // Send email notification to superadmin
         try {
             const mailer = require('../utils/mailer');
-            const superadminEmail = process.env.SUPERADMIN_EMAIL || process.env.MAILJET_FROM_EMAIL || 'roomhy01@gmail.com';
+            const superadminEmail = process.env.SUPERADMIN_EMAIL || process.env.FROM_EMAIL || 'roomhy01@gmail.com';
             const subject = 'New User Signup - Account Created';
             const html = `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

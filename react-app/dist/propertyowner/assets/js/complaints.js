@@ -4,6 +4,49 @@ lucide.createIcons();
         let ownerComplaints = [];
         let user = null;
 
+        function ensureImagePreviewModal() {
+            if (document.getElementById('complaintImagePreviewModal')) return;
+            const modal = document.createElement('div');
+            modal.id = 'complaintImagePreviewModal';
+            modal.className = 'fixed inset-0 z-[60] hidden bg-black/80 items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="relative max-w-5xl max-h-[90vh] w-full flex items-center justify-center" id="complaintImagePreviewShell">
+                    <button type="button" id="closeComplaintImagePreview" class="absolute -top-3 -right-3 h-10 w-10 rounded-full bg-white text-slate-700 shadow-lg flex items-center justify-center hover:bg-slate-100" aria-label="Close image preview">
+                        <i data-lucide="x" class="w-5 h-5"></i>
+                    </button>
+                    <img id="complaintImagePreview" alt="Complaint proof enlarged" class="max-w-full max-h-[90vh] rounded-2xl shadow-2xl object-contain bg-white" />
+                </div>
+            `;
+            modal.addEventListener('click', () => closeImagePreview());
+            modal.querySelector('#complaintImagePreviewShell').addEventListener('click', (e) => e.stopPropagation());
+            document.body.appendChild(modal);
+            modal.querySelector('#closeComplaintImagePreview').addEventListener('click', (e) => {
+                e.preventDefault();
+                closeImagePreview();
+            });
+            if (window.lucide?.createIcons) window.lucide.createIcons();
+        }
+
+        function openImagePreview(src) {
+            if (!src) return;
+            ensureImagePreviewModal();
+            const modal = document.getElementById('complaintImagePreviewModal');
+            const image = document.getElementById('complaintImagePreview');
+            if (image) image.src = src;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeImagePreview() {
+            const modal = document.getElementById('complaintImagePreviewModal');
+            const image = document.getElementById('complaintImagePreview');
+            if (image) image.src = '';
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
         // Listen for owner context updates from ownerContextSync.js
         window.addEventListener('owner-session-updated', (event) => {
             user = event.detail || window.__ownerContext;
@@ -88,11 +131,18 @@ lucide.createIcons();
                         <div class="flex justify-between items-start gap-4 mb-3">
                             <div class="flex-1">
                                 <div class="flex items-center gap-2 mb-2">
-                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded font-semibold">${c.category}</span>
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded font-semibold">${c.issueType || c.category}</span>
                                     <span class="priority-badge ${priorityClass}">${c.priority}</span>
                                     <span class="text-xs text-gray-400">${createdDate}</span>
                                 </div>
                                 <h3 class="text-base font-semibold text-gray-800 mb-1">${c.description}</h3>
+                                ${c.imageStr || c.imageUrl ? `
+                                    <div class="mt-3">
+                                        <button type="button" class="complaint-image-trigger block" data-image="${encodeURIComponent(c.imageStr || c.imageUrl)}" aria-label="Open complaint image preview">
+                                            <img src="${c.imageStr || c.imageUrl}" alt="Complaint proof" class="h-24 w-24 object-cover rounded-lg border border-gray-200 cursor-zoom-in transition hover:scale-105" />
+                                        </button>
+                                    </div>
+                                ` : ''}
                                 <div class="flex items-center gap-4 text-xs text-gray-600">
                                     <div><strong>Tenant:</strong> ${c.tenantName}</div>
                                     <div><strong>Room:</strong> ${c.roomNo}${c.bedNo ? ' ('+c.bedNo+')' : ''}</div>
@@ -109,6 +159,12 @@ lucide.createIcons();
                     </div>
                 `;
             }).join('');
+            container.querySelectorAll('.complaint-image-trigger').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const src = decodeURIComponent(btn.dataset.image || '');
+                    openImagePreview(src);
+                });
+            });
             lucide.createIcons();
         }
 

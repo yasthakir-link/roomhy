@@ -109,6 +109,20 @@ export default function BookingRequest() {
     [bids, search, statusFilter]
   );
 
+  const notificationItems = useMemo(
+    () => [
+      ...bids.filter((item) => String(item.status || "pending").toLowerCase() === "pending").map((item) => ({
+        title: item.propertyName || "New Bid",
+        message: `${item.userName || item.fullName || "Someone"} is interested in your property`
+      })),
+      ...requests.filter((item) => String(item.status || "pending").toLowerCase() === "pending").map((item) => ({
+        title: item.propertyName || "New Booking Request",
+        message: `${item.userName || "Tenant"} | ${item.status || "pending"}`
+      }))
+    ],
+    [bids, requests]
+  );
+
   const handleDecision = async (booking, action) => {
     try {
       await updateBookingDecision(booking.key, action);
@@ -137,7 +151,8 @@ export default function BookingRequest() {
       owner={owner}
       title="Booking Requests"
       navVariant="default"
-      notificationCount={visibleRequests.filter((item) => String(item.status).toLowerCase() === "pending").length}
+      notificationCount={notificationItems.length}
+      notifications={notificationItems.slice(0, 10)}
       showNotificationSettings
       onNotificationSettingsClick={() => window.alert("Notification settings are not configured in the React flow yet.")}
       onLogout={() => {
