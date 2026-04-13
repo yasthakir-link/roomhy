@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+import{j as c}from"./index-CgJryze2.js";import{r as b}from"./router-MpwSQkXQ.js";import{l as v,u as w,W as k}from"./htmlPage-BclIarCP.js";import{u as S}from"./websiteUi-D9BhyAQ6.js";const i=`<!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
@@ -6,13 +6,13 @@
     <title>About Roomhy - Our Mission, Vision, and Values</title>
     <script>
         const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:5001' : 'https://api.roomhy.com';
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <\/script>
+    <script src="https://cdn.tailwindcss.com"><\/script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Updated to include Lexend font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@latest"><\/script>
     <!-- Font Awesome for footer icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
@@ -70,7 +70,7 @@
             }
         }
     }
-    </script>
+    <\/script>
     
     <link rel="stylesheet" href="assets/css/about.css">
 </head>
@@ -837,6 +837,57 @@
     </footer>
 
     <!-- ****** SCRIPT BLOCK FOR ABOUT PAGE ****** -->
-    <script src="assets/js/about.js"></script>
+    <script src="assets/js/about.js"><\/script>
 </body>
 </html>
+`,r=(e="")=>{const n={},t=/([^\s=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g;let s;for(;s=t.exec(e);){const a=s[1];if(!a||a==="/"||a.endsWith("/"))continue;const l=s[2]??s[3]??s[4];n[a]=l??!0}return n},d=e=>!e||typeof e!="string"||e.startsWith("/")||e.startsWith("http://")||e.startsWith("https://")||e.startsWith("mailto:")||e.startsWith("tel:")||e.startsWith("#")||e.startsWith("data:")?e:e.startsWith("assets/")||e.startsWith("js/")||e.startsWith("images/")||e.startsWith("css/")?`/website/${e}`:e,j=e=>e.replace(/\b(href|src)=("([^"]+)"|'([^']+)')/gi,(n,t,s,a,l)=>{const o=a??l??"",p=d(o);if(p===o)return n;const u=a!=null?'"':"'";return`${t}=${u}${p}${u}`}),T=(e={})=>Object.entries(e).filter(([,n])=>n!==!1&&n!=null).map(([n,t])=>t===!0?n:`${n}="${String(t).replace(/"/g,"&quot;")}"`).join(" "),h=(e,{width:n=960,quality:t=70}={})=>{if(!e||typeof e!="string")return e;if(e.includes("images.unsplash.com/")){const s=e.replace("auto:format","auto=format");try{const a=new URL(s);return a.searchParams.set("auto","format"),a.searchParams.set("fit","crop"),a.searchParams.set("q",String(t)),a.searchParams.set("w",String(n)),a.toString()}catch{return s}}if(e.includes("res.cloudinary.com/")&&e.includes("/upload/")){const s=`f_auto,q_auto,w_${n}`;return e.includes("/upload/f_auto")?e:e.replace("/upload/",`/upload/${s}/`)}return e},R=e=>{const n=e.match(/^<img\b([^>]*)>$/i);if(!n)return e;const t=r(n[1]||""),s=String(t.alt||"").toLowerCase(),a=s.includes("logo"),l=s.includes("hero background 1"),o=s.includes("hero background")||/^hero background \d+$/.test(s);return t.decoding="async",l?(t.loading="eager",t.fetchpriority="high",t.src=h(t.src,{width:1280,quality:70}),t.width=t.width||1600,t.height=t.height||900,t.sizes=t.sizes||"100vw"):(t.loading="lazy",t.fetchpriority="low",t.src=h(t.src,{width:a?240:o?960:900,quality:68}),t.width=t.width||(a?180:1200),t.height=t.height||(a?40:800),o&&(t.sizes=t.sizes||"100vw")),`<img ${T(t)}>`},E=e=>e.replace(/<img\b[^>]*>/gi,n=>R(n)),C=(e,n=0)=>`
+  (function() {
+    var loadScript = function() {
+      if (document.querySelector('script[src="${e}"]')) return;
+      var el = document.createElement('script');
+      el.src = '${e}';
+      el.async = true;
+      document.head.appendChild(el);
+    };
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(function() {
+        ${n>0?`setTimeout(loadScript, ${n});`:"loadScript();"}
+      }, { timeout: 1500 });
+    } else {
+      setTimeout(loadScript, ${Math.max(1,n)});
+    }
+  })();
+`,f=(e,n)=>{const t=n.match(new RegExp(`<${e}\\b([^>]*)>`,"i"));return r((t==null?void 0:t[1])||"")},g=(e,n)=>{const t=new RegExp(`<${e}\\b([^>]*)>`,"gi");return Array.from(n.matchAll(t),s=>r(s[1]||""))},y=(e,n)=>{const t=new RegExp(`<${e}\\b([^>]*)>([\\s\\S]*?)<\\/${e}>`,"gi");return Array.from(n.matchAll(t),s=>{var a;return{attrs:r(s[1]||""),content:((a=s[2])==null?void 0:a.trim())||""}})},O=e=>{const n=e.match(/<body[^>]*>([\s\S]*?)<\/body>/i);if(!n)return"";const t=n[1].replace(/<script[\s\S]*?<\/script>/gi,"").replace(/<footer[\s\S]*?<\/footer>/gi,"");return E(j(t)).trim()},A=`
+  .html-page main > section {
+    content-visibility: auto;
+    contain-intrinsic-size: 900px;
+  }
+
+  .html-page #welcome,
+  .html-page #features,
+  .html-page #hero-image-wrapper {
+    content-visibility: visible;
+    contain-intrinsic-size: auto;
+  }
+
+  @media (max-width: 768px), (prefers-reduced-motion: reduce) {
+    .html-page .animate-kenburns,
+    .html-page .animate-slide-in,
+    .html-page .animate-float,
+    .html-page .animate-slide-left-infinite,
+    .html-page .animate-slide-right-infinite,
+    .html-page .pulse-icon {
+      animation: none !important;
+    }
+
+    .html-page [class*="transition-"] {
+      transition-duration: 0.01ms !important;
+    }
+
+    .html-page .animate-slide-in,
+    .html-page .card-animate {
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+`,I=f("html",i),x=f("body",i),P=g("meta",i),F=g("link",i).map(e=>({...e,href:d(e.href)})).filter(e=>!String(e.href||"").includes("cdnjs.cloudflare.com/ajax/libs/font-awesome")),m=y("script",i),N=m.map(e=>{if(e.attrs.src){const n=d(e.attrs.src);return n==="/website/assets/js/about.js"?{type:"inline",content:C(n,300)}:{type:"external",attrs:{...e.attrs,src:n}}}return{type:"inline",content:e.content}}),L=m.filter(e=>e.attrs.src).map(e=>({...e.attrs,src:d(e.attrs.src)})),W=m.filter(e=>!e.attrs.src).map(e=>e.content).filter(Boolean),B=y("style",i).map(e=>e.content).filter(Boolean),z=O(i);function U(){return S(),b.useEffect(()=>(window.globalLogout=()=>v("login"),()=>{window.globalLogout&&delete window.globalLogout}),[]),w({title:"About Roomhy - Our Mission, Vision, and Values",bodyClass:x.class===!0?"":x.class||"",htmlAttrs:I,metas:P,links:[{rel:"preconnect",href:"https://res.cloudinary.com",crossorigin:!0},{rel:"preconnect",href:"https://images.unsplash.com",crossorigin:!0},{rel:"preconnect",href:"https://unpkg.com",crossorigin:!0},{rel:"preconnect",href:"https://api.roomhy.com",crossorigin:!0},...F],scripts:L,styles:[...B,A],inlineScripts:W,scriptSequence:N}),c.jsxs("div",{className:"html-page",children:[c.jsx("div",{dangerouslySetInnerHTML:{__html:z}}),c.jsx(k,{})]})}export{U as default};

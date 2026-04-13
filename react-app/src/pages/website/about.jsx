@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
 import aboutTemplateHtml from "../../templates/about.website1.html?raw";
 import { useHtmlPage } from "../../utils/htmlPage";
+import { logoutWebsite } from "../../utils/websiteSession";
+import { useWebsiteMenu } from "../../utils/websiteUi";
 
 const parseAttributes = (input = "") => {
   const attrs = {};
@@ -255,6 +257,17 @@ const styles = extractWrappedTagEntries("style", aboutTemplateHtml)
 const bodyHtml = extractBodyContent(aboutTemplateHtml);
 
 export default function WebsiteAbout() {
+  useWebsiteMenu();
+
+  useEffect(() => {
+    window.globalLogout = () => logoutWebsite("login");
+    return () => {
+      if (window.globalLogout) {
+        delete window.globalLogout;
+      }
+    };
+  }, []);
+
   useHtmlPage({
     title: "About Roomhy - Our Mission, Vision, and Values",
     bodyClass: bodyAttrs.class === true ? "" : bodyAttrs.class || "",

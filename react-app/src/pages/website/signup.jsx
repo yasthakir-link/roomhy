@@ -4,6 +4,61 @@ import { useHtmlPage } from "../../utils/htmlPage";
 import { setWebsiteSession, getWebsiteApiUrl } from "../../utils/websiteSession";
 import { useHeroSlideshow, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
 
+const GOOGLE_CLIENT_ID =
+  import.meta.env.VITE_GOOGLE_CLIENT_ID ||
+  import.meta.env.VITE_GOOGLE_CLIEN ||
+  "";
+const GOOGLE_IDENTITY_SRC = "https://accounts.google.com/gsi/client";
+const GOOGLE_IDENTITY_SCOPE = "openid email profile";
+
+let googleIdentityScriptPromise = null;
+
+const loadGoogleIdentity = () => {
+  if (typeof window === "undefined") {
+    return Promise.resolve(null);
+  }
+
+  if (window.google?.accounts?.oauth2) {
+    return Promise.resolve(window.google);
+  }
+
+  if (!googleIdentityScriptPromise) {
+    googleIdentityScriptPromise = new Promise((resolve, reject) => {
+      const existingScript = document.querySelector(`script[src="${GOOGLE_IDENTITY_SRC}"]`);
+      if (existingScript) {
+        existingScript.addEventListener("load", () => resolve(window.google), { once: true });
+        existingScript.addEventListener("error", () => reject(new Error("Failed to load Google sign-in")), { once: true });
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = GOOGLE_IDENTITY_SRC;
+      script.async = true;
+      script.defer = true;
+      script.onload = () => resolve(window.google);
+      script.onerror = () => reject(new Error("Failed to load Google sign-in"));
+      document.head.appendChild(script);
+    });
+  }
+
+  return googleIdentityScriptPromise;
+};
+
+const decodeJwtPayload = (token = "") => {
+  const payload = String(token).split(".")[1];
+  if (!payload) return null;
+
+  try {
+    const padded = payload.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(payload.length / 4) * 4, "=");
+    const binary = atob(padded);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const json = new TextDecoder().decode(bytes);
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+};
+
 export default function WebsiteSignup() {
   useWebsiteCommon();
   useWebsiteMenu();
@@ -234,6 +289,88 @@ export default function WebsiteSignup() {
     }
   }, [apiUrl, otp, pendingPayload, showToast]);
 
+  const handleGoogleSignIn = useCallback(async () => {
+    if (!GOOGLE_CLIENT_ID) {
+      showToast(
+        "Google sign-in is not configured yet. Set VITE_GOOGLE_CLIENT_ID (or the legacy VITE_GOOGLE_CLIEN typo) in the React app .env file.",
+        "error"
+      );
+      return;
+    }
+
+    try {
+      const google = await loadGoogleIdentity();
+      if (!google?.accounts?.oauth2?.initTokenClient) {
+        throw new Error("Google sign-in library is unavailable");
+      }
+
+      const authResult = await new Promise((resolve, reject) => {
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: GOOGLE_IDENTITY_SCOPE,
+          callback: async (tokenResponse) => {
+            try {
+              if (tokenResponse?.error) {
+                reject(new Error(tokenResponse.error));
+                return;
+              }
+
+              const accessToken = tokenResponse?.access_token || "";
+              if (!accessToken) {
+                reject(new Error("Google sign-in did not return an access token."));
+                return;
+              }
+
+              const profileResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+                headers: {
+                  Authorization: `Bearer ${accessToken}`
+                }
+              });
+              const profile = await profileResponse.json().catch(() => ({}));
+              if (!profileResponse.ok) {
+                throw new Error(profile?.error?.message || "Unable to read your Google profile");
+              }
+
+              resolve({ accessToken, profile });
+            } catch (error) {
+              reject(error);
+            }
+          }
+        });
+
+        tokenClient.requestAccessToken({ prompt: "consent" });
+      });
+
+      const profile = authResult?.profile || {};
+      const parsedToken = decodeJwtPayload(authResult?.accessToken) || {};
+      const firstName = String(profile.given_name || parsedToken.given_name || "").trim();
+      const lastName = String(profile.family_name || parsedToken.family_name || "").trim();
+      const fullName = String(profile.name || parsedToken.name || [firstName, lastName].filter(Boolean).join(" ") || profile.email || "").trim();
+      const user = {
+        id: String(profile.sub || parsedToken.sub || profile.email || "").trim(),
+        userId: String(profile.sub || parsedToken.sub || profile.email || "").trim(),
+        loginId: String(profile.email || "").trim().toLowerCase(),
+        email: String(profile.email || "").trim().toLowerCase(),
+        name: fullName || String(profile.email || "").trim().toLowerCase(),
+        firstName,
+        lastName,
+        picture: profile.picture || parsedToken.picture || "",
+        role: "tenant",
+        provider: "google"
+      };
+
+      if (!user.email) {
+        throw new Error("Google did not return an email address.");
+      }
+
+      setWebsiteSession(user, `google:${user.id || user.email}`);
+      showToast("Google sign-in successful!", "success");
+      window.location.href = "/website/index";
+    } catch (error) {
+      showToast(error?.message || "Google sign-in failed. Please try again.", "error");
+    }
+  }, [showToast]);
+
   useHtmlPage({
     title: "Roomhy | Light & Blue Edition",
     bodyClass: "",
@@ -288,57 +425,6 @@ export default function WebsiteSignup() {
 
   return (
     <div className="html-page">
-      
-      
-          
-          <div id="mobile-menu-overlay" className="fixed inset-0 bg-black/50 z-50 hidden transition-opacity duration-300 opacity-0"></div>
-          <div id="mobile-menu-drawer" className="fixed top-0 right-0 w-72 sm:w-80 h-full bg-white z-[60] shadow-2xl translate-x-full transition-transform duration-300 ease-in-out p-6 flex flex-col">
-              <div className="flex justify-between items-center mb-8">
-                  <span className="text-xl font-bold text-slate-900">Roomhy Menu</span>
-                  <button id="menu-close" className="p-2 text-slate-600 bg-slate-50 rounded-lg"><i data-lucide="x"></i></button>
-              </div>
-              <nav className="flex flex-col gap-5 text-base sm:text-lg font-semibold text-slate-700">
-                  <a href="/website/about" className="flex items-center gap-3 p-2 hover:text-blue-600 transition-colors"><i data-lucide="info" className="w-5 h-5"></i> About Us</a>
-                  <a href="/website/contact" className="flex items-center gap-3 p-2 hover:text-blue-600 transition-colors"><i data-lucide="phone" className="w-5 h-5"></i> Contact Us</a>
-                  <a href="/website/websitechat" className="flex items-center gap-3 p-2 hover:text-blue-600 transition-colors"><i data-lucide="message-circle" className="w-5 h-5"></i> Chat</a>
-                  <a href="#" className="flex items-center gap-3 p-2 hover:text-blue-600 transition-colors"><i data-lucide="building" className="w-5 h-5"></i> Properties</a>
-                  <a href="#auth-container" className="bg-blue-600 text-white text-center py-3.5 rounded-xl mt-4 shadow-lg active:scale-95 transition-transform">Login / Sign Up</a>
-              </nav>
-              <div className="mt-auto pt-8 border-t border-slate-100 flex justify-center gap-6">
-                  <a href="#" className="text-slate-400"><i className="fab fa-facebook-f"></i></a>
-                  <a href="#" className="text-slate-400"><i className="fab fa-instagram"></i></a>
-                  <a href="#" className="text-slate-400"><i className="fab fa-twitter"></i></a>
-              </div>
-          </div>
-      
-          
-          <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-sm shadow-sm">
-              <div className="container mx-auto px-4 sm:px-6">
-                  <div className="flex h-16 md:h-20 items-center justify-between">
-                      <div className="flex items-center">
-                          <a href="#" className="flex items-center gap-2 active:scale-95 transition-transform">
-                              <div className="w-8 h-8 md:w-10 md:h-10 bg-brand-600 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-                                  <i data-lucide="home" className="text-white w-5 h-5 md:w-6 md:h-6"></i>
-                              </div>
-                              <span className="text-xl md:text-2xl font-extrabold tracking-tight text-slate-900">Roomhy</span>
-                          </a>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 sm:gap-6">
-                          <nav className="hidden lg:flex items-center space-x-8">
-                              <a href="/website/about" className="text-gray-600 hover:text-blue-600 font-semibold transition-colors text-sm">About Us</a>
-                              <a href="/website/contact" className="text-gray-600 hover:text-blue-600 font-semibold transition-colors text-sm">Contact Us</a>
-                          </nav>
-                          <a href="#auth-container" className="hidden sm:inline-flex bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold transition-all shadow-md active:scale-95">
-                              Login/Signup
-                          </a>
-                          <button id="menu-toggle" className="lg:hidden p-2 rounded-lg hover:bg-gray-100 text-slate-800 active:scale-90 transition-transform"><i data-lucide="menu"></i></button>
-                      </div>
-                  </div>
-              </div>
-          </header>
-      
-          
           <section className="relative py-16 md:py-32 text-white overflow-hidden min-h-[350px] md:min-h-0">
               <div id="hero-image-wrapper" className="absolute inset-0 w-full h-full overflow-hidden">
                   <img src="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?q=80&w=1980" alt="Hero 1" className="absolute inset-0 w-full h-full object-cover animate-kenburns opacity-100 transition-opacity duration-1000" />
@@ -420,7 +506,7 @@ export default function WebsiteSignup() {
                                       <div className="relative flex justify-center"><span className="bg-white px-4 text-[10px] md:text-xs text-slate-400 font-bold uppercase tracking-widest">OR CONTINUE WITH</span></div>
                                   </div>
                                   
-                                  <button type="button" className="w-full flex items-center justify-center gap-3 p-3.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all font-semibold text-slate-700 active:scale-[0.98]" onClick={() => showToast("Use your Gmail ID above. We will send a verification code if it exists in new signups.", "info")}>
+                                  <button type="button" className="w-full flex items-center justify-center gap-3 p-3.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all font-semibold text-slate-700 active:scale-[0.98]" onClick={handleGoogleSignIn}>
                                       <img src="https://www.svgrepo.com/show/355037/google.svg" className="w-5 h-5" alt="G" /> Google
                                   </button>
       
@@ -499,5 +585,3 @@ export default function WebsiteSignup() {
     </div>
   );
 }
-
-
