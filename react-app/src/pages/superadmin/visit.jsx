@@ -592,7 +592,13 @@ export default function Visit() {
       photos: capturedPhotos.length ? capturedPhotos : fieldPhotos,
       professionalPhotos: profPhotos,
       status: "submitted",
-      visitDateDisplay: visitDate
+      visitDateDisplay: visitDate,
+      bankAccountHolderName: fd.get("bankAccountHolderName") || "",
+      bankAccountNumber: fd.get("bankAccountNumber") || "",
+      bankIfscCode: fd.get("bankIfscCode") || "",
+      bankName: fd.get("bankName") || "",
+      bankBranchName: fd.get("bankBranchName") || "",
+      bankUpiId: fd.get("bankUpiId") || ""
     };
 
     try {
@@ -1106,6 +1112,18 @@ export default function Visit() {
                   ) : (
                     <p className="text-xs text-gray-400">No professional photos selected yet</p>
                   )}
+                </div>
+              </div>
+
+              <div className="p-3 border border-gray-200 rounded">
+                <div className="font-semibold mb-3 text-gray-800">Owner Bank Details</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <input name="bankAccountHolderName" type="text" defaultValue={editingVisit?.bankAccountHolderName || ""} className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Account Holder Name" />
+                  <input name="bankAccountNumber" type="text" defaultValue={editingVisit?.bankAccountNumber || ""} className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Bank Account Number" />
+                  <input name="bankIfscCode" type="text" defaultValue={editingVisit?.bankIfscCode || ""} className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="IFSC Code" />
+                  <input name="bankName" type="text" defaultValue={editingVisit?.bankName || ""} className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Bank Name" />
+                  <input name="bankBranchName" type="text" defaultValue={editingVisit?.bankBranchName || ""} className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="Branch Name" />
+                  <input name="bankUpiId" type="text" defaultValue={editingVisit?.bankUpiId || ""} className="w-full border border-gray-300 rounded px-3 py-2 text-sm" placeholder="UPI ID (optional)" />
                 </div>
               </div>
 

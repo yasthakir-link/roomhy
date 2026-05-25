@@ -36,6 +36,18 @@ function toTemplateParameters(values = []) {
         }));
 }
 
+// For templates that use named variables like {{tenant_name}} instead of {{1}}
+// namedParams: { tenant_name: 'Pratap', kyc_url: 'https://...' }
+function toNamedTemplateParameters(namedParams = {}) {
+    return Object.entries(namedParams)
+        .filter(([, value]) => value != null && String(value).trim().length > 0)
+        .map(([name, value]) => ({
+            type: 'text',
+            parameter_name: name,
+            text: String(value).trim().slice(0, 1024)
+        }));
+}
+
 function getSession(phone) {
     const key = String(phone || '').trim();
     if (!key) return { step: 'root' };
@@ -143,6 +155,7 @@ async function resolvePhoneByEmailOrUserId({ phone, email, userId }) {
 async function sendWhatsAppPayload(payload) {
     const cfg = getConfig();
     if (!cfg.accessToken || !cfg.phoneNumberId || !payload) {
+        console.warn('[WhatsApp] Missing config — accessToken:', !!cfg.accessToken, 'phoneNumberId:', !!cfg.phoneNumberId);
         return false;
     }
 
@@ -160,10 +173,12 @@ async function sendWhatsAppPayload(payload) {
 
     if (!response.ok) {
         const errorText = await response.text();
-        console.warn('WhatsApp send failed:', response.status, errorText);
+        console.warn(`WhatsApp send failed [phoneNumberId=${cfg.phoneNumberId}]:`, response.status, errorText);
         return false;
     }
 
+    const result = await response.json().catch(() => ({}));
+    console.log(`[WhatsApp] Sent to ${payload.to} | msgId=${result?.messages?.[0]?.id || 'unknown'}`);
     return true;
 }
 
@@ -175,7 +190,11 @@ async function sendTemplateMessage(to, templateName, variables = [], options = {
         : normalizePhoneNumber(to, cfg.defaultCountryCode);
     if (!normalizedTo) return false;
 
-    const parameters = toTemplateParameters(Array.isArray(variables) ? variables : [variables]);
+    // namedParams takes priority over positional variables
+    const parameters = options.namedParams
+        ? toNamedTemplateParameters(options.namedParams)
+        : toTemplateParameters(Array.isArray(variables) ? variables : [variables]);
+
     const template = {
         name: String(templateName).trim(),
         language: {
@@ -183,13 +202,29 @@ async function sendTemplateMessage(to, templateName, variables = [], options = {
         }
     };
 
+    const components = [];
     if (parameters.length) {
-        template.components = [
-            {
-                type: 'body',
-                parameters
+        components.push({ type: 'body', parameters });
+    }
+
+    // urlButtons: array of variable arrays, one per URL button index
+    // e.g. urlButtons: [[otp]] means button index 0 gets otp as param
+    if (Array.isArray(options.urlButtons)) {
+        options.urlButtons.forEach((btnVars, index) => {
+            const btnParams = toTemplateParameters(Array.isArray(btnVars) ? btnVars : [btnVars]);
+            if (btnParams.length) {
+                components.push({
+                    type: 'button',
+                    sub_type: 'url',
+                    index: String(index),
+                    parameters: btnParams
+                });
             }
-        ];
+        });
+    }
+
+    if (components.length) {
+        template.components = components;
     }
 
     return sendWhatsAppPayload({
@@ -285,12 +320,14 @@ async function sendTemplateToResolvedUser({
     email,
     userId,
     templateName,
-    variables = []
+    variables = [],
+    options = {}
 }) {
     const resolvedPhone = await resolvePhoneByEmailOrUserId({ phone, email, userId });
     if (!resolvedPhone) return false;
     return sendTemplateMessage(resolvedPhone, templateName, variables, {
-        skipPhoneNormalization: true
+        skipPhoneNormalization: true,
+        ...options
     });
 }
 
@@ -320,5 +357,6 @@ module.exports = {
     sendTemplateToResolvedUser,
     sendTextMessage,
     normalizeWhatsAppText,
-    setSession
+    setSession,
+    toNamedTemplateParameters
 };

@@ -293,6 +293,18 @@ button:disabled {
   color: #5b2c2c;
 }
 
+.status-warning {
+  background: #fef9c3;
+  color: #78350f;
+  border-color: #fde047;
+}
+
+.status-scanning {
+  background: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+
 .hint {
   color: #6f7b88;
   font-size: 12px;

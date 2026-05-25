@@ -148,7 +148,8 @@ const checkinRecordSchema = new mongoose.Schema(
             securityDepositPaid: Number,
             securityDepositBalance: Number,
             electricityCharge: Number,
-            maintenanceCharge: Number
+            maintenanceCharge: Number,
+            agreementDetails: { type: mongoose.Schema.Types.Mixed, default: {} }
         },
         tenantKyc: {
             aadhaarLinkedPhone: String,

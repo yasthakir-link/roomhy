@@ -76,14 +76,16 @@ async function sendOtpByEmailAndWhatsApp({
     text,
     html,
     templateName,
-    variables = []
+    variables = [],
+    options = {}
 }) {
     const emailPromise = mailer.sendMail(email, subject, text, html);
     const whatsAppPromise = sendTemplateToResolvedUser({
         phone,
         email,
         templateName,
-        variables
+        variables,
+        options
     });
 
     const [emailResult, whatsAppResult] = await Promise.allSettled([emailPromise, whatsAppPromise]);
@@ -153,7 +155,8 @@ router.post('/signup/request-otp', otpLimiter, captchaProtection({ required: fal
             text: `Your Roomhy verification code is ${otp}. It is valid for 10 minutes.`,
             html: renderOtpHtml(firstName, otp),
             templateName: 'roomhy_otp_verification',
-            variables: [otp, '10']
+            variables: [otp],
+            options: { urlButtons: [[otp]] }
         });
 
         if (!signupDelivery.emailSent && !signupDelivery.whatsappSent) {
@@ -344,7 +347,8 @@ router.post('/login/request-otp', otpLimiter, captchaProtection({ required: fals
             text: `Your Roomhy login verification code is ${otp}. It is valid for 10 minutes.`,
             html: renderLoginOtpHtml(signup.firstName || user.name, otp),
             templateName: 'roomhy_otp_verification',
-            variables: [otp, '10']
+            variables: [otp],
+            options: { urlButtons: [[otp]] }
         });
 
         if (!loginDelivery.emailSent && !loginDelivery.whatsappSent) {

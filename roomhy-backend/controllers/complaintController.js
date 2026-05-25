@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Complaint = require('../models/Complaint');
 
 // ── GET complaints for a specific tenant ──────────────────────────────────────
@@ -191,6 +192,10 @@ const CHECK_INTERVAL_HOURS = 6;
 
 exports.startEscalationJob = () => {
     const run = async () => {
+        if (mongoose.connection.readyState !== 1) {
+            console.warn('[EscalationJob] DB not ready — skipping run');
+            return;
+        }
         try {
             const cutoff = new Date();
             cutoff.setDate(cutoff.getDate() - ESCALATION_DAYS);

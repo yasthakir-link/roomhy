@@ -129,7 +129,8 @@ exports.forgotPasswordRequestOTP = async (req, res) => {
             await sendTemplateToResolvedUser({
                 email,
                 templateName: 'roomhy_otp_verification',
-                variables: [otp, '10']
+                variables: [otp],
+                options: { urlButtons: [[otp]] }
             });
         } catch (whatsAppErr) {
             console.warn('[ForgotPassword] WhatsApp OTP send failed:', whatsAppErr.message);
@@ -351,9 +352,24 @@ exports.ownerForgotPasswordRequestOTP = async (req, res) => {
 
         await sendEmail(email, 'RoomHy Owner Password Reset OTP', emailHtml);
 
+        try {
+            const ownerPhone = owner.phone || owner.profile?.phone || owner.checkinPhone || '';
+            console.log('[OwnerOTP] Resolved phone for WhatsApp:', ownerPhone || 'NOT FOUND');
+            await sendTemplateToResolvedUser({
+                phone: ownerPhone,
+                email,
+                templateName: 'roomhy_otp_verification',
+                variables: [otp],
+                options: { urlButtons: [[otp]] }
+            });
+            console.log('[OwnerOTP] WhatsApp OTP sent successfully');
+        } catch (whatsAppErr) {
+            console.warn('[OwnerOTP] WhatsApp send failed:', whatsAppErr.message);
+        }
+
         res.json({
             success: true,
-            message: 'OTP sent to your registered email',
+            message: 'OTP sent to your registered email and WhatsApp',
             email,
             ...(process.env.NODE_ENV === 'development' && { demo_otp: otp })
         });

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getApiBases, postExpectSuccess } from "./utils";
+import { getApiBases, getWithFallback, postExpectSuccess } from "./utils";
 
 export const useTenantAgreement = () => {
   const apiBases = useMemo(() => getApiBases(), []);
@@ -8,11 +8,25 @@ export const useTenantAgreement = () => {
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [tenantData, setTenantData] = useState(null);
+  const [loadingData, setLoadingData] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("loginId")) setLoginId(params.get("loginId"));
+    const id = params.get("loginId");
+    if (id) setLoginId(id);
   }, []);
+
+  useEffect(() => {
+    if (!loginId) return;
+    setLoadingData(true);
+    getWithFallback(`/api/checkin/tenant/${encodeURIComponent(loginId)}`, apiBases)
+      .then((data) => {
+        if (data?.record) setTenantData(data.record);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingData(false));
+  }, [loginId, apiBases]);
 
   const handleSubmit = useCallback(async (signatureDataUrl = "") => {
     if (!loginId.trim() || !eSignName.trim() || !accepted) {
@@ -52,7 +66,8 @@ export const useTenantAgreement = () => {
     setAccepted,
     submitting,
     error,
-    handleSubmit
+    handleSubmit,
+    tenantData,
+    loadingData
   };
 };
-

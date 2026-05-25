@@ -65,48 +65,6 @@ export default function WebsiteSignuprole() {
   return (
     <div className="html-page">
       
-      
-          
-          <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-sm shadow-sm">
-              <div className="container mx-auto px-4 sm:px-6">
-                  <div className="flex h-20 items-center justify-between">
-                      
-                      <div className="flex items-center">
-                          <a href="/website/index" className="flex-shrink-0">
-                              
-                              <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" className="h-10 w-25" />
-                          </a>
-                      </div>
-                      
-                      <div className="flex items-center gap-3 sm:gap-6">
-                          <nav className="hidden lg:flex items-center space-x-6">
-                              
-                              <a href="/website/about" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">About Us</a>
-                              <a href="/website/index#faq" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">FAQ</a>
-                              <a href="/website/contact" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Contact</a>
-                              <a href="/website/ourproperty" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">Our Properties</a>
-                          </nav>
-      
-                          
-                          <a href="#" className="hidden lg:block bg-transparent border border-blue-600 hover:bg-blue-50 text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                              Login
-                          </a>
-                          
-                          
-                          <a href="/website/signuprole" className="flex-shrink-0 flex items-center space-x-1 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                              <span>Sign Up</span>
-                          </a>
-                          
-                          
-                          <button id="menu-toggle" className="p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden">
-                              <i data-lucide="menu" className="w-7 h-7 text-gray-800"></i>
-                          </button>
-                      </div>
-      
-                  </div>
-              </div>
-          </header>
-      
           
           <section className="relative py-20 md:py-28 text-white h-[350px] flex items-center">
               <div id="hero-image-wrapper" className="absolute inset-0 w-full h-full overflow-hidden">

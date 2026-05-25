@@ -67,7 +67,7 @@ export const useTenantKyc = () => {
     }
   }, [aadhaarLinkedPhone, aadhaarNumber, apiBases, loginId, saveKycState]);
 
-  const handleComplete = useCallback(async () => {
+  const handleComplete = useCallback(async (aadhaarFront = "", aadhaarBack = "") => {
     try {
       const aadhaarRaw = aadhaarNumber.trim().replace(/\D/g, "");
       if (!/^\d{12}$/.test(aadhaarRaw)) return alert("Aadhaar must be 12 digits");
@@ -78,6 +78,8 @@ export const useTenantKyc = () => {
         aadhaarNumber: aadhaarRaw,
         otp: otp.trim()
       };
+      if (aadhaarFront) payload.aadhaarFront = aadhaarFront;
+      if (aadhaarBack) payload.aadhaarBack = aadhaarBack;
       saveKycState({ otpSent: true });
       await postExpectSuccess("/api/checkin/tenant/kyc/verify-otp", payload, apiBases);
 

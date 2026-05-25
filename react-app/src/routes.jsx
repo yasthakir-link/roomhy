@@ -97,6 +97,7 @@ const routeEntries = [
   ["/website/slider", "./pages/website/slider.jsx"],
   ["/website/terms", "./pages/website/terms.jsx"],
   ["/website/websitechat", "./pages/website/websitechat.jsx"],
+  ["/owner-kyc", "./pages/owner-kyc.jsx"],
   ["/digital-checkin/index", "./pages/digital-checkin/index.jsx"],
   ["/digital-checkin/ownerkyc", "./pages/digital-checkin/ownerkyc.jsx"],
   ["/digital-checkin/ownerprofile", "./pages/digital-checkin/ownerprofile.jsx"],

@@ -332,15 +332,31 @@ router.get('/pending', async (req, res) => {
     try {
         const visits = await VisitData.find({
             status: { $in: ['submitted', 'pending_review'] }
-        }).sort({ submittedAt: -1 });
+        }).sort({ submittedAt: -1 }).lean();
 
-        console.log(`? [visits/pending] Returning ${visits.length} pending visits`);
+        // Auto-sync kycStatus: for visits with kycStatus 'sent', check if owner completed KYC via digital-checkin
+        const sentVisits = visits.filter(v => v.kycStatus === 'sent' && v.generatedCredentials?.loginId);
+        if (sentVisits.length > 0) {
+            await Promise.all(sentVisits.map(async (v) => {
+                try {
+                    const owner = await Owner.findOne({ loginId: v.generatedCredentials.loginId })
+                        .select('aadhaarNumber checkinAadhaarNumber kycStatus').lean();
+                    const kycDone = !!(
+                        owner?.aadhaarNumber ||
+                        owner?.checkinAadhaarNumber ||
+                        owner?.kycStatus === 'verified' ||
+                        owner?.kycStatus === 'completed'
+                    );
+                    if (kycDone) {
+                        await VisitData.findOneAndUpdate({ visitId: v.visitId }, { kycStatus: 'completed' });
+                        v.kycStatus = 'completed';
+                    }
+                } catch (_) {}
+            }));
+        }
 
-        res.json({
-            success: true,
-            count: visits.length,
-            visits: visits
-        });
+        console.log(`[visits/pending] Returning ${visits.length} pending visits`);
+        res.json({ success: true, count: visits.length, visits });
     } catch (error) {
         console.error('Error fetching pending visits:', error);
         res.status(500).json({
@@ -364,6 +380,33 @@ router.post('/approve', async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Missing visitId'
+            });
+        }
+
+        // KYC must be completed before approval.
+        // KYC is done via /digital-checkin/ownerprofile which writes aadhaarNumber to Owner record.
+        const visitForKycCheck = await VisitData.findOne({ visitId }).select('kycStatus generatedCredentials').lean();
+        let kycCompleted = visitForKycCheck?.kycStatus === 'completed';
+
+        if (!kycCompleted && visitForKycCheck?.generatedCredentials?.loginId) {
+            const ownerRecord = await Owner.findOne({ loginId: visitForKycCheck.generatedCredentials.loginId })
+                .select('aadhaarNumber checkinAadhaarNumber kycStatus').lean();
+            kycCompleted = !!(
+                ownerRecord?.aadhaarNumber ||
+                ownerRecord?.checkinAadhaarNumber ||
+                ownerRecord?.kycStatus === 'verified' ||
+                ownerRecord?.kycStatus === 'completed'
+            );
+            // Sync back to VisitData so UI shows Completed
+            if (kycCompleted) {
+                await VisitData.findOneAndUpdate({ visitId }, { kycStatus: 'completed' });
+            }
+        }
+
+        if (!kycCompleted) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot approve. Owner KYC must be completed first. Send the KYC link to the owner.'
             });
         }
 
@@ -600,24 +643,44 @@ router.post('/approve', async (req, res) => {
             if (ownerEmail) {
                 emailAttempted = true;
                 const loginPageLink = `${APP_URL}/propertyowner/ownerlogin`;
-                const mainCheckinLink = `${DIGITAL_CHECKIN_URL}/digital-checkin/index`;
-                const directCheckinLink = `${DIGITAL_CHECKIN_URL}/digital-checkin/ownerprofile?loginId=${encodeURIComponent(finalLoginId)}&email=${encodeURIComponent(ownerEmail)}&area=${encodeURIComponent(ownerArea || '')}&password=${encodeURIComponent(finalPassword)}`;
-                const subject = 'RoomHy Property Approved - Owner Login and Digital KYC';
-                const text = `Property approved\nProperty: ${propertyTitle}\nLogin ID: ${finalLoginId}\nTemporary Password: ${finalPassword}\nArea: ${ownerArea || 'N/A'}\nDigital KYC: ${mainCheckinLink}\nDirect Digital KYC: ${directCheckinLink}\nOwner Login Page: ${loginPageLink}`;
-                const html = `
-                    <div style="font-family: Arial, sans-serif; font-size: 14px; color: #111;">
-                        <h2>Property Approved</h2>
-                        <p>Hi ${ownerName},</p>
-                        <p>Your property has been approved on RoomHy and added under your owner account.</p>
-                        <p><strong>Property:</strong> ${propertyTitle}</p>
-                        <p><strong>Login ID:</strong> ${finalLoginId}</p>
-                        <p><strong>Temporary Password:</strong> ${finalPassword}</p>
-                        <p><strong>Area:</strong> ${ownerArea || 'N/A'}</p>
-                        <p><strong>Digital KYC (Main):</strong><br><a href="${mainCheckinLink}">${mainCheckinLink}</a></p>
-                        <p><strong>Owner Digital KYC (Direct):</strong><br><a href="${directCheckinLink}">${directCheckinLink}</a></p>
-                        <p><strong>Owner Login Page:</strong><br><a href="${loginPageLink}">${loginPageLink}</a></p>
-                    </div>
-                `;
+                const subject = 'Welcome to RoomHy - Your Property is Approved!';
+                const text = `Welcome to RoomHy!\n\nDear ${ownerName},\n\nYour property has been approved.\n\nProperty: ${propertyTitle}\nLogin ID: ${finalLoginId}\nTemporary Password: ${finalPassword}\n\nOwner Login Page: ${loginPageLink}\n\nPlease change your password after first login.\n\nRoomHy Team`;
+                const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<style>
+  body{margin:0;padding:0;font-family:'Segoe UI',Arial,sans-serif;background:#f0f2f5;}
+  .wrap{max-width:520px;margin:40px auto;padding:20px;}
+  .card{background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.1);overflow:hidden;}
+  .hdr{background:linear-gradient(135deg,#667eea,#764ba2);padding:30px;text-align:center;}
+  .hdr h1{margin:0;color:#fff;font-size:26px;font-weight:700;}
+  .hdr p{margin:8px 0 0;color:rgba(255,255,255,.85);font-size:13px;}
+  .body{padding:30px;color:#333;}
+  .cred{background:#f5f7fa;border-left:4px solid #667eea;border-radius:10px;padding:20px;margin:20px 0;}
+  .lbl{color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+  .val{color:#222;font-size:18px;font-weight:700;background:#fff;padding:8px 14px;border-radius:6px;display:inline-block;}
+  .btn{display:block;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;text-align:center;padding:14px;text-decoration:none;border-radius:10px;margin:24px 0;font-size:15px;font-weight:600;}
+  .warn{background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:14px;font-size:13px;color:#856404;margin-top:16px;}
+  .foot{background:#f8f9fa;padding:16px;text-align:center;border-top:1px solid #eee;}
+  .foot p{margin:0;color:#999;font-size:12px;}
+</style></head>
+<body>
+  <div class="wrap"><div class="card">
+    <div class="hdr"><h1>RoomHy</h1><p>Your Property is Approved!</p></div>
+    <div class="body">
+      <p>Dear <strong>${ownerName}</strong>,</p>
+      <p>Congratulations! Your property <strong>${propertyTitle}</strong> has been approved and added to your owner account.</p>
+      <div class="cred">
+        <div style="margin-bottom:14px;"><div class="lbl">Login ID</div><div class="val">${finalLoginId}</div></div>
+        <div><div class="lbl">Temporary Password</div><div class="val">${finalPassword}</div></div>
+      </div>
+      <a href="${loginPageLink}" class="btn">Login to Owner Portal</a>
+      <div class="warn">⚠️ <strong>Important:</strong> Please change your password after your first login.</div>
+    </div>
+    <div class="foot"><p>© 2025 RoomHy. All rights reserved. | support@roomhy.com</p></div>
+  </div></div>
+</body>
+</html>`;
                 emailSent = await mailer.sendMail(ownerEmail, subject, text, html);
             }
         } catch (emailErr) {
@@ -948,6 +1011,156 @@ router.get('/approved', async (req, res) => {
 });
 
 // ============================================================
+// POST: Send KYC link to property owner's email
+// Generates credentials, creates Owner record, sends digital-checkin link
+// ============================================================
+router.post('/:visitId/send-kyc-link', async (req, res) => {
+    try {
+        const visit = await VisitData.findOne({ visitId: req.params.visitId });
+        if (!visit) {
+            return res.status(404).json({ success: false, message: 'Visit not found' });
+        }
+
+        const ownerEmail = visit.ownerEmail || '';
+        if (!ownerEmail) {
+            return res.status(400).json({ success: false, message: 'No owner email found on this visit' });
+        }
+
+        // Reuse existing credentials if already generated, otherwise create new ones
+        let loginId = visit.generatedCredentials?.loginId || '';
+        let tempPassword = visit.generatedCredentials?.tempPassword || '';
+
+        const normalizedLoginId = normalizeOwnerLoginId(loginId);
+        if (!normalizedLoginId || await isOwnerLoginIdTaken(normalizedLoginId)) {
+            loginId = await generateUniqueOwnerLoginId();
+            tempPassword = Math.random().toString(36).slice(-8);
+        } else {
+            loginId = normalizedLoginId;
+            if (!tempPassword) tempPassword = Math.random().toString(36).slice(-8);
+        }
+
+        const ownerName = visit.ownerName || 'Owner';
+        const ownerPhone = visit.ownerPhone || visit.contactPhone || '';
+        const ownerArea = visit.area || '';
+        const propertyLocationCode = String(ownerArea || visit.city || loginId).trim().toUpperCase();
+        const occupancy = normalizeOccupancyFields(visit);
+
+        // Create/update Owner record so the digital-checkin page can look it up
+        await Owner.findOneAndUpdate(
+            { loginId },
+            {
+                $set: {
+                    loginId,
+                    name: ownerName,
+                    email: ownerEmail,
+                    phone: ownerPhone,
+                    area: ownerArea,
+                    locationCode: propertyLocationCode,
+                    profile: { name: ownerName, email: ownerEmail, phone: ownerPhone, locationCode: propertyLocationCode, updatedAt: new Date() },
+                    ...occupancy,
+                    credentials: { password: tempPassword, firstTime: true },
+                    checkinPassword: tempPassword,
+                    isActive: true
+                },
+                $setOnInsert: { createdAt: new Date() }
+            },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        // Save credentials + kycStatus on VisitData
+        await VisitData.findOneAndUpdate(
+            { visitId: visit.visitId },
+            {
+                kycStatus: 'sent',
+                kycSentAt: new Date(),
+                generatedCredentials: { loginId, tempPassword }
+            }
+        );
+
+        // Build link to existing digital-checkin ownerprofile page
+        const kycLink = `${DIGITAL_CHECKIN_URL}/digital-checkin/ownerprofile?loginId=${encodeURIComponent(loginId)}&email=${encodeURIComponent(ownerEmail)}&area=${encodeURIComponent(ownerArea)}&password=${encodeURIComponent(tempPassword)}`;
+
+        await mailer.sendKycLinkEmail(ownerEmail, ownerName, visit.propertyName || 'Property', kycLink);
+
+        console.log(`[visits/send-kyc-link] KYC link sent to ${ownerEmail} for visit ${visit.visitId}, loginId: ${loginId}`);
+        res.json({ success: true, message: 'KYC link sent successfully to owner email', loginId });
+    } catch (error) {
+        console.error('[visits/send-kyc-link] Error:', error.message);
+        res.status(500).json({ success: false, message: 'Error sending KYC link', error: error.message });
+    }
+});
+
+// ============================================================
+// GET: Validate KYC token and return visit info (used by owner KYC form)
+// ============================================================
+router.get('/kyc/:token', async (req, res) => {
+    try {
+        const decoded = jwt.verify(req.params.token, process.env.JWT_SECRET || 'secret');
+        const visit = await VisitData.findOne({
+            visitId: decoded.visitId,
+            kycToken: req.params.token
+        }).select('visitId propertyName ownerName ownerEmail kycStatus').lean();
+
+        if (!visit) {
+            return res.status(404).json({ success: false, message: 'Invalid or expired KYC link' });
+        }
+        if (visit.kycStatus === 'completed') {
+            return res.status(410).json({ success: false, message: 'KYC already completed for this property' });
+        }
+
+        res.json({
+            success: true,
+            visitId: visit.visitId,
+            propertyName: visit.propertyName,
+            ownerName: visit.ownerName
+        });
+    } catch (_) {
+        res.status(401).json({ success: false, message: 'KYC link is invalid or has expired. Please contact RoomHy.' });
+    }
+});
+
+// ============================================================
+// POST: Submit KYC data from owner (used by owner KYC form)
+// ============================================================
+router.post('/kyc/:token/submit', async (req, res) => {
+    try {
+        const decoded = jwt.verify(req.params.token, process.env.JWT_SECRET || 'secret');
+        const { aadhaarNumber, phone } = req.body;
+
+        if (!aadhaarNumber || !phone) {
+            return res.status(400).json({ success: false, message: 'Aadhaar number and phone are required' });
+        }
+
+        const visit = await VisitData.findOne({
+            visitId: decoded.visitId,
+            kycToken: req.params.token
+        });
+
+        if (!visit) {
+            return res.status(404).json({ success: false, message: 'Invalid or expired KYC link' });
+        }
+        if (visit.kycStatus === 'completed') {
+            return res.status(409).json({ success: false, message: 'KYC already submitted for this property' });
+        }
+
+        await VisitData.findOneAndUpdate(
+            { visitId: decoded.visitId },
+            {
+                kycStatus: 'completed',
+                kycAadhaarNumber: aadhaarNumber.trim(),
+                kycPhone: phone.trim(),
+                kycCompletedAt: new Date()
+            }
+        );
+
+        console.log(`[visits/kyc/submit] KYC completed for visit ${decoded.visitId}`);
+        res.json({ success: true, message: 'KYC submitted successfully. The admin will review and approve your property.' });
+    } catch (_) {
+        res.status(401).json({ success: false, message: 'KYC link is invalid or has expired. Please contact RoomHy.' });
+    }
+});
+
+// ============================================================
 // GET: Get a single visit by ID
 // ============================================================
 router.get('/:visitId', async (req, res) => {
@@ -1021,7 +1234,13 @@ router.put('/:visitId', async (req, res) => {
             longitude,
             photos,
             professionalPhotos,
-            locationCode
+            locationCode,
+            bankAccountHolderName,
+            bankAccountNumber,
+            bankIfscCode,
+            bankName,
+            bankBranchName,
+            bankUpiId
         } = req.body;
 
         const visit = await VisitData.findOneAndUpdate(
@@ -1068,6 +1287,12 @@ router.put('/:visitId', async (req, res) => {
                 ...(photos !== undefined && { photos: Array.isArray(photos) ? photos : (photos ? [photos] : []) }),
                 ...(professionalPhotos !== undefined && { professionalPhotos: Array.isArray(professionalPhotos) ? professionalPhotos : (professionalPhotos ? [professionalPhotos] : []) }),
                 ...(locationCode !== undefined && { locationCode }),
+                ...(bankAccountHolderName !== undefined && { bankAccountHolderName }),
+                ...(bankAccountNumber !== undefined && { bankAccountNumber }),
+                ...(bankIfscCode !== undefined && { bankIfscCode }),
+                ...(bankName !== undefined && { bankName }),
+                ...(bankBranchName !== undefined && { bankBranchName }),
+                ...(bankUpiId !== undefined && { bankUpiId }),
                 updatedAt: new Date()
             },
             { new: true }
@@ -1078,6 +1303,26 @@ router.put('/:visitId', async (req, res) => {
                 success: false,
                 message: 'Visit not found'
             });
+        }
+
+        // Auto-sync bank details to Owner if any bank field was provided
+        const hasBankData = [bankAccountHolderName, bankAccountNumber, bankIfscCode, bankName, bankBranchName].some(v => v !== undefined && v !== '');
+        if (hasBankData && visit.generatedCredentials?.loginId) {
+            try {
+                const Owner = require('../models/Owner');
+                await Owner.findOneAndUpdate(
+                    { loginId: visit.generatedCredentials.loginId },
+                    {
+                        ...(bankAccountHolderName !== undefined && { checkinAccountHolderName: bankAccountHolderName }),
+                        ...(bankAccountNumber !== undefined && { checkinBankAccountNumber: bankAccountNumber }),
+                        ...(bankIfscCode !== undefined && { checkinIfscCode: bankIfscCode }),
+                        ...(bankName !== undefined && { checkinBankName: bankName }),
+                        ...(bankBranchName !== undefined && { checkinBranchName: bankBranchName }),
+                        ...(bankUpiId !== undefined && { checkinUpiId: bankUpiId }),
+                        bankLockedByVisit: true
+                    }
+                );
+            } catch (_) {}
         }
 
         res.json({

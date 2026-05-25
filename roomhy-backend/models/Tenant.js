@@ -87,6 +87,7 @@ const TenantSchema = new mongoose.Schema({
             acceptedAt: { type: Date },
             signatureDataUrl: { type: String }
         },
+        agreementDetails: { type: mongoose.Schema.Types.Mixed, default: {} },
         submittedAt: { type: Date }
     },
     

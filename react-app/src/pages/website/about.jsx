@@ -268,7 +268,7 @@ export default function WebsiteAbout() {
     };
   }, []);
 
-  useHtmlPage({
+      useHtmlPage({
     title: "About Roomhy - Our Mission, Vision, and Values",
     bodyClass: bodyAttrs.class === true ? "" : bodyAttrs.class || "",
     htmlAttrs,

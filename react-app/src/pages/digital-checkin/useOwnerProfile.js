@@ -5,8 +5,22 @@ import {
   getParamValue,
   getWithFallback,
   postExpectSuccess,
-  postWithFallback
+  postWithFallback,
+  verhoeffCheck,
+  hasAadhaarKeywords,
+  hasAadhaarSecondaryMarkers,
+  extractAadhaarFromText
 } from "./utils";
+
+const emptyDoc = { file: null, preview: "", name: "", type: "", uploaded: false, url: "" };
+
+const fileToDataUrl = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
 const emptyForm = {
   loginId: "",
@@ -83,6 +97,12 @@ export const useOwnerProfile = () => {
   const [loadingStart, setLoadingStart] = useState(false);
   const [loadingComplete, setLoadingComplete] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [ownerPhoto, setOwnerPhoto] = useState(emptyDoc);
+  const [bankProof, setBankProof] = useState(emptyDoc);
+  const [aadhaarDoc, setAadhaarDoc] = useState(emptyDoc);
+  const [aadhaarOcrStatus, setAadhaarOcrStatus] = useState({ loading: false, text: "", type: "" });
+  const [docUploading, setDocUploading] = useState(false);
+  const [docStatus, setDocStatus] = useState({ type: "", text: "" });
 
   const updateForm = useCallback((patch) => {
     setForm((prev) => ({ ...prev, ...patch }));
@@ -290,6 +310,16 @@ export const useOwnerProfile = () => {
         if (owner.kyc?.status === "submitted") {
           setKycStatus({ type: "success", text: "Aadhaar OTP verification already completed." });
         }
+
+        if (owner.checkinOwnerPhoto) {
+          setOwnerPhoto((prev) => prev.url ? prev : { ...emptyDoc, url: owner.checkinOwnerPhoto, preview: owner.checkinOwnerPhoto, name: owner.checkinOwnerPhotoName || "", uploaded: true });
+        }
+        if (owner.checkinBankProof) {
+          setBankProof((prev) => prev.url ? prev : { ...emptyDoc, url: owner.checkinBankProof, preview: owner.checkinBankProof, name: owner.checkinBankProofName || "", uploaded: true });
+        }
+        if (owner.checkinAadhaarImage) {
+          setAadhaarDoc((prev) => prev.url ? prev : { ...emptyDoc, url: owner.checkinAadhaarImage, preview: owner.checkinAadhaarImage, name: owner.checkinAadhaarImageName || "", uploaded: true });
+        }
       } catch (_) {}
     };
 
@@ -326,9 +356,7 @@ export const useOwnerProfile = () => {
       saveKycState({ otpSent: true });
       setKycStatus({
         type: "success",
-        text: data?.mockOtp
-          ? `OTP sent. Sandbox mock OTP: ${data.mockOtp}`
-          : "OTP sent to Aadhaar-linked mobile. Enter OTP and complete verification."
+        text: "OTP sent. Check your WhatsApp or registered email, then enter it below."
       });
       setLoadingStart(false);
     } catch (err) {
@@ -362,6 +390,136 @@ export const useOwnerProfile = () => {
       setLoadingComplete(false);
     }
   }, [aadhaarNumber, apiBases, autoInfo, form, otp, saveKycState, saveProfile]);
+
+  // Two-layer Aadhaar image verification — fires immediately on file select
+  const handleAadhaarImagePick = useCallback(async (file) => {
+    if (!file) return;
+    const preview = file.type.startsWith("image/") ? URL.createObjectURL(file) : "";
+    setAadhaarDoc({ file, preview, name: file.name, type: file.type, uploaded: false, url: "" });
+    setAadhaarOcrStatus({ loading: true, text: "Scanning Aadhaar card...", type: "scanning" });
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      const base64 = dataUrl.replace(/^data:[^;]+;base64,/, "");
+
+      // Layer 1 — Cashfree OCR via backend
+      let cashfreeDone = false;
+      try {
+        const data = await postExpectSuccess("/api/checkin/owner/aadhaar/ocr", { image: base64 }, apiBases);
+        if (data.verdict === "verified") {
+          if (data.aadhaarNumber) setAadhaarNumber(formatAadhaarWithSpaces(data.aadhaarNumber));
+          setAadhaarOcrStatus({ loading: false, text: "Aadhaar verified — valid card detected.", type: "verified" });
+          cashfreeDone = true;
+        } else if (data.verdict === "checksum_failed") {
+          setAadhaarOcrStatus({ loading: false, text: "Card detected but number unclear. Try a clearer photo.", type: "suspicious" });
+          cashfreeDone = true;
+        } else if (data.verdict === "unreadable") {
+          setAadhaarOcrStatus({ loading: false, text: "Aadhaar card detected but unreadable. Try a clearer photo.", type: "suspicious" });
+          cashfreeDone = true;
+        } else if (data.verdict === "invalid") {
+          setAadhaarOcrStatus({ loading: false, text: "This doesn't appear to be an Aadhaar card.", type: "rejected" });
+          cashfreeDone = true;
+        }
+        // verdict === "sandbox" → fall through to Tesseract
+      } catch (_) {
+        // Cashfree unreachable → fall through to Tesseract
+      }
+
+      if (cashfreeDone) return;
+
+      // Layer 2 — Tesseract.js browser OCR (sandbox / Cashfree fallback)
+      const { createWorker } = await import("tesseract.js");
+      const worker = await createWorker("eng");
+      const { data: { text } } = await worker.recognize(file);
+      await worker.terminate();
+
+      const candidate = extractAadhaarFromText(text);
+      const hasKeywords = hasAadhaarKeywords(text) || hasAadhaarSecondaryMarkers(text);
+
+      if (candidate && verhoeffCheck(candidate)) {
+        try {
+          await postExpectSuccess("/api/checkin/owner/aadhaar/validate", { aadhaarNumber: candidate }, apiBases);
+        } catch (_) {}
+        setAadhaarNumber(formatAadhaarWithSpaces(candidate));
+        setAadhaarOcrStatus({ loading: false, text: "Aadhaar verified — valid card detected.", type: "verified" });
+      } else if (candidate) {
+        // Number found but Verhoeff fails — OCR likely misread a digit
+        setAadhaarOcrStatus({ loading: false, text: "Aadhaar card detected but number unclear. Try a clearer photo.", type: "suspicious" });
+      } else if (hasKeywords) {
+        // Keywords found but no valid number extracted
+        setAadhaarOcrStatus({ loading: false, text: "Aadhaar card detected but unreadable. Try a clearer photo.", type: "suspicious" });
+      } else {
+        // No signal at all
+        setAadhaarOcrStatus({ loading: false, text: "This doesn't appear to be an Aadhaar card.", type: "rejected" });
+      }
+    } catch (err) {
+      setAadhaarOcrStatus({ loading: false, text: "Verification failed. Please try uploading again.", type: "error" });
+    }
+  }, [apiBases]);
+
+  const handleFileSelect = useCallback((docType, file) => {
+    if (!file) {
+      if (docType === "ownerPhoto") setOwnerPhoto(emptyDoc);
+      else if (docType === "bankProof") setBankProof(emptyDoc);
+      else if (docType === "aadhaarDoc") {
+        setAadhaarDoc(emptyDoc);
+        setAadhaarOcrStatus({ loading: false, text: "", type: "" });
+      }
+      return;
+    }
+    const preview = file.type.startsWith("image/") ? URL.createObjectURL(file) : "";
+    const doc = { file, preview, name: file.name, type: file.type, uploaded: false, url: "" };
+    if (docType === "ownerPhoto") setOwnerPhoto(doc);
+    else if (docType === "bankProof") setBankProof(doc);
+    else if (docType === "aadhaarDoc") handleAadhaarImagePick(file);
+  }, [handleAadhaarImagePick]);
+
+  const handleDocumentUpload = useCallback(async () => {
+    const loginId = form.loginId.trim();
+    if (!loginId) return alert("Save profile first (Login ID is required)");
+
+    const hasPending = [ownerPhoto, bankProof, aadhaarDoc].some((d) => d.file && !d.uploaded);
+    if (!hasPending) return alert("No new documents selected to upload");
+
+    try {
+      setDocUploading(true);
+      setDocStatus({ type: "", text: "" });
+
+      const toPayload = async (doc) => {
+        if (!doc.file) return null;
+        const dataUrl = await fileToDataUrl(doc.file);
+        return { dataUrl, name: doc.name, type: doc.type };
+      };
+
+      const payload = {
+        loginId,
+        ownerPhoto: ownerPhoto.file ? await toPayload(ownerPhoto) : null,
+        bankProof: bankProof.file ? await toPayload(bankProof) : null,
+        aadhaarImage: aadhaarDoc.file ? await toPayload(aadhaarDoc) : null
+      };
+
+      const data = await postExpectSuccess("/api/checkin/owner/documents", payload, apiBases);
+
+      if (data.ownerPhotoUrl) setOwnerPhoto((prev) => ({ ...prev, url: data.ownerPhotoUrl, uploaded: true, file: null }));
+      if (data.bankProofUrl) setBankProof((prev) => ({ ...prev, url: data.bankProofUrl, uploaded: true, file: null }));
+      if (data.aadhaarImageUrl) {
+        setAadhaarDoc((prev) => ({ ...prev, url: data.aadhaarImageUrl, uploaded: true, file: null }));
+        if (data.ocrResult?.sandbox) {
+          setAadhaarOcrStatus({ loading: false, text: "Sandbox mode: OCR skipped. Image saved.", type: "info" });
+        } else if (data.ocrResult) {
+          setAadhaarOcrStatus({ loading: false, text: "Aadhaar OCR verified successfully.", type: "success" });
+        } else if (data.ocrError) {
+          setAadhaarOcrStatus({ loading: false, text: `OCR: ${data.ocrError}`, type: "error" });
+        }
+      }
+
+      setDocStatus({ type: "success", text: "Documents uploaded successfully." });
+    } catch (err) {
+      setDocStatus({ type: "error", text: `Upload failed: ${err.message}` });
+    } finally {
+      setDocUploading(false);
+    }
+  }, [apiBases, aadhaarDoc, bankProof, form.loginId, ownerPhoto]);
 
   const handleSubmit = useCallback(
     async (event) => {
@@ -398,6 +556,14 @@ export const useOwnerProfile = () => {
     loadingComplete,
     handleStartVerification,
     handleCompleteVerification,
-    handleSubmit
+    handleSubmit,
+    ownerPhoto,
+    bankProof,
+    aadhaarDoc,
+    aadhaarOcrStatus,
+    docUploading,
+    docStatus,
+    handleFileSelect,
+    handleDocumentUpload
   };
 };

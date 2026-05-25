@@ -146,6 +146,7 @@ exports.getAllOwners = async (req, res) => {
             checkinBankName: o.checkinBankName || checkinMap[o.loginId]?.ownerProfile?.payment?.bankName || o.bankName || o.profile?.bankName || '',
             checkinBranchName: o.checkinBranchName || checkinMap[o.loginId]?.ownerProfile?.payment?.branchName || o.branchName || o.profile?.branchName || '',
             checkinUpiId: o.checkinUpiId || checkinMap[o.loginId]?.ownerProfile?.payment?.upiId || o.profile?.upiId || '',
+            bankLockedByVisit: !!o.bankLockedByVisit,
             checkinAadhaarLinkedPhone: o.checkinAadhaarLinkedPhone || checkinMap[o.loginId]?.ownerKyc?.aadhaarLinkedPhone || o.kyc?.aadhaarLinkedPhone || '',
             checkinAadhaarNumber: o.checkinAadhaarNumber || checkinMap[o.loginId]?.ownerKyc?.aadhaarNumber || o.kyc?.aadharNumber || o.kyc?.aadhaarNumber || '',
             checkinOtpVerified: !!checkinMap[o.loginId]?.ownerKyc?.otpVerified,
@@ -242,6 +243,24 @@ exports.getOwnerById = async (req, res) => {
             .sort({ approvedAt: -1 })
             .select('visitId isLiveOnWebsite status')
             .lean();
+
+        // Fallback: read bank fields from VisitData if Owner checkin fields are missing
+        const VisitData = require('../models/VisitData');
+        const visitForBank = await VisitData.findOne({ 'generatedCredentials.loginId': normalizedLoginId })
+            .select('bankAccountHolderName bankAccountNumber bankIfscCode bankName bankBranchName bankUpiId ownerPhone contactPhone')
+            .sort({ updatedAt: -1 })
+            .lean();
+
+        const checkinBankName = owner.checkinBankName || checkin?.ownerProfile?.payment?.bankName || owner.bankName || visitForBank?.bankName || '';
+        const checkinBranchName = owner.checkinBranchName || checkin?.ownerProfile?.payment?.branchName || owner.branchName || visitForBank?.bankBranchName || '';
+        const checkinBankAccountNumber = owner.checkinBankAccountNumber || checkin?.ownerProfile?.payment?.bankAccountNumber || visitForBank?.bankAccountNumber || '';
+        const checkinIfscCode = owner.checkinIfscCode || checkin?.ownerProfile?.payment?.ifscCode || visitForBank?.bankIfscCode || '';
+        const checkinAccountHolderName = owner.checkinAccountHolderName || checkin?.ownerProfile?.payment?.accountHolderName || visitForBank?.bankAccountHolderName || '';
+        const checkinUpiId = owner.checkinUpiId || checkin?.ownerProfile?.payment?.upiId || visitForBank?.bankUpiId || '';
+        const bankLockedByVisit = !!owner.bankLockedByVisit || !!(visitForBank?.bankName || visitForBank?.bankAccountNumber);
+        const visitPhone = visitForBank?.ownerPhone || visitForBank?.contactPhone || '';
+        const phoneLockedByVisit = !!visitPhone;
+
         res.json({
             ...owner,
             propertyTitle: primaryProperty?.title || '',
@@ -252,10 +271,10 @@ exports.getOwnerById = async (req, res) => {
             phone: owner.profile?.phone || owner.phone || owner.checkinPhone || (checkin?.ownerProfile?.phone || ''),
             address: owner.profile?.address || owner.address || owner.checkinAddress || (checkin?.ownerProfile?.address || ''),
             locationCode: owner.profile?.locationCode || owner.locationCode || owner.checkinArea || (checkin?.ownerProfile?.area || ''),
-            bankName: owner.profile?.bankName || owner.checkinBankName || '',
-            accountNumber: owner.profile?.accountNumber || owner.accountNumber || owner.checkinBankAccountNumber || (checkin?.ownerProfile?.payment?.bankAccountNumber || ''),
-            ifscCode: owner.profile?.ifscCode || owner.ifscCode || owner.checkinIfscCode || (checkin?.ownerProfile?.payment?.ifscCode || ''),
-            branchName: owner.profile?.branchName || owner.branchName || owner.checkinBranchName || '',
+            bankName: owner.profile?.bankName || checkinBankName || '',
+            accountNumber: owner.profile?.accountNumber || owner.accountNumber || checkinBankAccountNumber || '',
+            ifscCode: owner.profile?.ifscCode || owner.ifscCode || checkinIfscCode || '',
+            branchName: owner.profile?.branchName || owner.branchName || checkinBranchName || '',
             aadharNumber: owner.kyc?.aadharNumber || owner.kyc?.aadhaarNumber || owner.checkinAadhaarNumber || '',
             kycStatus: owner.kyc?.status || 'pending',
             documentImage: owner.kyc?.documentImage || '',
@@ -263,19 +282,27 @@ exports.getOwnerById = async (req, res) => {
             password: owner.credentials?.password || owner.checkinPassword || '',
             checkinDob: owner.checkinDob || checkin?.ownerProfile?.dob || '',
             checkinEmail: owner.checkinEmail || checkin?.ownerProfile?.email || owner.email || '',
-            checkinPhone: owner.checkinPhone || checkin?.ownerProfile?.phone || owner.phone || '',
+            checkinPhone: owner.checkinPhone || checkin?.ownerProfile?.phone || owner.phone || visitPhone || '',
             checkinAddress: owner.checkinAddress || checkin?.ownerProfile?.address || owner.address || '',
             checkinArea: owner.checkinArea || checkin?.ownerProfile?.area || owner.locationCode || '',
-            checkinAccountHolderName: owner.checkinAccountHolderName || checkin?.ownerProfile?.payment?.accountHolderName || '',
-            checkinBankAccountNumber: owner.checkinBankAccountNumber || checkin?.ownerProfile?.payment?.bankAccountNumber || '',
-            checkinIfscCode: owner.checkinIfscCode || checkin?.ownerProfile?.payment?.ifscCode || '',
-            checkinBankName: owner.checkinBankName || checkin?.ownerProfile?.payment?.bankName || owner.bankName || '',
-            checkinBranchName: owner.checkinBranchName || checkin?.ownerProfile?.payment?.branchName || owner.branchName || '',
-            checkinUpiId: owner.checkinUpiId || checkin?.ownerProfile?.payment?.upiId || '',
-            checkinAadhaarLinkedPhone: owner.checkinAadhaarLinkedPhone || checkin?.ownerKyc?.aadhaarLinkedPhone || owner.kyc?.aadhaarLinkedPhone || '',
+            checkinAccountHolderName,
+            checkinBankAccountNumber,
+            checkinIfscCode,
+            checkinBankName,
+            checkinBranchName,
+            checkinUpiId,
+            bankLockedByVisit,
+            phoneLockedByVisit,
+            checkinAadhaarLinkedPhone: owner.checkinAadhaarLinkedPhone || checkin?.ownerKyc?.aadhaarLinkedPhone || owner.kyc?.aadhaarLinkedPhone || visitPhone || '',
             checkinAadhaarNumber: owner.checkinAadhaarNumber || checkin?.ownerKyc?.aadhaarNumber || owner.kyc?.aadharNumber || owner.kyc?.aadhaarNumber || '',
             checkinOtpVerified: !!checkin?.ownerKyc?.otpVerified,
             checkinSubmittedAt: checkin?.ownerSubmittedAt || null,
+            checkinOwnerPhoto: owner.checkinOwnerPhoto || '',
+            checkinOwnerPhotoName: owner.checkinOwnerPhotoName || '',
+            checkinOwnerPhotoType: owner.checkinOwnerPhotoType || '',
+            checkinBankProof: owner.checkinBankProof || '',
+            checkinBankProofName: owner.checkinBankProofName || '',
+            checkinBankProofType: owner.checkinBankProofType || '',
             roomCount: Number(owner.roomCount || primaryProperty?.roomCount || 0),
             bedCount: Number(owner.bedCount || primaryProperty?.bedCount || 0),
             vacantRooms: Number(owner.vacantRooms || primaryProperty?.vacantRooms || 0),

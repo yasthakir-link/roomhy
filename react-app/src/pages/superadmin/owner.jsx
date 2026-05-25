@@ -165,12 +165,14 @@ export default function Owner() {
                                         <th>Occupied Beds</th>
                                         <th>Monthly Rent</th> <!-- NEW: Property Rent -->
                                         <th>Security Deposit</th> <!-- NEW: Security Deposit -->
+                                        <th>Owner Photo</th>
+                                        <th>Bank Proof</th>
                                         <th>KYC Status</th>
                                         <th class="text-center w-16">Delete</th> <!-- Trash Column -->
                                     </tr>
                                 </thead>
                                 <tbody id="ownersTableBody">
-                                    <tr><td colspan="24" class="text-center py-8 text-gray-500">Loading owners...</td></tr>
+                                    <tr><td colspan="26" class="text-center py-8 text-gray-500">Loading owners...</td></tr>
                                 </tbody>
                             </table>
                         </div>

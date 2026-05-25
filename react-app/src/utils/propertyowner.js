@@ -278,9 +278,13 @@ export const deleteTenantRecord = async (id) => fetchJson(`/api/tenants/${encode
   method: "DELETE"
 });
 
-export const updateBookingDecision = async (bookingId, action) => {
+export const updateBookingDecision = async (bookingId, action, payload = {}) => {
   const endpoint = action === "approve" ? "approve" : "reject";
-  return fetchJson(`/api/booking/requests/${encodeURIComponent(bookingId)}/${endpoint}`, { method: "PUT" });
+  const options = { method: "PUT" };
+  if (payload && Object.keys(payload).length > 0) {
+    options.body = JSON.stringify(payload);
+  }
+  return fetchJson(`/api/booking/requests/${encodeURIComponent(bookingId)}/${endpoint}`, options);
 };
 
 export const fetchBookingRequestsForOwner = async (ownerId) => {

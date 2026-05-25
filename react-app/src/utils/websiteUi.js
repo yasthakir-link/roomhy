@@ -358,14 +358,16 @@ export const useWebsiteCommon = () => {
       console.error("Shared footer injection failed:", error);
     }
 
-    const handleStorage = () => {
+    const syncSessionUi = () => {
       updateMobileMenuState();
       updateWelcomeMessage();
     };
 
-    window.addEventListener("storage", handleStorage);
+    window.addEventListener("storage", syncSessionUi);
+    window.addEventListener("roomhy:website-session-changed", syncSessionUi);
     return () => {
-      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("storage", syncSessionUi);
+      window.removeEventListener("roomhy:website-session-changed", syncSessionUi);
       if (window.globalLogout) {
         delete window.globalLogout;
       }

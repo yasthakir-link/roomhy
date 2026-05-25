@@ -285,6 +285,7 @@
 
 import React from "react";
 import WebsiteFooter from "../../components/website/WebsiteFooter";
+import WebsiteHeader from "../../components/website/WebsiteHeader";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { buildBreadcrumbJsonLd, buildOrganizationJsonLd, buildSeoConfig } from "../../utils/websiteSeo";
 import { useHeroSlideshow, useWebsiteCommon, useWebsiteMenu } from "../../utils/websiteUi";
@@ -406,32 +407,8 @@ export default function WebsiteContact() {
   });
 
   return (
-    <div className="html-page">
-
-      <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-sm shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex h-20 items-center justify-between">
-            <div className="flex items-center">
-              <a href="/website/index" className="flex-shrink-0">
-                <img src="https://res.cloudinary.com/dpwgvcibj/image/upload/v1768990260/roomhy/website/logoroomhy.png" alt="Roomhy Logo" className="h-10 w-25" />
-              </a>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-6">
-              <nav className="hidden lg:flex items-center space-x-6">
-                <a href="/website/about" className="text-gray-600 hover:text-blue-600 font-medium transition-colors">About Us</a>
-                <a href="/website/contact" className="text-blue-600 font-semibold transition-colors">Contact</a>
-              </nav>
-              <a href="/website/list" className="flex-shrink-0 flex items-center space-x-1 px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
-                <IconPlusCircle className="w-4 h-4" />
-                <span>Post <span className="hidden sm:inline">Your</span> Property</span>
-              </a>
-              <button id="menu-toggle" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <IconMenu className="w-7 h-7 text-gray-800" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <div className="html-page">
+      <WebsiteHeader />
 
       <section className="relative py-20 md:py-28 text-white">
         <div id="hero-image-wrapper" className="absolute inset-0 w-full h-full overflow-hidden">
@@ -449,81 +426,6 @@ export default function WebsiteContact() {
           </p>
         </div>
       </section>
-
-      <div id="menu-overlay" className="fixed inset-0 bg-black/50 z-40 hidden"></div>
-
-      <div id="mobile-menu" className="fixed top-0 right-0 w-80 h-full bg-white z-50 shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
-        <div className="flex justify-end p-4 flex-shrink-0">
-          <button id="menu-close" className="p-2">
-            <IconX className="w-6 h-6 text-gray-700" />
-          </button>
-        </div>
-
-        <div className="flex justify-between items-center px-6 py-2">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-              <IconUsers className="w-6 h-6 text-gray-600" />
-            </div>
-            <span className="text-lg font-semibold text-gray-800">Hi, welcome!</span>
-          </div>
-          <a href="#" className="text-sm font-medium text-blue-600 hover:underline">Profile</a>
-        </div>
-
-        <div className="px-6 py-4">
-          <div className="border border-blue-200 rounded-lg p-4 relative overflow-hidden">
-            <p className="font-semibold text-gray-800 mb-3 relative z-10">Looking to Sell/Rent your Property?</p>
-            <a href="/website/list" className="block text-center w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium py-2 px-4 rounded-lg text-sm transition-colors relative z-10 text-lg font-bold">+</a>
-          </div>
-        </div>
-
-        <nav className="flex-grow p-4 space-y-1 overflow-y-auto">
-          <a href="/website/index" className="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-              <IconHome className="w-5 h-5 text-blue-600" />
-            </div>
-            <span>Our Properties</span>
-          </a>
-          <a href="#" className="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-              <IconHeart className="w-5 h-5 text-red-600" />
-            </div>
-            <span>Favorites</span>
-          </a>
-          <a href="#" className="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-              <IconMessageSquare className="w-5 h-5 text-green-600" />
-            </div>
-            <span>Chats</span>
-          </a>
-          <a href="#" className="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-            <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
-              <IconBuilding className="w-5 h-5 text-purple-600" />
-            </div>
-            <span>My Stays</span>
-          </a>
-          <a href="/website/about" className="flex items-center space-x-4 p-3 rounded-lg text-gray-700 hover:bg-blue-50 hover:text-blue-600">
-            <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0">
-              <IconInfo className="w-5 h-5 text-yellow-600" />
-            </div>
-            <span>About Us</span>
-          </a>
-          <a href="/website/contact" className="flex items-center space-x-4 p-3 rounded-lg text-blue-600 bg-blue-50">
-            <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center flex-shrink-0">
-              <IconPhone className="w-5 h-5 text-cyan-600" />
-            </div>
-            <span>Contact Us</span>
-          </a>
-        </nav>
-
-        <div className="p-4 border-t flex-shrink-0">
-          <a href="#" className="flex items-center space-x-4 p-3 rounded-lg text-red-600 hover:bg-red-50">
-            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-              <IconLogOut className="w-5 h-5 text-gray-600" />
-            </div>
-            <span>Logout</span>
-          </a>
-        </div>
-      </div>
 
       <main className="container mx-auto px-4 sm:px-6 py-8 md:py-12 space-y-16">
 

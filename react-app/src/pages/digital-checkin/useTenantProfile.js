@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { cleanPropertyName, isLocalHost } from "./utils";
+import { isLocalHost } from "./utils";
 
 const emptyForm = {
   loginId: "",
   name: "",
+  tenantAddress: "",
   propertyName: "",
+  propertyAddress: "",
+  accommodationType: "",
   roomNo: "",
   agreedRent: "",
   securityDepositTotal: "",
@@ -15,7 +18,21 @@ const emptyForm = {
   dob: "",
   guardianNumber: "",
   moveInDate: "",
-  email: ""
+  email: "",
+  tenantPhone: "",
+  backupEmail: "",
+  backupPhone: "",
+  duration: "",
+  licenseStartDate: "",
+  licenseEndDate: "",
+  licenseFeeDueDate: "5",
+  moveOutCharges: "",
+  noticePeriodCharges: "",
+  securityDeposit: "",
+  inclusions: "",
+  minimumStayDuration: "3 Months",
+  gstCharges: "0",
+  ownerName: ""
 };
 
 export const useTenantProfile = () => {
@@ -24,11 +41,14 @@ export const useTenantProfile = () => {
     []
   );
   const [form, setForm] = useState(emptyForm);
+  const [ownerFilledFields, setOwnerFilledFields] = useState([]);
+  const [prefillLoading, setPrefillLoading] = useState(false);
 
   const updateForm = useCallback((patch) => {
     setForm((prev) => ({ ...prev, ...patch }));
   }, []);
 
+  // Read loginId from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const loginId = params.get("loginId");
@@ -37,80 +57,39 @@ export const useTenantProfile = () => {
     }
   }, [updateForm]);
 
+  // Fetch owner-filled tenant data from the backend prefill endpoint
   useEffect(() => {
-    const prefillTenantData = async () => {
-      const loginId = (form.loginId || "").trim().toUpperCase();
-      if (!loginId) return;
-      let tenant = null;
+    const loginId = (form.loginId || "").trim().toUpperCase();
+    if (!loginId) return;
 
+    const prefill = async () => {
+      setPrefillLoading(true);
       try {
-        const cached = JSON.parse(localStorage.getItem("roomhy_tenants") || "[]");
-        tenant = cached.find((t) => String(t.loginId || "").toUpperCase() === loginId) || null;
-      } catch (_) {}
+        const res = await fetch(`${apiBase}/api/checkin/tenant/prefill/${encodeURIComponent(loginId)}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) return;
 
-      if (!tenant) {
-        try {
-          const res = await fetch(`${apiBase}/api/tenants`);
-          const data = await res.json().catch(() => ({}));
-          const list = Array.isArray(data) ? data : Array.isArray(data.tenants) ? data.tenants : [];
-          tenant = list.find((t) => String(t.loginId || "").toUpperCase() === loginId) || null;
-        } catch (_) {}
-      }
+        const { prefillData = {}, ownerFilledFields: filled = [] } = data;
 
-      if (!tenant) return;
-
-      updateForm({
-        name: tenant.name || "",
-        email: tenant.email || "",
-        moveInDate: tenant.moveInDate ? String(tenant.moveInDate).slice(0, 10) : "",
-        guardianNumber: tenant.guardianNumber || tenant.emergencyContact || "",
-        dob: tenant.dob || "",
-        securityDepositTotal: tenant.securityDepositTotal ? `INR ${tenant.securityDepositTotal}` : "",
-        securityDepositPaid: tenant.securityDepositPaid ? `INR ${tenant.securityDepositPaid}` : "",
-        securityDepositBalance: tenant.securityDepositBalance ? `INR ${tenant.securityDepositBalance}` : "",
-        electricityCharge: tenant.electricityCharge ? `INR ${tenant.electricityCharge}` : "",
-        maintenanceCharge: tenant.maintenanceCharge ? `INR ${tenant.maintenanceCharge}` : ""
-      });
-
-      const rawPropertyName =
-        tenant.property && typeof tenant.property === "object"
-          ? tenant.propertyTitle || tenant.propertyName || tenant.property.title || tenant.property.name || ""
-          : tenant.propertyTitle || tenant.propertyName || tenant.property || "";
-      let propertyName = cleanPropertyName(rawPropertyName);
-
-      if (!propertyName && tenant.propertyId) {
-        try {
-          const props = JSON.parse(localStorage.getItem("roomhy_properties") || "[]");
-          const match = props.find(
-            (p) => String(p._id || p.id || p.propertyId || "") === String(tenant.propertyId)
-          );
-          propertyName = cleanPropertyName(match && (match.title || match.name || match.propertyName));
-        } catch (_) {}
-      }
-
-      if (!propertyName && tenant.propertyId) {
-        try {
-          const res = await fetch(`${apiBase}/api/properties`);
-          if (res.ok) {
-            const data = await res.json().catch(() => ({}));
-            const list = Array.isArray(data?.properties) ? data.properties : [];
-            const match = list.find(
-              (p) => String(p._id || p.id || p.propertyId || "") === String(tenant.propertyId)
-            );
-            propertyName = cleanPropertyName(match && (match.title || match.name || match.propertyName));
+        // Only apply fields that have a value — don't overwrite tenant's prior input with blanks
+        const patch = {};
+        Object.keys(prefillData).forEach((k) => {
+          if (prefillData[k] !== "" && prefillData[k] !== null && prefillData[k] !== undefined) {
+            patch[k] = prefillData[k];
           }
-        } catch (_) {}
+        });
+        if (Object.keys(patch).length > 0) updateForm(patch);
+        setOwnerFilledFields(filled);
+      } catch (_) {
+        // network error — form remains empty/editable
+      } finally {
+        setPrefillLoading(false);
       }
-
-      updateForm({
-        propertyName: propertyName || "",
-        roomNo: tenant.roomNo || "",
-        agreedRent: tenant.agreedRent ? `INR ${tenant.agreedRent}` : ""
-      });
     };
 
-    prefillTenantData();
-  }, [apiBase, form.loginId, updateForm]);
+    prefill();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiBase, form.loginId]);
 
   const handleSubmit = useCallback(
     async (event) => {
@@ -135,7 +114,31 @@ export const useTenantProfile = () => {
         dob: form.dob,
         guardianNumber: form.guardianNumber.trim(),
         moveInDate: form.moveInDate,
-        email: form.email.trim()
+        email: form.email.trim(),
+        agreementDetails: {
+          tenantName: form.name.trim(),
+          tenantAddress: form.tenantAddress.trim(),
+          tenantEmail: form.email.trim(),
+          tenantPhone: form.tenantPhone.trim(),
+          backupEmail: form.backupEmail.trim(),
+          backupPhone: form.backupPhone.trim(),
+          propertyName: form.propertyName.trim(),
+          propertyAddress: form.propertyAddress.trim(),
+          accommodationType: form.accommodationType.trim(),
+          roomNumber: form.roomNo.trim(),
+          rentAmount: rentRaw || "",
+          duration: form.duration.trim(),
+          licenseStartDate: form.licenseStartDate || form.moveInDate,
+          licenseEndDate: form.licenseEndDate || "",
+          licenseFeeDueDate: form.licenseFeeDueDate.trim() || "5",
+          moveOutCharges: form.moveOutCharges.trim(),
+          noticePeriodCharges: form.noticePeriodCharges.trim(),
+          securityDeposit: form.securityDeposit.trim() || securityDepositTotalRaw || "",
+          inclusions: form.inclusions.trim(),
+          minimumStayDuration: form.minimumStayDuration.trim() || "3 Months",
+          gstCharges: form.gstCharges.trim() || "0",
+          ownerName: form.ownerName.trim()
+        }
       };
 
       const res = await fetch(`${apiBase}/api/checkin/tenant/profile`, {
@@ -146,32 +149,10 @@ export const useTenantProfile = () => {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) return alert(data.message || "Failed to save profile");
 
-      try {
-        const list = JSON.parse(localStorage.getItem("roomhy_tenants") || "[]");
-        const idx = list.findIndex((t) => String(t.loginId || "").toUpperCase() === payload.loginId);
-        if (idx > -1) {
-          list[idx].name = payload.name;
-          list[idx].email = payload.email || list[idx].email;
-          list[idx].dob = payload.dob;
-          list[idx].guardianNumber = payload.guardianNumber;
-          list[idx].moveInDate = payload.moveInDate;
-          list[idx].propertyTitle = payload.propertyName || list[idx].propertyTitle;
-          list[idx].roomNo = payload.roomNo || list[idx].roomNo;
-          if (payload.agreedRent !== null) list[idx].agreedRent = payload.agreedRent;
-          list[idx].securityDepositTotal = payload.securityDepositTotal;
-          list[idx].securityDepositPaid = payload.securityDepositPaid;
-          list[idx].securityDepositBalance = payload.securityDepositBalance;
-          list[idx].electricityCharge = payload.electricityCharge;
-          list[idx].maintenanceCharge = payload.maintenanceCharge;
-          localStorage.setItem("roomhy_tenants", JSON.stringify(list));
-        }
-      } catch (_) {}
-
       window.location.href = `/digital-checkin/tenantkyc?loginId=${encodeURIComponent(payload.loginId)}`;
     },
     [apiBase, form]
   );
 
-  return { form, updateForm, handleSubmit };
+  return { form, updateForm, handleSubmit, ownerFilledFields, prefillLoading };
 };
-

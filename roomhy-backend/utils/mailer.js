@@ -379,12 +379,15 @@ async function sendMail(to, subject, text, html, options = {}) {
 
 
     // WhatsApp copy for the same recipient (resolved by email -> phone), if configured.
+    // Pass skipWhatsApp: true in options to suppress this (e.g. when caller sends WhatsApp separately).
     let whatsappSent = false;
-    try {
-        const whatsappDeliveredCount = await sendWhatsAppByEmailRecipients(recipients, subject, text, html, cfg);
-        whatsappSent = whatsappDeliveredCount > 0;
-    } catch (err) {
-        console.warn('WhatsApp notification copy failed:', err && err.message);
+    if (!options.skipWhatsApp) {
+        try {
+            const whatsappDeliveredCount = await sendWhatsAppByEmailRecipients(recipients, subject, text, html, cfg);
+            whatsappSent = whatsappDeliveredCount > 0;
+        } catch (err) {
+            console.warn('WhatsApp notification copy failed:', err && err.message);
+        }
     }
 
     if (!emailSent && !isSmtpConfigured(cfg)) {
@@ -395,80 +398,223 @@ async function sendMail(to, subject, text, html, options = {}) {
 }
 
 function credentialsHtml(loginId, password, role = 'Account') {
+    const year = new Date().getFullYear();
     return `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RoomHy Login Credentials</title>
-    <style>
-        body { margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; }
-        .container { max-width: 500px; margin: 40px auto; padding: 20px; }
-        .card { background: white; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); overflow: hidden; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; }
-        .header h1 { margin: 0; color: white; font-size: 28px; font-weight: 600; }
-        .header p { margin: 10px 0 0; color: rgba(255,255,255,0.9); font-size: 14px; }
-        .content { padding: 30px; }
-        .greeting { color: #333; font-size: 16px; margin-bottom: 20px; }
-        .credential-card { background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%); border-radius: 12px; padding: 20px; margin: 20px 0; border-left: 4px solid #667eea; }
-        .credential-item { margin: 15px 0; }
-        .credential-label { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
-        .credential-value { color: #333; font-size: 18px; font-weight: 600; background: white; padding: 10px 15px; border-radius: 8px; display: inline-block; }
-        .copy-hint { color: #999; font-size: 11px; margin-top: 4px; }
-        .footer { background: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #eee; }
-        .footer p { margin: 0; color: #999; font-size: 12px; }
-        .warning { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin-top: 20px; font-size: 13px; color: #856404; }
-        .btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: 500; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Login Credentials — RoomHy</title>
 </head>
-<body>
-    <div class="container">
-        <div class="card">
-            <div class="header">
-                <h1>🏠 RoomHy</h1>
-                <p>Your Account Has Been Created</p>
-            </div>
-            <div class="content">
-                <p class="greeting">Hello! Your <strong>${role}</strong> account has been created successfully. Here are your login credentials:</p>
-                
-                <div class="credential-card">
-                    <div class="credential-item">
-                        <div class="credential-label">Login ID / Username</div>
-                        <div class="credential-value">${loginId}</div>
-                        <div class="copy-hint">Use this to login to RoomHy</div>
-                    </div>
-                    <div class="credential-item">
-                        <div class="credential-label">Password</div>
-                        <div class="credential-value">${password}</div>
-                        <div class="copy-hint">Keep this secure</div>
-                    </div>
-                </div>
-                
-                <div class="warning">
-                    ⚠️ <strong>Important:</strong> Please change your password after first login for security.
-                </div>
-                
-                <div style="text-align: center;">
-                    <a href="https://admin.roomhy.com" class="btn">Login to RoomHy</a>
-                </div>
-            </div>
-            <div class="footer">
-                <p>© 2025 RoomHy. All rights reserved.</p>
-                <p>Need help? Contact us at support@roomhy.com</p>
-            </div>
-        </div>
-    </div>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f4;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #dddddd;">
+
+        <!-- Logo Header -->
+        <tr>
+          <td style="padding:24px 32px;border-bottom:1px solid #dddddd;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <strong style="font-size:20px;color:#111111;font-family:Arial,Helvetica,sans-serif;letter-spacing:-0.01em;">RoomHy</strong>
+                </td>
+                <td align="right" style="vertical-align:middle;font-size:11px;color:#999999;font-family:Arial,Helvetica,sans-serif;">
+                  Account Portal
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Heading -->
+        <tr>
+          <td style="padding:32px 32px 8px;">
+            <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#111111;font-family:Arial,Helvetica,sans-serif;">Account Created</h1>
+            <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+              Your RoomHy <strong>${role}</strong> account has been created successfully. Please find your login credentials below.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Credentials Table -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;">
+              <tr>
+                <td colspan="2" style="padding:12px 18px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#888888;background-color:#f4f4f4;border-bottom:1px solid #dddddd;font-family:Arial,Helvetica,sans-serif;">Login Credentials</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;width:130px;font-family:Arial,Helvetica,sans-serif;">Login ID</td>
+                <td style="padding:12px 18px;font-size:14px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:'Courier New',Courier,monospace;">${loginId}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 18px;font-size:13px;color:#888888;font-family:Arial,Helvetica,sans-serif;">Password</td>
+                <td style="padding:12px 18px;font-size:14px;font-weight:700;color:#111111;font-family:'Courier New',Courier,monospace;">${password}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Button -->
+        <tr>
+          <td style="padding:0 32px 12px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#111111;">
+                  <a href="https://admin.roomhy.com" style="display:inline-block;background-color:#111111;color:#ffffff;text-decoration:none;padding:13px 28px;font-size:14px;font-weight:600;font-family:Arial,Helvetica,sans-serif;white-space:nowrap;">Login to RoomHy</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;border-left:3px solid #111111;">
+              <tr>
+                <td style="padding:14px 18px;font-size:13px;color:#333333;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+                  Please change your password upon your first login. Keep your credentials confidential and do not share them with any third party.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top:1px solid #dddddd;padding:20px 32px;background-color:#f9f9f9;">
+            <p style="margin:0;font-size:12px;color:#888888;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+              <strong style="color:#555555;">RoomHy Support Team</strong><br>
+              Email: support@roomhy.com &nbsp;&#124;&nbsp; Website: www.roomhy.com<br>
+              &copy; ${year} RoomHy. All rights reserved.<br>
+              This is an automated message. Please do not reply to this email.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
 </body>
 </html>`;
 }
 
-async function sendCredentials(toEmail, loginId, password, role = 'Account') {
+async function sendCredentials(toEmail, loginId, password, role = 'Account', options = {}) {
     if (!toEmail) return;
     const subject = `${role} credentials for RoomHy`;
     const html = credentialsHtml(loginId, password, role);
     const text = `Your ${role} credentials\nLogin ID: ${loginId}\nPassword: ${password}`;
-    // Non-blocking caller can await if desired
+    return sendMail(toEmail, subject, text, html, options);
+}
+
+async function sendKycLinkEmail(toEmail, ownerName, propertyName, kycLink) {
+    if (!toEmail) return false;
+    const subject = 'RoomHy — KYC Verification Required for Property Approval';
+    const year = new Date().getFullYear();
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>KYC Verification Required — RoomHy</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f4;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #dddddd;">
+
+        <!-- Logo Header -->
+        <tr>
+          <td style="padding:24px 32px;border-bottom:1px solid #dddddd;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <strong style="font-size:20px;color:#111111;font-family:Arial,Helvetica,sans-serif;letter-spacing:-0.01em;">RoomHy</strong>
+                </td>
+                <td align="right" style="vertical-align:middle;font-size:11px;color:#999999;font-family:Arial,Helvetica,sans-serif;">
+                  Property Owner Portal
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Heading -->
+        <tr>
+          <td style="padding:32px 32px 8px;">
+            <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#111111;font-family:Arial,Helvetica,sans-serif;">KYC Verification Required</h1>
+            <p style="margin:0 0 8px;font-size:15px;color:#333333;font-family:Arial,Helvetica,sans-serif;">Dear <strong>${ownerName}</strong>,</p>
+            <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+              Your visit report has been received. To proceed with property approval, please complete your KYC verification by submitting your identity documents.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Property Details -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;">
+              <tr>
+                <td colspan="2" style="padding:12px 18px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#888888;background-color:#f4f4f4;border-bottom:1px solid #dddddd;font-family:Arial,Helvetica,sans-serif;">Property Details</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 18px;font-size:13px;color:#888888;width:130px;font-family:Arial,Helvetica,sans-serif;">Property</td>
+                <td style="padding:12px 18px;font-size:13px;font-weight:700;color:#111111;font-family:Arial,Helvetica,sans-serif;">${propertyName}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Button -->
+        <tr>
+          <td style="padding:0 32px 12px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#111111;">
+                  <a href="${kycLink}" style="display:inline-block;background-color:#111111;color:#ffffff;text-decoration:none;padding:13px 28px;font-size:14px;font-weight:600;font-family:Arial,Helvetica,sans-serif;white-space:nowrap;">Complete KYC Verification</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <p style="margin:0;font-size:12px;color:#888888;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">If the button above does not work, copy and paste the following link into your browser:<br><span style="color:#333333;">${kycLink}</span></p>
+          </td>
+        </tr>
+
+        <!-- Notice -->
+        <tr>
+          <td style="padding:0 32px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;border-left:3px solid #111111;">
+              <tr>
+                <td style="padding:14px 18px;font-size:13px;color:#333333;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+                  This verification link is valid for 7 days. If you did not expect this email or have any concerns, please contact us at support@roomhy.com.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top:1px solid #dddddd;padding:20px 32px;background-color:#f9f9f9;">
+            <p style="margin:0;font-size:12px;color:#888888;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+              <strong style="color:#555555;">RoomHy Support Team</strong><br>
+              Email: support@roomhy.com &nbsp;&#124;&nbsp; Website: www.roomhy.com<br>
+              &copy; ${year} RoomHy. All rights reserved.<br>
+              This is an automated message. Please do not reply to this email.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+    const text = `Dear ${ownerName},\n\nYour visit report for "${propertyName}" has been received.\n\nPlease complete your KYC verification by visiting:\n${kycLink}\n\nThis link is valid for 7 days.\n\nRoomHy Support Team\nsupport@roomhy.com`;
     return sendMail(toEmail, subject, text, html);
 }
 
-module.exports = { sendCredentials, sendMail };
+module.exports = { sendCredentials, sendMail, sendKycLinkEmail };

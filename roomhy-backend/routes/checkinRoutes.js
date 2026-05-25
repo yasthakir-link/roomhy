@@ -10,7 +10,9 @@ const { normalizeRoomInventory, summarizeRoomInventory, syncOwnerPropertyOccupan
 const { sendMail } = require('../utils/mailer');
 const { sendDocumentToResolvedUser, sendTemplateMessage, sendTemplateToResolvedUser } = require('../utils/whatsappBot');
 const { otpLimiter } = require('../middleware/security');
-const { requestAadhaarOtp, verifyAadhaarOtp } = require('../services/cashfreeKycService');
+const { requestAadhaarOtp, verifyAadhaarOtp, aadhaarOcr } = require('../services/cashfreeKycService');
+const { generateAgreementPdfBuffer } = require('../utils/generateAgreementPdf');
+const cloudinary = require('../utils/cloudinary');
 const {
     verifyDigilockerAccount,
     createDigilockerUrl,
@@ -28,6 +30,26 @@ const DIGITAL_CHECKIN_URL = process.env.DIGITAL_CHECKIN_URL || ADMIN_URL;
 const BACKEND_URL = process.env.BACKEND_URL || process.env.API_BASE_URL || 'https://api.roomhy.com';
 
 const otpStore = new Map();
+
+// Verhoeff checksum — UIDAI uses this for all 12-digit Aadhaar numbers
+const _VD = [
+    [0,1,2,3,4,5,6,7,8,9],[1,2,3,4,0,6,7,8,9,5],[2,3,4,0,1,7,8,9,5,6],
+    [3,4,0,1,2,8,9,5,6,7],[4,0,1,2,3,9,5,6,7,8],[5,9,8,7,6,0,4,3,2,1],
+    [6,5,9,8,7,1,0,4,3,2],[7,6,5,9,8,2,1,0,4,3],[8,7,6,5,9,3,2,1,0,4],
+    [9,8,7,6,5,4,3,2,1,0]
+];
+const _VP = [
+    [0,1,2,3,4,5,6,7,8,9],[1,5,7,6,2,8,3,0,9,4],[5,8,0,3,7,9,6,1,4,2],
+    [8,9,1,6,0,4,3,5,2,7],[9,4,5,3,1,2,6,8,7,0],[4,2,8,6,5,7,3,9,0,1],
+    [2,7,9,3,8,0,6,4,1,5],[7,0,4,6,9,1,3,2,5,8]
+];
+function verhoeffCheck(number) {
+    const digits = String(number).replace(/\D/g, '').split('').reverse().map(Number);
+    if (digits.length !== 12) return false;
+    let c = 0;
+    for (let i = 0; i < digits.length; i++) c = _VD[c][_VP[i % 8][digits[i]]];
+    return c === 0;
+}
 
 function keyFor(role, loginId, aadhaarNumber) {
     return `${role}:${String(loginId || '').toUpperCase()}:${String(aadhaarNumber || '')}`;
@@ -97,227 +119,416 @@ function extractAadhaarNumber(value) {
     return '';
 }
 
+function buildOtpEmail({ otp, name, loginId, role = 'Owner', expiryMinutes = 10 }) {
+    const isSandbox = Boolean(otp);
+    const otpDisplay = isSandbox ? String(otp) : null;
+    const logoUrl = `${APP_URL}/website/images/roomhy.png`;
+    const year = new Date().getFullYear();
+
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OTP Verification — RoomHy</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f4;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #dddddd;">
+
+        <!-- Logo Header -->
+        <tr>
+          <td style="padding:24px 32px;border-bottom:1px solid #dddddd;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="${logoUrl}" alt="RoomHy" height="32" style="display:block;height:32px;max-width:140px;border:0;" />
+                </td>
+                <td align="right" style="vertical-align:middle;font-size:11px;color:#999999;font-family:Arial,Helvetica,sans-serif;">
+                  Digital Check-In Portal
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px 32px 0;">
+            <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#111111;font-family:Arial,Helvetica,sans-serif;">OTP Verification</h1>
+            <p style="margin:0 0 8px;font-size:15px;color:#333333;font-family:Arial,Helvetica,sans-serif;">Dear <strong>${name || loginId || 'Applicant'}</strong>,</p>
+            <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+              ${isSandbox
+                ? `You have requested an Aadhaar OTP verification for your RoomHy <strong>${role}</strong> account. Please use the One-Time Password below to complete your identity verification.`
+                : `You have requested an Aadhaar OTP verification for your RoomHy <strong>${role}</strong> account. Your OTP has been dispatched to your Aadhaar-linked mobile number. Please enter it on the verification page to proceed.`
+              }
+            </p>
+          </td>
+        </tr>
+
+        ${isSandbox && otpDisplay ? `
+        <!-- OTP Box -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #cccccc;background-color:#f9f9f9;">
+              <tr>
+                <td align="center" style="padding:28px 24px;">
+                  <p style="margin:0 0 14px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#888888;font-family:Arial,Helvetica,sans-serif;">Your One-Time Password</p>
+                  <p style="margin:0;font-size:42px;font-weight:700;letter-spacing:0.24em;color:#111111;font-family:'Courier New',Courier,monospace;line-height:1.1;">${otpDisplay}</p>
+                  <p style="margin:16px 0 0;font-size:12px;color:#888888;font-family:Arial,Helvetica,sans-serif;">Valid for ${expiryMinutes} minutes &nbsp;&#183;&nbsp; Do not share this code with anyone</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>` : `
+        <!-- Validity Note -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <p style="margin:0;font-size:14px;color:#555555;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+              The OTP is valid for <strong>${expiryMinutes} minutes</strong> from the time of request. If you did not initiate this verification, please disregard this message.
+            </p>
+          </td>
+        </tr>`}
+
+        <!-- Account Info -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;">
+              <tr>
+                <td colspan="2" style="padding:12px 18px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#888888;background-color:#f4f4f4;border-bottom:1px solid #dddddd;font-family:Arial,Helvetica,sans-serif;">Account Information</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;width:140px;font-family:Arial,Helvetica,sans-serif;">Login ID</td>
+                <td style="padding:10px 18px;font-size:13px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:'Courier New',Courier,monospace;">${loginId || '—'}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">Account Type</td>
+                <td style="padding:10px 18px;font-size:13px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">${role}</td>
+              </tr>
+              <tr>
+                <td style="padding:10px 18px;font-size:13px;color:#888888;font-family:Arial,Helvetica,sans-serif;">OTP Validity</td>
+                <td style="padding:10px 18px;font-size:13px;font-weight:700;color:#111111;font-family:Arial,Helvetica,sans-serif;">${expiryMinutes} minutes from time of issue</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Security Notice -->
+        <tr>
+          <td style="padding:0 32px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;border-left:3px solid #111111;">
+              <tr>
+                <td style="padding:14px 18px;font-size:13px;color:#333333;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+                  <strong>Security Notice:</strong> RoomHy will never contact you by phone or message to request your OTP. Do not share this code with any individual or organisation under any circumstances.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top:1px solid #dddddd;padding:20px 32px;background-color:#f9f9f9;">
+            <p style="margin:0;font-size:12px;color:#888888;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+              <strong style="color:#555555;">RoomHy Support Team</strong><br>
+              Email: support@roomhy.com &nbsp;&#124;&nbsp; Website: www.roomhy.com<br>
+              &copy; ${year} RoomHy. All rights reserved.<br>
+              This is an automated message. Please do not reply to this email.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 function buildOwnerLoginEmail(owner, dashboardUrl) {
-    return `
-        <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-            <div style="background:#1d4ed8;color:#fff;padding:18px 20px;">
-                <h2 style="margin:0;font-size:20px;">RoomHy Owner Login Ready</h2>
-            </div>
-            <div style="padding:18px 20px;color:#111827;line-height:1.55;">
-                <p style="margin-top:0;">Your owner profile, DigiLocker Aadhaar verification, and agreement signing are complete.</p>
-                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;margin:14px 0;">
-                    <p style="margin:0 0 8px;"><strong>Login ID:</strong> ${owner.loginId || '-'}</p>
-                    <p style="margin:0 0 8px;"><strong>Password:</strong> ${owner.checkinPassword || owner.credentials?.password || '-'}</p>
-                    <p style="margin:0;"><strong>Email:</strong> ${owner.email || '-'}</p>
-                </div>
-                <p style="margin:14px 0 18px;">
-                    <a href="${dashboardUrl}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:700;">Open Owner Login</a>
-                </p>
-                <p style="font-size:12px;color:#6b7280;">If button does not work, copy this link: ${dashboardUrl}</p>
-            </div>
-        </div>
-    `;
+    const logoUrl = `${APP_URL}/website/images/roomhy.png`;
+    const year = new Date().getFullYear();
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Owner Account Activated — RoomHy</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f4;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #dddddd;">
+
+        <!-- Logo Header -->
+        <tr>
+          <td style="padding:24px 32px;border-bottom:1px solid #dddddd;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="${logoUrl}" alt="RoomHy" height="32" style="display:block;height:32px;max-width:140px;border:0;" />
+                </td>
+                <td align="right" style="vertical-align:middle;font-size:11px;color:#999999;font-family:Arial,Helvetica,sans-serif;">
+                  Property Owner Portal
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Heading -->
+        <tr>
+          <td style="padding:32px 32px 8px;">
+            <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#111111;font-family:Arial,Helvetica,sans-serif;">Owner Account Activated</h1>
+            <p style="margin:0 0 8px;font-size:15px;color:#333333;font-family:Arial,Helvetica,sans-serif;">Dear <strong>${owner.name || 'Property Owner'}</strong>,</p>
+            <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+              Your owner profile, KYC verification, and agreement acceptance have been completed successfully. Your RoomHy Property Owner account is now fully activated.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Credentials Table -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;">
+              <tr>
+                <td colspan="2" style="padding:12px 18px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#888888;background-color:#f4f4f4;border-bottom:1px solid #dddddd;font-family:Arial,Helvetica,sans-serif;">Login Credentials</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;width:130px;font-family:Arial,Helvetica,sans-serif;">Login ID</td>
+                <td style="padding:12px 18px;font-size:14px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:'Courier New',Courier,monospace;">${owner.loginId || '—'}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">Password</td>
+                <td style="padding:12px 18px;font-size:14px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:'Courier New',Courier,monospace;">${owner.checkinPassword || owner.credentials?.password || '—'}</td>
+              </tr>
+              <tr>
+                <td style="padding:12px 18px;font-size:13px;color:#888888;font-family:Arial,Helvetica,sans-serif;">Email</td>
+                <td style="padding:12px 18px;font-size:13px;color:#111111;font-family:Arial,Helvetica,sans-serif;">${owner.email || '—'}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Button -->
+        <tr>
+          <td style="padding:0 32px 12px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#111111;">
+                  <a href="${dashboardUrl}" style="display:inline-block;background-color:#111111;color:#ffffff;text-decoration:none;padding:13px 28px;font-size:14px;font-weight:600;font-family:Arial,Helvetica,sans-serif;white-space:nowrap;">Open Owner Dashboard</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <p style="margin:0;font-size:12px;color:#888888;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">If the button above does not work, copy and paste the following link into your browser:<br><span style="color:#333333;">${dashboardUrl}</span></p>
+          </td>
+        </tr>
+
+        <!-- Security Notice -->
+        <tr>
+          <td style="padding:0 32px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;border-left:3px solid #111111;">
+              <tr>
+                <td style="padding:14px 18px;font-size:13px;color:#333333;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+                  Please change your password upon your first login. Keep your credentials confidential and do not share them with any third party. Sign out from shared or public devices after use.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top:1px solid #dddddd;padding:20px 32px;background-color:#f9f9f9;">
+            <p style="margin:0;font-size:12px;color:#888888;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+              <strong style="color:#555555;">RoomHy Support Team</strong><br>
+              Email: support@roomhy.com &nbsp;&#124;&nbsp; Website: www.roomhy.com<br>
+              &copy; ${year} RoomHy. All rights reserved.<br>
+              This is an automated message. Please do not reply to this email.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
-function buildTenantLoginEmail(tenant, dashboardUrl) {
-    return `
-        <div style="font-family:Arial,sans-serif;max-width:620px;margin:0 auto;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
-            <div style="background:#16a34a;color:#fff;padding:16px 20px;">
-                <h2 style="margin:0;font-size:20px;">RoomHy Tenant Check-in Completed</h2>
-            </div>
-            <div style="padding:18px 20px;color:#111827;line-height:1.55;">
-                <p style="margin-top:0;">Your tenant digital check-in and rental agreement signing are complete.</p>
-                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;margin:14px 0;">
-                    <p style="margin:0 0 8px;"><strong>Login ID:</strong> ${tenant.loginId || '-'}</p>
-                    <p style="margin:0 0 8px;"><strong>Email:</strong> ${tenant.email || '-'}</p>
-                    <p style="margin:0;"><strong>Property:</strong> ${tenant.propertyTitle || '-'}</p>
-                </div>
-                <p style="margin:14px 0 18px;">
-                    <a href="${dashboardUrl}" style="display:inline-block;background:#16a34a;color:#fff;text-decoration:none;padding:10px 16px;border-radius:6px;font-weight:700;">Open Tenant Login</a>
-                </p>
-                <p style="font-size:12px;color:#6b7280;">If button does not work, copy this link: ${dashboardUrl}</p>
-            </div>
-        </div>
-    `;
+function buildTenantLoginEmail(tenant, dashboardUrl, record = {}) {
+    const logoUrl = `${APP_URL}/website/images/roomhy.png`;
+    const year = new Date().getFullYear();
+    const tenantName = tenant.name || 'Tenant';
+    const propertyName = tenant.propertyTitle || tenant.digitalCheckin?.profile?.propertyName || 'RoomHy Property';
+    const roomNo = tenant.roomNo || '';
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Digital Check-In Complete — RoomHy</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f4;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #dddddd;">
+
+        <!-- Logo Header -->
+        <tr>
+          <td style="padding:24px 32px;border-bottom:1px solid #dddddd;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="${logoUrl}" alt="RoomHy" height="32" style="display:block;height:32px;max-width:140px;border:0;" />
+                </td>
+                <td align="right" style="vertical-align:middle;font-size:11px;color:#999999;font-family:Arial,Helvetica,sans-serif;">
+                  Tenant Portal
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Heading -->
+        <tr>
+          <td style="padding:32px 32px 8px;">
+            <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#111111;font-family:Arial,Helvetica,sans-serif;">Digital Check-In Complete</h1>
+            <p style="margin:0 0 8px;font-size:15px;color:#333333;font-family:Arial,Helvetica,sans-serif;">Dear <strong>${tenantName}</strong>,</p>
+            <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+              Your digital check-in and Licence &amp; Subscription Agreement signing have been completed successfully. Your RoomHy Tenant account is now active. Your login credentials and a copy of the signed agreement are provided below.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Credentials Table -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;">
+              <tr>
+                <td colspan="2" style="padding:12px 18px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#888888;background-color:#f4f4f4;border-bottom:1px solid #dddddd;font-family:Arial,Helvetica,sans-serif;">Account &amp; Property Details</td>
+              </tr>
+              <tr>
+                <td style="padding:11px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;width:150px;font-family:Arial,Helvetica,sans-serif;">Login ID</td>
+                <td style="padding:11px 18px;font-size:14px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:'Courier New',Courier,monospace;">${tenant.loginId || '—'}</td>
+              </tr>
+              <tr>
+                <td style="padding:11px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">Email</td>
+                <td style="padding:11px 18px;font-size:13px;color:#111111;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">${tenant.email || '—'}</td>
+              </tr>
+              <tr>
+                <td style="padding:11px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">Property</td>
+                <td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">${propertyName}</td>
+              </tr>
+              ${roomNo ? `<tr>
+                <td style="padding:11px 18px;font-size:13px;color:#888888;font-family:Arial,Helvetica,sans-serif;">Room</td>
+                <td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111111;font-family:Arial,Helvetica,sans-serif;">${roomNo}</td>
+              </tr>` : ''}
+            </table>
+          </td>
+        </tr>
+
+        <!-- Button -->
+        <tr>
+          <td style="padding:0 32px 12px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#111111;">
+                  <a href="${dashboardUrl}" style="display:inline-block;background-color:#111111;color:#ffffff;text-decoration:none;padding:13px 28px;font-size:14px;font-weight:600;font-family:Arial,Helvetica,sans-serif;white-space:nowrap;">Open Tenant Dashboard</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <p style="margin:0;font-size:12px;color:#888888;line-height:1.6;font-family:Arial,Helvetica,sans-serif;">If the button above does not work, copy and paste the following link into your browser:<br><span style="color:#333333;">${dashboardUrl}</span></p>
+          </td>
+        </tr>
+
+        <!-- PDF Notice -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;border-left:3px solid #111111;background-color:#f9f9f9;">
+              <tr>
+                <td style="padding:14px 18px;font-size:13px;color:#333333;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+                  Your signed Licence &amp; Subscription Agreement has been generated and is attached to this email as a PDF document. Please retain this document for your records.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Support Note -->
+        <tr>
+          <td style="padding:0 32px 32px;">
+            <p style="margin:0;font-size:13px;color:#555555;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+              For any questions or assistance, please contact our support team at <strong>support@roomhy.com</strong>.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top:1px solid #dddddd;padding:20px 32px;background-color:#f9f9f9;">
+            <p style="margin:0;font-size:12px;color:#888888;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+              <strong style="color:#555555;">RoomHy Support Team</strong><br>
+              Email: support@roomhy.com &nbsp;&#124;&nbsp; Website: www.roomhy.com<br>
+              &copy; ${year} RoomHy. All rights reserved.<br>
+              This is an automated message. Please do not reply to this email.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
+// ======================================================
+// DYNAMIC FIELD MAPPING — tenant agreement (post-signing)
+// Maps Tenant model + CheckinRecord to the shared
+// generateAgreementPdfBuffer field schema.
+// ======================================================
 function generateTenantAgreementPdfBuffer(tenant, record = {}) {
-    return new Promise((resolve, reject) => {
-        try {
-            const agreement = record?.tenantAgreement || {};
-            const profile = tenant?.digitalCheckin?.profile || {};
-            const propertyName = tenant.propertyTitle || profile.propertyName || 'RoomHy Property';
-            const tenantName = tenant.name || profile.name || 'Tenant';
-            const moveInDate = tenant.moveInDate ? new Date(tenant.moveInDate).toISOString().slice(0, 10) : (profile.moveInDate || '-');
-            const signedDate = agreement.signedAt ? new Date(agreement.signedAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
-            const aadhaarNumber = tenant?.kyc?.aadhaarNumber || tenant?.kyc?.aadhar || record?.tenantKyc?.aadhaarNumber || '-';
-            const securityDepositTotal = tenant.securityDepositTotal || profile.securityDepositTotal || 0;
-            const securityDepositPaid = tenant.securityDepositPaid || profile.securityDepositPaid || 0;
-            const securityDepositBalance = tenant.securityDepositBalance || profile.securityDepositBalance || 0;
-            const electricityCharge = tenant.electricityCharge || profile.electricityCharge || 0;
-            const maintenanceCharge = tenant.maintenanceCharge || profile.maintenanceCharge || 0;
-            const eSignName = tenant.agreementESignName || agreement.eSignName || tenantName;
-            const signatureDataUrl = agreement.signatureDataUrl || tenant?.digitalCheckin?.agreement?.signatureDataUrl || '';
-            const logoPath = path.join(__dirname, '../../react-app/public/website/images/logoroomhy.jpg');
-            let signatureBuffer = null;
+    const agreement = record?.tenantAgreement || {};
+    const profile   = tenant?.digitalCheckin?.profile || {};
+    // DYNAMIC FIELD MAPPING — agreement details saved from tenant profile form
+    const details   = tenant?.digitalCheckin?.agreementDetails || {};
 
-            if (signatureDataUrl.startsWith('data:image/')) {
-                const base64Part = signatureDataUrl.split(',')[1] || '';
-                if (base64Part) {
-                    signatureBuffer = Buffer.from(base64Part, 'base64');
-                }
-            }
-
-            const doc = new PDFDocument({ size: 'A4', margin: 44 });
-            const chunks = [];
-            doc.on('data', (chunk) => chunks.push(chunk));
-            doc.on('end', () => resolve(Buffer.concat(chunks)));
-            doc.on('error', reject);
-
-            const left = doc.page.margins.left;
-            const right = doc.page.width - doc.page.margins.right;
-            const pageWidth = right - left;
-            const currency = (value) => `Rs ${Number(value || 0)}`;
-            const drawField = (label, value) => {
-                doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a').text(`${label}: `, { continued: true });
-                doc.font('Helvetica').fontSize(10).fillColor('#334155').text(String(value || '-'));
-                doc.moveDown(0.35);
-            };
-
-            doc.roundedRect(left, 32, pageWidth, 92, 18).fillAndStroke('#eff6ff', '#bfdbfe');
-            try {
-                doc.image(logoPath, left + 16, 48, { fit: [140, 56], align: 'left', valign: 'center' });
-            } catch (_) {}
-            doc.font('Helvetica-Bold').fontSize(20).fillColor('#0f172a').text('LICENCE & SUBSCRIPTION AGREEMENT', left + 180, 50, {
-                width: pageWidth - 196,
-                align: 'left'
-            });
-            doc.font('Helvetica').fontSize(10).fillColor('#475569').text('RoomHy rental agreement with digital signature record', left + 180, 78, {
-                width: pageWidth - 196,
-                align: 'left'
-            });
-            doc.roundedRect(right - 126, 44, 110, 38, 12).fillAndStroke('#ffffff', '#1d4ed8');
-            doc.font('Helvetica-Bold').fontSize(12).fillColor('#1d4ed8').text('ROOMHY', right - 112, 54, { width: 82, align: 'center' });
-            doc.font('Helvetica-Bold').fontSize(7).fillColor('#1d4ed8').text('DIGITAL SEAL', right - 110, 69, { width: 78, align: 'center' });
-            doc.y = 144;
-
-            doc.font('Helvetica').fontSize(11).fillColor('#334155').text(
-                `This License & Subscription Agreement is executed between RoomHy and ${tenantName}. The tenant occupies the allotted premises for residential purposes subject to the conditions below.`,
-                left,
-                doc.y,
-                { width: pageWidth, lineGap: 2 }
-            );
-            doc.moveDown(1.1);
-
-            const clauses = [
-                '1. TERM: As per Annexure A.',
-                '2. PREMISES: As per Annexure A.',
-                '3. LICENSE FEE / RENT: As per Annexure A. Rent is payable in advance on or before the due date.',
-                '4. REFUNDABLE SECURITY DEPOSIT: As per Annexure A. Refund is processed after applicable deductions for dues or damages.',
-                '5. MINIMUM STAY DURATION: As per Annexure A. Early move-out before minimum stay may lead to deposit withholding.',
-                '6. LIMITED LICENSE: Tenant receives a limited right to use the premises subject to compliance and timely payments.',
-                '7. RENT DEFAULT: Delayed or unpaid rent may result in lockout, penalties, restricted services, and termination.',
-                '8. TERMINATION WITHOUT CAUSE: Either party may terminate subject to lock-in and notice requirements.',
-                '9. TERMINATION FOR CAUSE: RoomHy may terminate for illegal activity, non-payment, damage, nuisance, or policy breach.',
-                '10. MAINTENANCE OF PREMISES: Tenant must maintain the premises and is liable for damages beyond ordinary wear and tear.',
-                '11. RENEWAL: Renewal may occur with revised rent or updated terms based on market conditions.',
-                '12. NOTICES: Notices may be sent by email or physical delivery.',
-                '13. ENTIRE AGREEMENT: This document and Annexure A form the complete agreement between parties.',
-                '14. SEVERABILITY: Invalidity of one clause does not affect the balance of the agreement.',
-                '15. GOVERNING LAW & JURISDICTION: Laws of India apply and jurisdiction lies where the premises are situated.',
-                '16. ASSIGNING OF RECEIVABLES: RoomHy may assign receivables under this agreement.',
-                '17. STAMP DUTY: Any applicable stamp duty responsibility lies with the tenant.',
-                '18. OTHER TERMS & CONDITIONS: RoomHy policies may be updated from time to time.'
-            ];
-
-            doc.font('Helvetica').fontSize(10).fillColor('#111827');
-            clauses.forEach((line) => {
-                doc.text(line, left, doc.y, { width: pageWidth, lineGap: 2 });
-                doc.moveDown(0.4);
-            });
-
-            doc.moveDown(0.4);
-            const annexureTop = doc.y;
-            const annexureHeight = 200;
-            doc.roundedRect(left, annexureTop, pageWidth, annexureHeight, 16).fillAndStroke('#f8fafc', '#dbeafe');
-            doc.font('Helvetica-Bold').fontSize(14).fillColor('#0f172a').text('ANNEXURE A', left + 18, annexureTop + 16);
-            doc.y = annexureTop + 42;
-
-            const leftColX = left + 18;
-            const rightColX = left + pageWidth / 2 + 8;
-            const fieldWidth = pageWidth / 2 - 32;
-            const rows = [
-                ['Name of Tenant', tenantName, 'Property Name', propertyName],
-                ['Tenant Email', tenant.email || '-', 'Room Number', tenant.roomNo || profile.roomNo || '-'],
-                ['Tenant Phone', tenant.phone || '-', 'Monthly Rent', currency(tenant.agreedRent || profile.agreedRent || 0)],
-                ['Tenant Aadhaar', aadhaarNumber, 'License Start Date', moveInDate],
-                ['Security Deposit Total', currency(securityDepositTotal), 'Security Deposit Paid', currency(securityDepositPaid)],
-                ['Security Deposit Balance', currency(securityDepositBalance), 'Electricity Charge', currency(electricityCharge)],
-                ['Maintenance Charge', currency(maintenanceCharge), 'Minimum Stay Duration', '3 Months']
-            ];
-
-            rows.forEach(([l1, v1, l2, v2]) => {
-                const rowY = doc.y;
-                doc.font('Helvetica-Bold').fontSize(9).fillColor('#475569').text(l1, leftColX, rowY, { width: fieldWidth });
-                doc.font('Helvetica').fontSize(10).fillColor('#0f172a').text(String(v1 || '-'), leftColX, rowY + 12, { width: fieldWidth });
-                doc.font('Helvetica-Bold').fontSize(9).fillColor('#475569').text(l2, rightColX, rowY, { width: fieldWidth });
-                doc.font('Helvetica').fontSize(10).fillColor('#0f172a').text(String(v2 || '-'), rightColX, rowY + 12, { width: fieldWidth });
-                doc.y = rowY + 34;
-            });
-
-            doc.y = annexureTop + annexureHeight + 20;
-
-            if (doc.y > 680) doc.addPage();
-            doc.roundedRect(left, doc.y, pageWidth, 112, 16).fillAndStroke('#ffffff', '#e2e8f0');
-            const signatureCardTop = doc.y;
-            doc.font('Helvetica-Bold').fontSize(12).fillColor('#0f172a').text('Digital Signature', left + 18, signatureCardTop + 16);
-            doc.font('Helvetica').fontSize(10).fillColor('#475569').text(`Signed by ${eSignName} on ${signedDate}`, left + 18, signatureCardTop + 34);
-
-            if (signatureBuffer) {
-                const signatureTop = signatureCardTop + 52;
-                doc.font('Helvetica').fontSize(9).fillColor('#64748b').text('Tenant Signature', left + 18, signatureTop - 10);
-                doc
-                    .moveTo(left + 18, signatureTop + 44)
-                    .lineTo(left + 198, signatureTop + 44)
-                    .lineWidth(1)
-                    .strokeColor('#94a3b8')
-                    .stroke();
-                doc.image(signatureBuffer, left + 18, signatureTop, {
-                    fit: [170, 34],
-                    align: 'left',
-                    valign: 'center'
-                });
-            } else {
-                doc
-                    .moveTo(left + 18, signatureCardTop + 96)
-                    .lineTo(left + 198, signatureCardTop + 96)
-                    .lineWidth(1)
-                    .strokeColor('#94a3b8')
-                    .stroke();
-            }
-
-            doc
-                .roundedRect(right - 156, signatureCardTop + 28, 128, 54, 14)
-                .fillAndStroke('#eff6ff', '#1d4ed8');
-            try {
-                doc.image(logoPath, right - 142, signatureCardTop + 37, { fit: [100, 22], align: 'center', valign: 'center' });
-            } catch (_) {
-                doc.font('Helvetica-Bold').fontSize(14).fillColor('#1d4ed8').text('ROOMHY', right - 130, signatureCardTop + 44, { width: 90, align: 'center' });
-            }
-            doc.font('Helvetica-Bold').fontSize(8).fillColor('#1d4ed8').text('APPROVED DIGITAL SEAL', right - 144, signatureCardTop + 62, { width: 104, align: 'center' });
-            doc.y = signatureCardTop + 128;
-
-            doc.font('Helvetica').fontSize(9).fillColor('#64748b').text(
-                `Agreement reference: ${tenant.loginId || tenantName} | Generated by RoomHy digital check-in`,
-                left,
-                doc.y,
-                { width: pageWidth, align: 'center' }
-            );
-
-            doc.end();
-        } catch (error) {
-            reject(error);
-        }
+    return generateAgreementPdfBuffer({
+        tenantName:          details.tenantName          || tenant.name            || profile.name            || 'Tenant',
+        tenantAddress:       details.tenantAddress       || tenant.address         || '-',
+        tenantEmail:         details.tenantEmail         || tenant.email           || '-',
+        tenantPhone:         details.tenantPhone         || tenant.phone           || '-',
+        backupEmail:         details.backupEmail         || '-',
+        backupPhone:         details.backupPhone         || '-',
+        propertyName:        details.propertyName        || tenant.propertyTitle   || profile.propertyName    || 'RoomHy Property',
+        propertyAddress:     details.propertyAddress     || '-',
+        accommodationType:   details.accommodationType   || tenant.roomType        || (tenant.roomNo ? `Room ${tenant.roomNo}` : '-'),
+        roomNumber:          details.roomNumber          || tenant.roomNo          || profile.roomNo          || '-',
+        ownerName:           details.ownerName           || tenant.ownerName       || '-',
+        rentAmount:          details.rentAmount          || String(tenant.agreedRent || profile.agreedRent || '-'),
+        duration:            details.duration            || '-',
+        licenseStartDate:    details.licenseStartDate    || (tenant.moveInDate ? new Date(tenant.moveInDate).toISOString().slice(0, 10) : '-'),
+        licenseEndDate:      details.licenseEndDate      || '-',
+        licenseFeeDueDate:   details.licenseFeeDueDate   || '5',
+        moveOutCharges:      details.moveOutCharges      || '-',
+        noticePeriodCharges: details.noticePeriodCharges || '-',
+        securityDeposit:     details.securityDeposit     || String(tenant.securityDepositTotal || '-'),
+        inclusions:          details.inclusions          || '-',
+        minimumStayDuration: details.minimumStayDuration || '3 Months',
+        gstCharges:          details.gstCharges          || '0',
+        signatureDataUrl:    agreement.signatureDataUrl  || tenant?.digitalCheckin?.agreement?.signatureDataUrl || '',
+        eSignName:           tenant.agreementESignName   || agreement.eSignName    || tenant.name || '',
+        signedDate:          agreement.signedAt ? new Date(agreement.signedAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
     });
 }
 
@@ -404,6 +615,119 @@ function buildTenantAgreementHtml(tenant, record = {}) {
             </div>
         </div>
     `;
+}
+
+function buildOwnerTenantSignedEmail(ownerName, tenant) {
+    const logoUrl = `${APP_URL}/website/images/roomhy.png`;
+    const year = new Date().getFullYear();
+    const tenantName = tenant.name || tenant.loginId || 'Tenant';
+    const propertyName = tenant.propertyTitle || 'your property';
+    const roomNo = tenant.roomNo || '';
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tenant Agreement Signed — RoomHy</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f4f4;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background-color:#ffffff;border:1px solid #dddddd;">
+
+        <!-- Logo Header -->
+        <tr>
+          <td style="padding:24px 32px;border-bottom:1px solid #dddddd;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <img src="${logoUrl}" alt="RoomHy" height="32" style="display:block;height:32px;max-width:140px;border:0;" />
+                </td>
+                <td align="right" style="vertical-align:middle;font-size:11px;color:#999999;font-family:Arial,Helvetica,sans-serif;">
+                  Property Owner Portal
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Heading -->
+        <tr>
+          <td style="padding:32px 32px 8px;">
+            <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#111111;font-family:Arial,Helvetica,sans-serif;">Tenant Agreement Signed</h1>
+            <p style="margin:0 0 8px;font-size:15px;color:#333333;font-family:Arial,Helvetica,sans-serif;">Dear <strong>${ownerName}</strong>,</p>
+            <p style="margin:0 0 24px;font-size:14px;color:#555555;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+              Your tenant <strong style="color:#111111;">${tenantName}</strong> has completed the digital check-in process and signed the Licence &amp; Subscription Agreement for <strong style="color:#111111;">${propertyName}</strong>${roomNo ? `, Room ${roomNo}` : ''}.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Tenant Details Table -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;">
+              <tr>
+                <td colspan="2" style="padding:12px 18px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#888888;background-color:#f4f4f4;border-bottom:1px solid #dddddd;font-family:Arial,Helvetica,sans-serif;">Tenant Details</td>
+              </tr>
+              <tr>
+                <td style="padding:11px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;width:150px;font-family:Arial,Helvetica,sans-serif;">Tenant Name</td>
+                <td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">${tenantName}</td>
+              </tr>
+              <tr>
+                <td style="padding:11px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">Property</td>
+                <td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">${propertyName}</td>
+              </tr>
+              ${roomNo ? `<tr>
+                <td style="padding:11px 18px;font-size:13px;color:#888888;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">Room</td>
+                <td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111111;border-bottom:1px solid #eeeeee;font-family:Arial,Helvetica,sans-serif;">${roomNo}</td>
+              </tr>` : ''}
+              <tr>
+                <td style="padding:11px 18px;font-size:13px;color:#888888;font-family:Arial,Helvetica,sans-serif;">Login ID</td>
+                <td style="padding:11px 18px;font-size:13px;font-weight:700;color:#111111;font-family:'Courier New',Courier,monospace;">${tenant.loginId || '—'}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- PDF Notice -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #dddddd;border-left:3px solid #111111;background-color:#f9f9f9;">
+              <tr>
+                <td style="padding:14px 18px;font-size:13px;color:#333333;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+                  The signed Tenant Agreement has been generated and is attached to this email as a PDF document. Please retain this document for your records.
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Note -->
+        <tr>
+          <td style="padding:0 32px 32px;">
+            <p style="margin:0;font-size:13px;color:#555555;line-height:1.7;font-family:Arial,Helvetica,sans-serif;">
+              This is a system-generated legal record. For any queries regarding this agreement or the tenant account, please contact RoomHy support at <strong>support@roomhy.com</strong>.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="border-top:1px solid #dddddd;padding:20px 32px;background-color:#f9f9f9;">
+            <p style="margin:0;font-size:12px;color:#888888;line-height:1.8;font-family:Arial,Helvetica,sans-serif;">
+              <strong style="color:#555555;">RoomHy Support Team</strong><br>
+              Email: support@roomhy.com &nbsp;&#124;&nbsp; Website: www.roomhy.com<br>
+              &copy; ${year} RoomHy. All rights reserved.<br>
+              This is an automated message. Please do not reply to this email.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 }
 
 async function completeOwnerCheckinAndNotify(loginId) {
@@ -551,15 +875,17 @@ async function completeTenantAgreementAndNotify(loginId, { requestId = '', provi
     const dashboardUrl = `${APP_URL}/tenant/tenantdashboard`;
     const tenantLoginUrl = `${APP_URL}/tenant/tenantlogin`;
     let loginEmailSent = false;
+    let agreementPdfBuffer = null;
     if (tenant.email) {
         try {
-            const agreementPdfBuffer = await generateTenantAgreementPdfBuffer(tenant, record);
+            agreementPdfBuffer = await generateTenantAgreementPdfBuffer(tenant, record);
             await sendMail(
                 tenant.email,
                 'RoomHy Tenant Agreement & Login Details',
                 '',
-                `${buildTenantLoginEmail(tenant, dashboardUrl)}${buildTenantAgreementHtml(tenant, record)}`,
+                buildTenantLoginEmail(tenant, dashboardUrl, record),
                 {
+                    skipWhatsApp: true,
                     attachments: [
                         {
                             filename: `RoomHy-Tenant-Agreement-${tenant.loginId || normalizedLoginId}.pdf`,
@@ -575,13 +901,52 @@ async function completeTenantAgreementAndNotify(loginId, { requestId = '', provi
         }
     }
 
+    // Send signed agreement PDF copy to owner
+    try {
+        const ownerLoginId = tenant.ownerLoginId ? String(tenant.ownerLoginId).toUpperCase() : null;
+        if (ownerLoginId) {
+            const ownerDoc = await Owner.findOne({ loginId: ownerLoginId });
+            if (ownerDoc && ownerDoc.email) {
+                const ownerPdfBuffer = agreementPdfBuffer || await generateTenantAgreementPdfBuffer(tenant, record);
+                const ownerName = ownerDoc.name || ownerDoc.profile?.name || 'Owner';
+                await sendMail(
+                    ownerDoc.email,
+                    `Tenant Agreement Signed — ${tenant.propertyTitle || 'RoomHy Property'}`,
+                    `Your tenant ${tenant.name || normalizedLoginId} has signed their agreement. Please find the signed agreement PDF attached.`,
+                    buildOwnerTenantSignedEmail(ownerName, tenant),
+                    {
+                        skipWhatsApp: true,
+                        attachments: [
+                            {
+                                filename: `RoomHy-Tenant-Agreement-${tenant.loginId || normalizedLoginId}.pdf`,
+                                content: ownerPdfBuffer,
+                                contentType: 'application/pdf'
+                            }
+                        ]
+                    }
+                );
+            }
+        }
+    } catch (ownerEmailErr) {
+        console.error('[TENANT AGREEMENT COMPLETE] Owner email send error:', ownerEmailErr.message);
+    }
+
+    // Use aadhaar-linked phone for all WhatsApp notifications so messages reach the tenant's active number
+    const aadhaarPhone = tenant.kyc?.aadhaarLinkedPhone || tenant.digitalCheckin?.kyc?.aadhaarLinkedPhone || tenant.phone || '';
+
     try {
         await sendTemplateToResolvedUser({
-            phone: tenant.phone || '',
+            phone: aadhaarPhone,
             email: tenant.email || '',
             userId: tenant.loginId || '',
             templateName: 'roomhy_tenant_checkin_complete',
-            variables: [tenant.name || 'Tenant', tenant.loginId || '', tenantLoginUrl]
+            options: {
+                namedParams: {
+                    tenant_name: tenant.name || 'Tenant',
+                    login_id: tenant.loginId || '',
+                    login_url: tenantLoginUrl
+                }
+            }
         });
     } catch (whatsAppErr) {
         console.error('[TENANT AGREEMENT COMPLETE] WhatsApp send error:', whatsAppErr.message);
@@ -589,12 +954,19 @@ async function completeTenantAgreementAndNotify(loginId, { requestId = '', provi
 
     try {
         await sendDocumentToResolvedUser({
-            phone: tenant.phone || '',
+            phone: aadhaarPhone,
             email: tenant.email || '',
             userId: tenant.loginId || '',
             link: `${BACKEND_URL}/api/checkin/tenant/agreement/pdf/${encodeURIComponent(normalizedLoginId)}`,
-            filename: `RoomHy-Tenant-Agreement-${tenant.loginId || normalizedLoginId}.pdf`,
-            caption: `RoomHy Tenant Agreement\nTenant: ${tenant.name || normalizedLoginId}\nLogin ID: ${tenant.loginId || normalizedLoginId}`
+            filename: `RoomHy-Licence-Subscription-Agreement-${tenant.loginId || normalizedLoginId}.pdf`,
+            caption: [
+                'RoomHy Licence & Subscription Agreement',
+                `Tenant: ${tenant.name || normalizedLoginId}`,
+                tenant.propertyTitle ? `Property: ${tenant.propertyTitle}` : '',
+                tenant.roomNo ? `Room: ${tenant.roomNo}` : '',
+                `Login ID: ${tenant.loginId || normalizedLoginId}`,
+                'Please retain this document for your records.'
+            ].filter(Boolean).join('\n')
         });
     } catch (whatsAppDocErr) {
         console.error('[TENANT AGREEMENT COMPLETE] WhatsApp PDF send error:', whatsAppDocErr.message);
@@ -768,6 +1140,135 @@ router.post('/owner/profile', async (req, res) => {
     }
 });
 
+router.post('/owner/documents', async (req, res) => {
+    try {
+        const { loginId, ownerPhoto, bankProof, aadhaarImage } = req.body || {};
+        if (!loginId) return res.status(400).json({ success: false, message: 'loginId required' });
+
+        const upper = String(loginId).toUpperCase();
+        const update = {};
+        const result = {};
+
+        const uploadDoc = async (dataUrl, folder) => {
+            const uploaded = await cloudinary.uploader.upload(dataUrl, { folder, resource_type: 'image' });
+            return uploaded.secure_url;
+        };
+
+        if (ownerPhoto && ownerPhoto.dataUrl) {
+            const url = await uploadDoc(ownerPhoto.dataUrl, 'owner_documents/photos');
+            update.checkinOwnerPhoto = url;
+            update.checkinOwnerPhotoName = ownerPhoto.name || '';
+            update.checkinOwnerPhotoType = ownerPhoto.type || '';
+            result.ownerPhotoUrl = url;
+        }
+
+        if (bankProof && bankProof.dataUrl) {
+            const url = await uploadDoc(bankProof.dataUrl, 'owner_documents/bank');
+            update.checkinBankProof = url;
+            update.checkinBankProofName = bankProof.name || '';
+            update.checkinBankProofType = bankProof.type || '';
+            result.bankProofUrl = url;
+        }
+
+        if (aadhaarImage && aadhaarImage.dataUrl) {
+            const url = await uploadDoc(aadhaarImage.dataUrl, 'owner_documents/aadhaar');
+            update.checkinAadhaarImage = url;
+            update.checkinAadhaarImageName = aadhaarImage.name || '';
+            update.checkinAadhaarImageType = aadhaarImage.type || '';
+            result.aadhaarImageUrl = url;
+
+            try {
+                const base64Only = aadhaarImage.dataUrl.replace(/^data:[^;]+;base64,/, '');
+                const ocrData = await aadhaarOcr(base64Only);
+                result.ocrResult = ocrData;
+                if (ocrData && !ocrData.sandbox) {
+                    const extractedNum = extractAadhaarNumber(ocrData);
+                    if (extractedNum) {
+                        update.checkinAadhaarNumber = extractedNum;
+                        update['kyc.aadharNumber'] = extractedNum;
+                    }
+                }
+            } catch (ocrErr) {
+                console.warn('Aadhaar OCR failed:', ocrErr.message);
+                result.ocrError = ocrErr.message;
+            }
+        }
+
+        if (Object.keys(update).length > 0) {
+            await Owner.findOneAndUpdate(
+                { loginId: upper },
+                { $set: update },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+        }
+
+        return res.json({ success: true, ...result });
+    } catch (err) {
+        console.error('owner/documents error:', err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// POST /owner/aadhaar/ocr — Layer 1: Cashfree OCR → Verhoeff → verdict
+router.post('/owner/aadhaar/ocr', async (req, res) => {
+    try {
+        const { image } = req.body || {};
+        if (!image) return res.status(400).json({ success: false, message: 'image is required' });
+
+        const env = String(process.env.CASHFREE_ENV || 'sandbox').toLowerCase();
+        if (env === 'sandbox') {
+            return res.json({ success: true, verdict: 'sandbox' });
+        }
+
+        let ocrData;
+        try {
+            ocrData = await aadhaarOcr(image);
+        } catch (ocrErr) {
+            return res.json({ success: true, verdict: 'invalid', message: ocrErr.message });
+        }
+
+        if (!ocrData || ocrData.sandbox) {
+            return res.json({ success: true, verdict: 'sandbox' });
+        }
+
+        const aadhaarNum = extractAadhaarNumber(ocrData);
+        if (!aadhaarNum) {
+            return res.json({ success: true, verdict: 'unreadable' });
+        }
+
+        if (!verhoeffCheck(aadhaarNum)) {
+            return res.json({ success: true, verdict: 'checksum_failed', aadhaarNumber: aadhaarNum });
+        }
+
+        return res.json({ success: true, verdict: 'verified', aadhaarNumber: aadhaarNum });
+    } catch (err) {
+        console.error('owner/aadhaar/ocr error:', err);
+        return res.status(500).json({ success: false, verdict: 'invalid', message: err.message });
+    }
+});
+
+// POST /owner/aadhaar/validate — Layer 2: validate number from Tesseract fallback
+router.post('/owner/aadhaar/validate', async (req, res) => {
+    try {
+        const { aadhaarNumber } = req.body || {};
+        const raw = String(aadhaarNumber || '').replace(/\D/g, '');
+        if (!/^\d{12}$/.test(raw)) {
+            return res.status(400).json({ success: false, error: 'Aadhaar must be 12 digits' });
+        }
+        if (!/^[2-9]/.test(raw)) {
+            return res.status(400).json({ success: false, error: 'Invalid Aadhaar number — must start with 2–9' });
+        }
+        if (!verhoeffCheck(raw)) {
+            return res.status(400).json({ success: false, error: 'Aadhaar checksum validation failed' });
+        }
+        return res.json({ success: true });
+    } catch (err) {
+        console.error('owner/aadhaar/validate error:', err);
+        return res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+
 router.post('/owner/kyc/send-otp', otpLimiter, async (req, res) => {
     try {
         const { loginId, aadhaarLinkedPhone, aadhaarNumber, email } = req.body || {};
@@ -825,25 +1326,42 @@ router.post('/owner/kyc/send-otp', otpLimiter, async (req, res) => {
 
         const { referenceId, raw } = await requestAadhaarOtp(aadhaarNumber);
         const k = keyFor('owner', loginId, aadhaarNumber);
-        otpStore.set(k, { referenceId, expiresAt: Date.now() + 10 * 60 * 1000 });
+        otpStore.set(k, { referenceId, mockOtp: raw?.mockOtp || null, expiresAt: Date.now() + 10 * 60 * 1000 });
 
+        let whatsappSent = false;
         try {
-            await sendTemplateToResolvedUser({
+            whatsappSent = await sendTemplateToResolvedUser({
                 phone: aadhaarLinkedPhone,
                 email: owner.email || email || '',
                 userId: String(loginId || '').toUpperCase(),
                 templateName: 'roomhy_otp_verification',
-                variables: [raw?.mockOtp || 'OTP Sent', '10']
+                variables: [raw?.mockOtp || 'OTP Sent'],
+                options: { urlButtons: [[raw?.mockOtp || 'OTP Sent']] }
             });
         } catch (whatsAppErr) {
             console.warn('owner kyc send otp whatsapp failed:', whatsAppErr.message);
         }
 
+        if (!whatsappSent) {
+            const ownerEmail = owner.email || email || '';
+            if (ownerEmail) {
+                try {
+                    await sendMail(
+                        ownerEmail,
+                        'RoomHy Owner KYC — OTP Verification',
+                        `Your OTP is: ${raw?.mockOtp || '(check your Aadhaar-linked mobile)'}. Valid for 10 minutes.`,
+                        buildOtpEmail({ otp: raw?.mockOtp, name: owner.name, loginId, role: 'Owner' })
+                    );
+                } catch (mailErr) {
+                    console.warn('owner kyc send otp email fallback failed:', mailErr.message);
+                }
+            }
+        }
+
         return res.json({
             success: true,
             message: 'OTP sent to Aadhaar linked mobile number',
-            provider: 'cashfree',
-            mockOtp: raw?.mockOtp || undefined
+            provider: 'cashfree'
         });
     } catch (err) {
         console.error('owner/kyc/send-otp error:', err);
@@ -859,9 +1377,9 @@ router.post('/owner/kyc/verify-otp', otpLimiter, async (req, res) => {
         if (!entry || Date.now() > entry.expiresAt) {
             return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
         }
-        await verifyAadhaarOtp(entry.referenceId, otp);
+        await verifyAadhaarOtp(entry.referenceId, otp, entry.mockOtp);
         otpStore.delete(k);
-        
+
         const record = await upsertRecord(loginId, 'owner', { 'ownerKyc.otpVerified': true });
         
         // Get owner details
@@ -893,94 +1411,6 @@ router.post('/owner/kyc/verify-otp', otpLimiter, async (req, res) => {
                 ? 'OTP verified successfully. Continue to owner terms acceptance.'
                 : 'OTP verified successfully.'
         });
-
-        // Send login credentials email
-        if (owner && owner.email) {
-            const baseUrl = APP_URL;
-            const ownerPassword = owner.checkinPassword || owner.credentials?.password || 'default';
-            const fullLoginUrl = `${baseUrl}/propertyowner/index`;
-            
-            const emailHtml = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <style>
-                        body { font-family: 'Arial', sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-                        .header { background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
-                        .header h1 { margin: 0; font-size: 28px; }
-                        .content { padding: 30px; background: #f8fafc; }
-                        .credentials { background: white; border-left: 4px solid #4caf50; padding: 15px; margin: 20px 0; border-radius: 4px; }
-                        .credentials p { margin: 8px 0; }
-                        .label { font-weight: bold; color: #333; }
-                        .value { font-family: monospace; color: #2563eb; }
-                        .button { display: inline-block; background: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; margin-top: 15px; font-weight: bold; }
-                        .footer { text-align: center; padding: 20px; font-size: 12px; color: #999; border-top: 1px solid #eee; }
-                        .success { color: #4caf50; font-weight: bold; font-size: 18px; margin-bottom: 15px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <div class="header">
-                            <h1>✓ KYC Verified Successfully!</h1>
-                        </div>
-                        <div class="content">
-                            <p>Hi <strong>${owner.name || 'Owner'}</strong>,</p>
-                            
-                            <div class="success">🎉 Your Aadhaar verification is complete!</div>
-                            
-                            <p>Your RoomHy owner account has been activated. You can now log in to manage your properties and respond to tenant inquiries.</p>
-                            
-                            <div class="credentials">
-                                <p><span class="label">Login ID:</span> <span class="value">${owner.loginId}</span></p>
-                                <p><span class="label">Password:</span> <span class="value">${owner.checkinPassword || owner.credentials?.password || '[Set during registration]'}</span></p>
-                                <p><span class="label">Email:</span> <span class="value">${owner.email}</span></p>
-                                <p><span class="label">Area:</span> <span class="value">${owner.checkinArea || '-'}</span></p>
-                            </div>
-
-                            <p style="color: #d32f2f; font-weight: bold;">⚠️ Important:</p>
-                            <ul>
-                                <li>Keep your login credentials secure</li>
-                                <li>You can change your password after first login</li>
-                                <li>For security, sign out from shared devices</li>
-                            </ul>
-
-                            <p style="margin-top: 20px;">
-                                <a href="${fullLoginUrl}" class="button">🔓 Go to Owner Dashboard</a>
-                            </p>
-
-                            <p style="margin-top: 20px; font-size: 12px;">
-                                Or copy and paste this link in your browser:<br>
-                                <span class="value">${fullLoginUrl}</span>
-                            </p>
-
-                            <p>What's next?</p>
-                            <ol>
-                                <li>Log in to your owner dashboard</li>
-                                <li>Add your property details</li>
-                                <li>Complete bank account verification</li>
-                                <li>Start receiving tenant inquiries!</li>
-                            </ol>
-
-                            <p>If you have any questions or need support, contact us at <strong>support@roomhy.com</strong></p>
-                        </div>
-                        <div class="footer">
-                            <p>&copy; 2025 RoomHy Owner Platform. All rights reserved.</p>
-                            <p>Made with ❤️ for property owners in India</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            `;
-
-            try {
-                await sendMail(owner.email, '✓ Welcome to RoomHy Owner Platform - Your login details', '', emailHtml);
-                console.log('[CHECKIN KYC] Sent login email to:', owner.email);
-            } catch (emailErr) {
-                console.error('[CHECKIN KYC] Email send error:', emailErr.message);
-            }
-        }
 
         return res.json({ success: true, record, owner: updatedOwner, message: 'OTP verified. Check your email for login details.' });
     } catch (err) {
@@ -1295,7 +1725,8 @@ router.post('/tenant/profile', async (req, res) => {
             securityDepositPaid,
             securityDepositBalance,
             electricityCharge,
-            maintenanceCharge
+            maintenanceCharge,
+            agreementDetails
         } = req.body || {};
         if (!loginId || !name || !dob || !guardianNumber || !moveInDate) {
             return res.status(400).json({ success: false, message: 'Missing required tenant profile fields' });
@@ -1315,7 +1746,8 @@ router.post('/tenant/profile', async (req, res) => {
                 securityDepositPaid: securityDepositPaid || 0,
                 securityDepositBalance: securityDepositBalance || 0,
                 electricityCharge: electricityCharge || 0,
-                maintenanceCharge: maintenanceCharge || 0
+                maintenanceCharge: maintenanceCharge || 0,
+                agreementDetails: agreementDetails || {}
             }
         });
 
@@ -1355,6 +1787,10 @@ router.post('/tenant/profile', async (req, res) => {
             maintenanceCharge: Number(maintenanceCharge || tenant.maintenanceCharge || 0),
             submittedAt: new Date()
         };
+        if (agreementDetails && typeof agreementDetails === 'object') {
+            tenant.digitalCheckin.agreementDetails = { ...(tenant.digitalCheckin.agreementDetails || {}), ...agreementDetails };
+            tenant.markModified('digitalCheckin.agreementDetails');
+        }
         tenant.updatedAt = new Date();
         await tenant.save();
 
@@ -1389,6 +1825,7 @@ router.post('/tenant/kyc/send-otp', otpLimiter, async (req, res) => {
         tenant.kyc.aadhaarBack = aadhaarBack || tenant.kyc.aadhaarBack || null;
         tenant.kyc.otpVerified = false;
         tenant.kyc.uploadedAt = new Date();
+        const isFirstKycSubmission = !tenant.kycStatus || !['submitted', 'verified'].includes(tenant.kycStatus);
         tenant.kycStatus = 'submitted';
 
         tenant.digitalCheckin = tenant.digitalCheckin || {};
@@ -1403,43 +1840,61 @@ router.post('/tenant/kyc/send-otp', otpLimiter, async (req, res) => {
         tenant.updatedAt = new Date();
         await tenant.save();
 
-        const { referenceId, raw } = await requestAadhaarOtp(aadhaarNumber);
+        const otp = String(Math.floor(100000 + Math.random() * 900000));
         const k = keyFor('tenant', normalizedLoginId, aadhaarNumber);
-        otpStore.set(k, { referenceId, expiresAt: Date.now() + 10 * 60 * 1000 });
-        console.log('[CHECKIN OTP] tenant', normalizedLoginId, aadhaarNumber, 'Cashfree OTP requested');
+        otpStore.set(k, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
+        console.log('[CHECKIN OTP] tenant', normalizedLoginId, aadhaarNumber, 'internal OTP generated');
 
+        let whatsappOtpSent = false;
         try {
-            await sendTemplateToResolvedUser({
+            whatsappOtpSent = await sendTemplateToResolvedUser({
                 phone: aadhaarLinkedPhone,
                 email: tenant.email || '',
                 userId: normalizedLoginId,
                 templateName: 'roomhy_otp_verification',
-                variables: [raw?.mockOtp || 'OTP Sent', '10']
+                variables: [otp],
+                options: { urlButtons: [[otp]] }
             });
         } catch (whatsAppErr) {
             console.warn('tenant kyc send otp whatsapp failed:', whatsAppErr.message);
         }
 
-        try {
-            await sendTemplateToResolvedUser({
-                phone: tenant.phone || aadhaarLinkedPhone || '',
-                email: tenant.email || '',
-                userId: normalizedLoginId,
-                templateName: 'roomhy_kyc_pending',
-                variables: [
-                    tenant.name || 'Tenant',
-                    `${DIGITAL_CHECKIN_URL}/digital-checkin/tenantkyc?loginId=${encodeURIComponent(normalizedLoginId)}`
-                ]
-            });
-        } catch (whatsAppErr) {
-            console.warn('tenant kyc pending whatsapp failed:', whatsAppErr.message);
+        if (!whatsappOtpSent && tenant.email) {
+            try {
+                await sendMail(
+                    tenant.email,
+                    'RoomHy Tenant KYC — OTP Verification',
+                    `Your OTP is: ${otp}. Valid for 10 minutes.`,
+                    buildOtpEmail({ otp, name: tenant.name, loginId: normalizedLoginId, role: 'Tenant' })
+                );
+            } catch (mailErr) {
+                console.warn('tenant kyc send otp email fallback failed:', mailErr.message);
+            }
+        }
+
+        if (isFirstKycSubmission) {
+            try {
+                await sendTemplateToResolvedUser({
+                    phone: aadhaarLinkedPhone || tenant.phone || '',
+                    email: tenant.email || '',
+                    userId: normalizedLoginId,
+                    templateName: 'roomhy_kyc_pending',
+                    options: {
+                        namedParams: {
+                            tenant_name: tenant.name || 'Tenant',
+                            kyc_url: `${DIGITAL_CHECKIN_URL}/digital-checkin/tenantkyc?loginId=${encodeURIComponent(normalizedLoginId)}`
+                        }
+                    }
+                });
+            } catch (whatsAppErr) {
+                console.warn('tenant kyc pending whatsapp failed:', whatsAppErr.message);
+            }
         }
 
         return res.json({
             success: true,
             message: 'OTP sent to Aadhaar linked mobile number',
-            provider: 'cashfree',
-            mockOtp: raw?.mockOtp || undefined
+            provider: 'internal'
         });
     } catch (err) {
         console.error('tenant/kyc/send-otp error:', err);
@@ -1456,7 +1911,9 @@ router.post('/tenant/kyc/verify-otp', otpLimiter, async (req, res) => {
         if (!entry || Date.now() > entry.expiresAt) {
             return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
         }
-        await verifyAadhaarOtp(entry.referenceId, otp);
+        if (String(otp).trim() !== String(entry.otp).trim()) {
+            return res.status(400).json({ success: false, message: 'Incorrect OTP. Please try again.' });
+        }
         otpStore.delete(k);
         const record = await upsertRecord(normalizedLoginId, 'tenant', { 'tenantKyc.otpVerified': true });
 
@@ -1860,6 +2317,60 @@ async function handleTenantAgreementCallback(req, res) {
 
 router.get('/tenant/agreement/callback', handleTenantAgreementCallback);
 router.post('/tenant/agreement/callback', handleTenantAgreementCallback);
+
+// GET /tenant/prefill/:loginId — returns Tenant model fields the owner filled during room assignment.
+// Frontend uses this to pre-populate the digital check-in profile form and lock those fields.
+router.get('/tenant/prefill/:loginId', async (req, res) => {
+    try {
+        const normalizedLoginId = String(req.params.loginId || '').toUpperCase();
+        if (!normalizedLoginId) return res.status(400).json({ success: false, message: 'loginId required' });
+
+        const tenant = await Tenant.findOne({ loginId: normalizedLoginId }).lean();
+        if (!tenant) return res.status(404).json({ success: false, message: 'Tenant not found' });
+
+        // Fetch owner name using ownerLoginId
+        let ownerName = '';
+        if (tenant.ownerLoginId) {
+            try {
+                const owner = await Owner.findOne({ loginId: String(tenant.ownerLoginId).toUpperCase() })
+                    .select('name profile').lean();
+                ownerName = owner?.name || owner?.profile?.name || '';
+            } catch (_) {}
+        }
+
+        // Structured map of every field the owner fills when assigning a room to the tenant
+        const prefillData = {
+            name:                   tenant.name || '',
+            email:                  tenant.email || '',
+            tenantPhone:            tenant.phone || '',
+            dob:                    tenant.dob || '',
+            guardianNumber:         tenant.guardianNumber || '',
+            moveInDate:             tenant.moveInDate ? new Date(tenant.moveInDate).toISOString().slice(0, 10) : '',
+            agreedRent:             tenant.agreedRent            ? `INR ${tenant.agreedRent}` : '',
+            securityDepositTotal:   tenant.securityDepositTotal  ? `INR ${tenant.securityDepositTotal}` : '',
+            securityDepositPaid:    tenant.securityDepositPaid   ? `INR ${tenant.securityDepositPaid}` : '',
+            securityDepositBalance: tenant.securityDepositBalance ? `INR ${tenant.securityDepositBalance}` : '',
+            electricityCharge:      tenant.electricityCharge     ? `INR ${tenant.electricityCharge}` : '',
+            maintenanceCharge:      tenant.maintenanceCharge     ? `INR ${tenant.maintenanceCharge}` : '',
+            propertyName:           tenant.propertyTitle || '',
+            roomNo:                 tenant.roomNo || '',
+            ownerName:              ownerName,
+            licenseStartDate:       tenant.moveInDate ? new Date(tenant.moveInDate).toISOString().slice(0, 10) : '',
+            securityDeposit:        tenant.securityDepositTotal  ? `INR ${tenant.securityDepositTotal}` : '',
+        };
+
+        // Only flag fields that actually have a value as owner-filled (so empty fields remain editable)
+        const ownerFilledFields = Object.keys(prefillData).filter(k => {
+            const v = prefillData[k];
+            return v !== '' && v !== null && v !== undefined;
+        });
+
+        return res.json({ success: true, prefillData, ownerFilledFields });
+    } catch (err) {
+        console.error('[tenant/prefill] error:', err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
 
 router.get('/:role/:loginId', async (req, res) => {
     try {

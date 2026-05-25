@@ -939,7 +939,8 @@ exports.markCashReceivedByOwner = async (req, res) => {
                 email: rent.tenantEmail || '',
                 userId: rent.tenantLoginId || '',
                 templateName: 'roomhy_otp_verification',
-                variables: [otp, '10']
+                variables: [otp],
+                options: { urlButtons: [[otp]] }
             });
         } catch (whatsAppErr) {
             console.warn('cash otp whatsapp failed:', whatsAppErr.message);

@@ -9,7 +9,7 @@ const path = require('path');
 const { startCronJobs } = require('./services/cronJobs');
 const initChatSocket = require('./socket/chatSocket');
 const { startEscalationJob } = require('./controllers/complaintController');
-startEscalationJob();
+let escalationJobStarted = false;
 const { globalApiLimiter } = require('./middleware/security');
 const {
     compressionMiddleware,
@@ -27,7 +27,9 @@ try {
 console.log('🚀 Starting server...');
 
 // Always load env from this folder, regardless of where the process was started.
-dotenv.config({ path: path.join(__dirname, '.env') });
+// override:true ensures .env wins over any stale system-level exports.
+dotenv.config({ path: path.join(__dirname, '.env'), override: true });
+console.log(`[WhatsApp] phoneNumberId=${process.env.WHATSAPP_PHONE_NUMBER_ID} token=${(process.env.WHATSAPP_ACCESS_TOKEN || '').slice(0, 20)}...`);
 
 const app = express();
 const server = http.createServer(app);
@@ -138,11 +140,12 @@ app.use((req, res, next) => {
 
 // Database Connection
 const mongoOptions = {
-    serverSelectionTimeoutMS: 15000,
+    serverSelectionTimeoutMS: 30000,
     socketTimeoutMS: 45000,
-    connectTimeoutMS: 10000,
+    connectTimeoutMS: 30000,
     maxPoolSize: 10,
-    minPoolSize: 2
+    minPoolSize: 2,
+    family: 4
 };
 
 console.log('🔗 Connecting to MongoDB...');
@@ -180,6 +183,10 @@ mongoose.connect(process.env.MONGO_URI, mongoOptions)
 mongoose.connection.on('connected', () => {
     console.log('✅ Mongoose connected');
     ensureQueryIndexes().catch(() => {});
+    if (!escalationJobStarted) {
+        escalationJobStarted = true;
+        startEscalationJob();
+    }
 });
 mongoose.connection.on('error', (err) => console.error('❌ Mongoose error', err && err.message));
 mongoose.connection.on('disconnected', () => console.warn('⚠️ Mongoose disconnected'));
@@ -257,6 +264,8 @@ try {
     console.log('  ✓ rentRoutes');
     app.use('/api', require('./routes/uploadRoutes'));
     console.log('  ✓ uploadRoutes');
+    app.use('/zoho', require('./routes/zohoRoutes'));
+    console.log('  ✓ zohoRoutes');
     
     console.log('✅ All routes loaded');
 } catch (err) {

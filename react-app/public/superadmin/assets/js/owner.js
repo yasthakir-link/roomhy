@@ -315,7 +315,7 @@ lucide.createIcons();
             });
 
             if (filtered.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="24" class="text-center py-8 text-gray-500">No owners found.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="26" class="text-center py-8 text-gray-500">No owners found.</td></tr>`;
                 return;
             }
 
@@ -401,6 +401,18 @@ lucide.createIcons();
                 if (kycStatus === 'pending') kycBadge = `<span class="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded font-bold">Pending</span>`;
                 if (kycStatus === 'verified') kycBadge = `<span class="px-2 py-1 bg-green-100 text-green-700 text-xs rounded font-bold">Verified</span>`;
 
+                const ownerPhoto = o.checkinOwnerPhoto || '';
+                const bankProof = o.checkinBankProof || '';
+                const bankProofType = o.checkinBankProofType || '';
+                const ownerPhotoCell = ownerPhoto
+                    ? `<img src="${ownerPhoto}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" alt="Owner Photo" />`
+                    : `<span class="text-gray-400 text-xs">-</span>`;
+                const bankProofCell = bankProof
+                    ? (bankProofType.includes('pdf')
+                        ? `<a href="${bankProof}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline text-xs">PDF</a>`
+                        : `<img src="${bankProof}" style="width:48px;height:36px;object-fit:cover;border-radius:6px;border:1px solid #e5e7eb;" alt="Bank Proof" />`)
+                    : `<span class="text-gray-400 text-xs">-</span>`;
+
                 const row = `
                     <tr class="hover:bg-gray-50 border-b border-gray-100" id="row-${id}">
                         <td class="font-mono font-bold text-purple-700 bg-purple-50 px-2 py-1 w-fit rounded text-xs">${id}</td>
@@ -429,6 +441,8 @@ lucide.createIcons();
                         <td class="text-xs text-gray-700 font-semibold">${occupiedBeds ?? '-'}</td>
                         <td class="text-xs text-gray-700 font-semibold">${monthlyRent === '-' ? '-' : '₹' + monthlyRent}</td>
                         <td class="text-xs text-gray-700 font-semibold">${securityDeposit === '-' ? '-' : '₹' + securityDeposit}</td>
+                        <td class="text-center">${ownerPhotoCell}</td>
+                        <td class="text-center">${bankProofCell}</td>
                         <td>${kycBadge}</td>
                         <td class="text-center">
                             <button onclick="deleteOwner('${id}')" class="text-red-500 hover:bg-red-50 p-2 rounded transition" title="Delete Owner">

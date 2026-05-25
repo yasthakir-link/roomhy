@@ -108,6 +108,10 @@ export default function SuperadminEnquiry() {
   const [generatedCreds, setGeneratedCreds] = useState({ loginId: "--", password: "--" });
   const [galleryImages, setGalleryImages] = useState([]);
   const [showGallery, setShowGallery] = useState(false);
+  const [showVisitDetails, setShowVisitDetails] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState(null);
+  const [detailsOwnerFresh, setDetailsOwnerFresh] = useState(null);
+  const [ownerByLogin, setOwnerByLogin] = useState({});
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
@@ -118,11 +122,12 @@ export default function SuperadminEnquiry() {
     reason: "",
     action: "edit"
   });
+  const [kycLinkSending, setKycLinkSending] = useState(null); // visitId being processed
   const pollRef = useRef(null);
 
   useEffect(() => {
     window.lucide?.createIcons();
-  }, [visits, propertyUnderOwner, activeTab, showApprove, showSuccess, showGallery, notifications, showNotif, actionModal]);
+  }, [visits, propertyUnderOwner, activeTab, showApprove, showSuccess, showGallery, showVisitDetails, notifications, showNotif, actionModal, kycLinkSending]);
 
   useEffect(() => {
     fetchEnquiries();
@@ -257,6 +262,11 @@ export default function SuperadminEnquiry() {
 
       const ownerPayload = await ownerResponse.json();
       const owners = Array.isArray(ownerPayload?.owners) ? ownerPayload.owners : [];
+      const ownerMap = {};
+      owners.forEach((owner) => {
+        if (owner?.loginId) ownerMap[owner.loginId] = owner;
+      });
+      setOwnerByLogin(ownerMap);
       const rows = (
         await Promise.all(
           owners
@@ -299,6 +309,7 @@ export default function SuperadminEnquiry() {
     } catch (error) {
       console.error("Error fetching property under owner data:", error);
       setPropertyUnderOwner([]);
+      setOwnerByLogin({});
     }
   };
 
@@ -360,13 +371,8 @@ export default function SuperadminEnquiry() {
             "Owner"
         })
       });
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Approve failed");
-      }
-
       const data = await response.json();
-      if (!data?.success) {
+      if (!response.ok || !data?.success) {
         throw new Error(data?.message || "Approve failed");
       }
       finalLoginId = data?.credentials?.loginId || finalLoginId;
@@ -508,6 +514,52 @@ export default function SuperadminEnquiry() {
     const url = `https://www.google.com/maps?q=${v.latitude},${v.longitude}`;
     window.open(url, "_blank");
   };
+  const sendKycLink = async (visitId) => {
+    if (!visitId || kycLinkSending) return;
+    setKycLinkSending(visitId);
+    try {
+      const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
+      const res = await fetch(`${apiUrl}/api/visits/${encodeURIComponent(visitId)}/send-kyc-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: token } : {}) }
+      });
+      const data = await res.json();
+      if (data.success) {
+        window.alert("KYC link sent to owner's email successfully.");
+        fetchEnquiries();
+      } else {
+        window.alert("Failed to send KYC link: " + (data.message || "Unknown error"));
+      }
+    } catch (err) {
+      window.alert("Error sending KYC link: " + err.message);
+    } finally {
+      setKycLinkSending(null);
+    }
+  };
+
+  const openVisitDetails = async (visit) => {
+    setSelectedVisit(visit || null);
+    setDetailsOwnerFresh(null);
+    setShowVisitDetails(true);
+    const loginId = visit?.generatedCredentials?.loginId || visit?.ownerLoginId || visit?.ownerId;
+    if (loginId) {
+      try {
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token") || "";
+        const res = await fetch(`${apiUrl}/api/owners/${encodeURIComponent(loginId)}`, {
+          headers: token ? { Authorization: token } : {}
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setDetailsOwnerFresh(data);
+        }
+      } catch (_) {}
+    }
+  };
+  const closeVisitDetails = () => {
+    setShowVisitDetails(false);
+    setSelectedVisit(null);
+    setDetailsOwnerFresh(null);
+  };
 
   const exportVisitsExcel = () => {
     if (!window.XLSX) {
@@ -528,6 +580,20 @@ export default function SuperadminEnquiry() {
   };
 
   const currentPage = "enquiry";
+  const detailsOwnerLoginId = selectedVisit?.generatedCredentials?.loginId || selectedVisit?.ownerLoginId || selectedVisit?.ownerId || "";
+  // Prefer fresh fetch; fall back to cached ownerByLogin map
+  const detailsOwnerRecord = detailsOwnerFresh || (detailsOwnerLoginId ? ownerByLogin[detailsOwnerLoginId] : null);
+  const detailsAadhaar = detailsOwnerRecord?.checkinAadhaarNumber || detailsOwnerRecord?.aadharNumber || detailsOwnerRecord?.aadhaarNumber || selectedVisit?.kycAadhaarNumber || "-";
+  const detailsPhone = detailsOwnerRecord?.checkinPhone || detailsOwnerRecord?.checkinAadhaarLinkedPhone || detailsOwnerRecord?.phone || selectedVisit?.kycPhone || "-";
+  // KYC is done via digital-checkin/ownerprofile which writes to Owner record
+  const ownerKycDone = detailsAadhaar !== "-" || !!(
+    detailsOwnerRecord?.kycStatus === "verified" ||
+    detailsOwnerRecord?.kycStatus === "completed"
+  );
+  const detailsKycStatus = ownerKycDone ? "completed" : (selectedVisit?.kycStatus || "not_sent");
+  const detailsIsKycDone = detailsKycStatus === "completed";
+  const detailsIsKycSent = detailsKycStatus === "sent";
+  const detailsIsKycInProgress = detailsIsKycSent;
 
   return (
     <div className="html-page">
@@ -705,6 +771,7 @@ export default function SuperadminEnquiry() {
                           <th className="px-4 py-3">Geo Status</th>
                           <th className="px-4 py-3">Map</th>
                           <th className="px-4 py-3">Status</th>
+                          <th className="px-4 py-3">KYC Status</th>
                           <th className="px-4 py-3">Login ID</th>
                           <th className="px-4 py-3">Password</th>
                           <th className="px-4 py-3 text-center">Actions</th>
@@ -712,7 +779,7 @@ export default function SuperadminEnquiry() {
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {visits.length === 0 ? (
-                          <tr><td colSpan={32} className="px-6 py-12 text-center text-gray-400">No pending reports found.</td></tr>
+                          <tr><td colSpan={33} className="px-6 py-12 text-center text-gray-400">No pending reports found.</td></tr>
                         ) : (
                           visits.map((v) => {
                             const prop = v.propertyInfo || {};
@@ -724,6 +791,17 @@ export default function SuperadminEnquiry() {
                             const geoOk = v.latitude && v.longitude ? "OK" : "No Geo";
                             const loginId = v.generatedCredentials ? v.generatedCredentials.loginId || "-" : "-";
                             const password = v.generatedCredentials ? v.generatedCredentials.tempPassword || "-" : "-";
+
+                            const kyc = v.kycStatus || "not_sent";
+                            const kycDone = kyc === "completed";
+                            const kycSent = kyc === "sent";
+                            const kycCanApprove = kycDone;
+                            const kycBadge = kycDone
+                              ? { label: "Completed", cls: "bg-green-100 text-green-700" }
+                              : kycSent
+                              ? { label: "Sent", cls: "bg-yellow-100 text-yellow-700" }
+                              : { label: "Not Sent", cls: "bg-gray-100 text-gray-500" };
+                            const isSendingKyc = kycLinkSending === (v.visitId || v._id);
 
                             return (
                               <tr key={v._id} className="hover:bg-gray-50 transition-colors">
@@ -770,11 +848,30 @@ export default function SuperadminEnquiry() {
                                   <button onClick={() => openMap(v.visitId || v._id)} className="text-xs px-2 py-1 bg-gray-50 rounded border text-gray-600 hover:bg-gray-100" disabled={!(v.latitude && v.longitude)}>Map</button>
                                 </td>
                                 <td className="px-4 py-3">{v.status || "-"}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`text-[10px] font-semibold px-2 py-1 rounded-full ${kycBadge.cls}`}>{kycBadge.label}</span>
+                                </td>
                                 <td className="px-4 py-3 font-mono text-sm text-purple-700">{loginId}</td>
                                 <td className="px-4 py-3 font-mono text-sm">{password}</td>
                                 <td className="px-4 py-3 text-center">
-                                  <div className="flex items-center justify-center gap-2">
-                                    <button onClick={() => openApproveModal(v.visitId || v._id)} className="px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-xs font-semibold" title="Approve">Approve</button>
+                                  <div className="flex items-center justify-center gap-2 flex-wrap">
+                                    <button onClick={() => openVisitDetails(v)} className="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-xs font-semibold" title="View Details">View Details</button>
+                                    <button
+                                      onClick={() => sendKycLink(v.visitId || v._id)}
+                                      disabled={isSendingKyc || kycDone}
+                                      className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${kycDone ? "bg-gray-100 text-gray-400 cursor-not-allowed" : isSendingKyc ? "bg-blue-50 text-blue-400 cursor-wait" : "bg-blue-100 text-blue-700 hover:bg-blue-200"}`}
+                                      title={kycDone ? "KYC already completed" : "Send KYC link to owner"}
+                                    >
+                                      {isSendingKyc ? "Sending..." : kycDone ? "KYC Done" : kycSent ? "Resend KYC" : "Send KYC"}
+                                    </button>
+                                    <button
+                                      onClick={() => kycCanApprove ? openApproveModal(v.visitId || v._id) : null}
+                                      disabled={!kycCanApprove}
+                                      className={`px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${kycCanApprove ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                                      title={kycCanApprove ? "Approve property" : "Send KYC link first before approving"}
+                                    >
+                                      Approve
+                                    </button>
                                     <button onClick={() => openActionModal("reject", v.visitId || v._id)} className="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-xs font-semibold" title="Reject">Reject</button>
                                     <button onClick={() => openActionModal("hold", v.visitId || v._id)} className="px-3 py-2 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors text-xs font-semibold" title="Hold">Hold</button>
                                   </div>
@@ -957,8 +1054,149 @@ export default function SuperadminEnquiry() {
           </div>
         </div>
       ) : null}
+
+      {showVisitDetails && selectedVisit ? (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[70] p-4" onClick={closeVisitDetails}>
+          <div className="bg-white rounded-2xl w-full max-w-6xl max-h-[92vh] overflow-y-auto shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Visit Report Details</h3>
+                <p className="text-xs text-gray-500">Visit ID: {selectedVisit.visitId || selectedVisit._id || "-"}</p>
+              </div>
+              <button onClick={closeVisitDetails} className="text-gray-400 hover:text-gray-700"><i data-lucide="x" className="w-6 h-6"></i></button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Property Name</p><p className="font-semibold">{selectedVisit.propertyName || selectedVisit.propertyInfo?.name || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Type</p><p className="font-semibold">{selectedVisit.propertyType || selectedVisit.propertyInfo?.propertyType || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Status</p><p className="font-semibold">{selectedVisit.status || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Owner</p><p className="font-semibold">{selectedVisit.ownerName || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Contact</p><p className="font-semibold">{selectedVisit.contactPhone || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Email</p><p className="font-semibold">{selectedVisit.ownerEmail || "-"}</p></div>
+                <div className="border rounded-xl p-3 md:col-span-2"><p className="text-gray-500">Address</p><p className="font-semibold">{selectedVisit.address || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Area / City</p><p className="font-semibold">{selectedVisit.area || "-"} {selectedVisit.city ? `, ${selectedVisit.city}` : ""}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Landmark</p><p className="font-semibold">{selectedVisit.landmark || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Nearby Location</p><p className="font-semibold">{selectedVisit.nearbyLocation || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Monthly Rent</p><p className="font-semibold">₹{selectedVisit.monthlyRent || 0}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Deposit</p><p className="font-semibold">₹{selectedVisit.deposit || 0}</p></div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Vacant Rooms</p><p className="font-semibold">{selectedVisit.vacantRooms || 0}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Vacant Beds</p><p className="font-semibold">{selectedVisit.vacantBeds || 0}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Occupied Rooms</p><p className="font-semibold">{selectedVisit.occupiedRooms || 0}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Occupied Beds</p><p className="font-semibold">{selectedVisit.occupiedBeds || 0}</p></div>
+              </div>
+              <div className="border rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                  <p className="text-sm font-semibold text-gray-800">Owner KYC Verification</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${detailsIsKycDone ? "bg-green-100 text-green-700" : detailsIsKycSent ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-500"}`}>
+                      {detailsIsKycDone ? "Completed" : detailsIsKycSent ? "Link Sent" : "Not Sent"}
+                    </span>
+                    {!detailsIsKycDone && selectedVisit && (
+                      <button
+                        onClick={() => { sendKycLink(selectedVisit.visitId || selectedVisit._id); }}
+                        disabled={kycLinkSending === (selectedVisit.visitId || selectedVisit._id)}
+                        className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50"
+                      >
+                        {kycLinkSending === (selectedVisit.visitId || selectedVisit._id) ? "Sending..." : detailsIsKycSent ? "Resend KYC Link" : "Send KYC Link"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {!detailsIsKycDone && (
+                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                    KYC must be completed before this property can be approved.
+                  </p>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">Owner Login ID</p><p className="font-semibold font-mono text-purple-700">{detailsOwnerLoginId || "-"}</p></div>
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">KYC Status</p><p className="font-semibold capitalize">{detailsKycStatus.replace("_", " ")}</p></div>
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">KYC Link Sent At</p><p className="font-semibold">{selectedVisit?.kycSentAt ? new Date(selectedVisit.kycSentAt).toLocaleString() : "-"}</p></div>
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">Aadhaar Number</p><p className="font-semibold">{detailsAadhaar}</p></div>
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">KYC Phone</p><p className="font-semibold">{detailsPhone}</p></div>
+                </div>
+              </div>
+              {/* Bank Details */}
+              <div className="border rounded-xl p-4">
+                <p className="font-semibold text-gray-700 mb-3">Owner Bank Details</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">Account Holder</p><p className="font-semibold">{selectedVisit.bankAccountHolderName || detailsOwnerRecord?.checkinAccountHolderName || "-"}</p></div>
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">Account Number</p><p className="font-semibold">{selectedVisit.bankAccountNumber || detailsOwnerRecord?.checkinBankAccountNumber || "-"}</p></div>
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">IFSC Code</p><p className="font-semibold">{selectedVisit.bankIfscCode || detailsOwnerRecord?.checkinIfscCode || "-"}</p></div>
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">Bank Name</p><p className="font-semibold">{selectedVisit.bankName || detailsOwnerRecord?.checkinBankName || "-"}</p></div>
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">Branch Name</p><p className="font-semibold">{selectedVisit.bankBranchName || detailsOwnerRecord?.checkinBranchName || "-"}</p></div>
+                  <div className="border rounded-lg p-3"><p className="text-gray-500">UPI ID</p><p className="font-semibold">{selectedVisit.bankUpiId || detailsOwnerRecord?.checkinUpiId || "-"}</p></div>
+                </div>
+              </div>
+
+              {(detailsOwnerRecord?.checkinOwnerPhoto || detailsOwnerRecord?.checkinBankProof || detailsOwnerRecord?.checkinAadhaarImage) && (
+                <div className="border rounded-xl p-4">
+                  <p className="font-semibold text-gray-700 mb-3">Owner Documents</p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {detailsOwnerRecord?.checkinOwnerPhoto && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-2">Owner Photo</p>
+                        <img src={detailsOwnerRecord.checkinOwnerPhoto} className="w-36 h-36 object-cover rounded-lg border shadow-sm" alt="Owner Photo" />
+                        {detailsOwnerRecord.checkinOwnerPhotoName && <p className="text-xs text-gray-400 mt-1">{detailsOwnerRecord.checkinOwnerPhotoName}</p>}
+                      </div>
+                    )}
+                    {detailsOwnerRecord?.checkinBankProof && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-2">Bank Verification Proof</p>
+                        {String(detailsOwnerRecord.checkinBankProofType || "").includes("pdf") ? (
+                          <a href={detailsOwnerRecord.checkinBankProof} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 underline text-sm border border-blue-200 px-3 py-2 rounded-lg hover:bg-blue-50">
+                            <i data-lucide="file-text" className="w-4 h-4"></i> View PDF
+                          </a>
+                        ) : (
+                          <img src={detailsOwnerRecord.checkinBankProof} className="w-48 h-36 object-cover rounded-lg border shadow-sm" alt="Bank Proof" />
+                        )}
+                        {detailsOwnerRecord.checkinBankProofName && <p className="text-xs text-gray-400 mt-1">{detailsOwnerRecord.checkinBankProofName}</p>}
+                      </div>
+                    )}
+                    {detailsOwnerRecord?.checkinAadhaarImage && (
+                      <div>
+                        <p className="text-xs text-gray-500 mb-2">Aadhaar Card</p>
+                        <img src={detailsOwnerRecord.checkinAadhaarImage} className="w-48 h-36 object-contain rounded-lg border shadow-sm bg-gray-50" alt="Aadhaar Card" />
+                        {detailsOwnerRecord.checkinAadhaarImageName && <p className="text-xs text-gray-400 mt-1">{detailsOwnerRecord.checkinAadhaarImageName}</p>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="border rounded-xl p-4">
+                <p className="text-gray-500 text-sm mb-2">Amenities</p>
+                <p className="font-medium text-sm">{(selectedVisit.amenities || []).length ? selectedVisit.amenities.join(", ") : "-"}</p>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Student Rating</p><p className="font-semibold">{selectedVisit.studentReviewsRating || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Employee Rating</p><p className="font-semibold">{selectedVisit.employeeRating || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Cleanliness</p><p className="font-semibold">{selectedVisit.cleanlinessRating || "-"}</p></div>
+                <div className="border rounded-xl p-3"><p className="text-gray-500">Owner Behaviour</p><p className="font-semibold">{selectedVisit.ownerBehaviourPublic || selectedVisit.ownerBehaviour || "-"}</p></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Field Photos ({(selectedVisit.photos || []).length})</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(selectedVisit.photos || []).map((src, idx) => (
+                      <img key={`fp-${idx}`} src={src} className="w-full h-24 object-cover rounded-lg border" alt="" />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Professional Photos ({(selectedVisit.professionalPhotos || []).length})</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(selectedVisit.professionalPhotos || []).map((src, idx) => (
+                      <img key={`pp-${idx}`} src={src} className="w-full h-24 object-cover rounded-lg border" alt="" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
-
-

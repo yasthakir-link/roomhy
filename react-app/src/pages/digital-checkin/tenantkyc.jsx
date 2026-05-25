@@ -2,6 +2,105 @@ import React from "react";
 import { useHtmlPage } from "../../utils/htmlPage";
 import { useTenantKyc } from "./useTenantKyc";
 
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+const AadhaarUpload = ({ label, side, value, onChange }) => {
+  const inputRef = React.useRef(null);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Please upload an image file (JPG, PNG, etc.)");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File must be under 5MB");
+      return;
+    }
+    try {
+      onChange(await fileToBase64(file));
+    } catch {
+      alert("Failed to read file. Please try again.");
+    }
+    e.target.value = "";
+  };
+
+  return (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <label style={{ marginBottom: "8px" }}>{label}</label>
+      <div
+        onClick={() => inputRef.current?.click()}
+        style={{
+          border: "2px dashed #b0bec5",
+          borderRadius: "10px",
+          minHeight: "110px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          background: value ? "#f0f4f8" : "#f8fafc",
+          overflow: "hidden",
+          transition: "border-color 0.15s"
+        }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = "#546e7a"}
+        onMouseLeave={e => e.currentTarget.style.borderColor = "#b0bec5"}
+      >
+        {value ? (
+          <img
+            src={value}
+            alt={label}
+            style={{ maxWidth: "100%", maxHeight: "120px", objectFit: "contain", padding: "6px" }}
+          />
+        ) : (
+          <>
+            <div style={{ fontSize: "28px", marginBottom: "6px", lineHeight: 1 }}>
+              {side === "front" ? "🪪" : "↩️"}
+            </div>
+            <div style={{ fontSize: "12px", color: "#546e7a", fontWeight: 600 }}>Click to upload</div>
+            <div style={{ fontSize: "11px", color: "#90a4ae", marginTop: "2px" }}>JPG / PNG — max 5 MB</div>
+          </>
+        )}
+      </div>
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          style={{
+            marginTop: "5px",
+            fontSize: "11px",
+            background: "none",
+            border: "none",
+            color: "#dc2626",
+            cursor: "pointer",
+            padding: 0,
+            fontWeight: 600,
+            boxShadow: "none",
+            minHeight: "auto",
+            width: "auto"
+          }}
+        >
+          Remove
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFile}
+        style={{ display: "none" }}
+      />
+    </div>
+  );
+};
+
 export default function DigitalCheckinTenantkyc() {
   useHtmlPage({
     title: "Tenant Digital Check-In - KYC",
@@ -34,6 +133,9 @@ export default function DigitalCheckinTenantkyc() {
     handleNext
   } = useTenantKyc();
 
+  const [aadhaarFront, setAadhaarFront] = React.useState("");
+  const [aadhaarBack, setAadhaarBack] = React.useState("");
+
   return (
     <div className="html-page">
       <div className="wrap">
@@ -62,8 +164,23 @@ export default function DigitalCheckinTenantkyc() {
             <input value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Enter OTP from Aadhaar-linked mobile" />
           </div>
         </div>
+
+        {/* Aadhaar Card Photo Upload */}
+        <div style={{ marginTop: "20px" }}>
+          <label style={{ marginBottom: "4px" }}>Aadhaar Card Photos</label>
+          <p style={{ margin: "0 0 14px", fontSize: "12px", color: "#7a8fa6" }}>
+            Upload clear photos of the front and back of your Aadhaar card.
+          </p>
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
+            <AadhaarUpload label="Front Side" side="front" value={aadhaarFront} onChange={setAadhaarFront} />
+            <AadhaarUpload label="Back Side" side="back" value={aadhaarBack} onChange={setAadhaarBack} />
+          </div>
+        </div>
+
         <button type="button" onClick={handleStart}>Send OTP</button>
-        <button type="button" onClick={handleComplete}>{otpSent ? "Verify OTP & Complete" : "Complete Verification"}</button>
+        <button type="button" onClick={() => handleComplete(aadhaarFront, aadhaarBack)}>
+          {otpSent ? "Verify OTP & Complete" : "Complete Verification"}
+        </button>
         {otpMsg && <p className="muted">{otpMsg}</p>}
         {nextVisible && (
           <button type="button" onClick={handleNext}>Continue to Rental Agreement</button>

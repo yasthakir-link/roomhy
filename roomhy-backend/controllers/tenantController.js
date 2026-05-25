@@ -6,6 +6,7 @@ const Rent = require('../models/Rent');
 const generateTenantId = require('../utils/generateTenantId');
 const crypto = require('crypto');
 const mailer = require('../utils/mailer');
+const { sendTemplateToResolvedUser } = require('../utils/whatsappBot');
 
 /**
  * Assign a tenant to a room
@@ -215,16 +216,35 @@ exports.assignTenant = async (req, res) => {
                     </div>
                 `;
                 const text = `Tenant account created.\nProperty: ${assignedPropertyTitle || property.title || '-'}\nRoom Number: ${roomNo || '-'}\nBed Number: ${bedNo || '-'}\nRent: INR ${parseInt(agreedRent || 0, 10)}\nSecurity Deposit Total: INR ${depositTotal}\nSecurity Deposit Paid: INR ${depositPaid}\nSecurity Deposit Balance: INR ${depositBalance}\nLogin ID: ${tenant.loginId}\nPassword: ${tenant.tempPassword}\nDigital Check-In: ${tenantCheckinLink}`;
-                mailer.sendMail(tenant.email, subject, text, html);
+                mailer.sendMail(tenant.email, subject, text, html, { skipWhatsApp: true });
             }
 
-            // Also send a copy to owner email (if available)
+            // Send WhatsApp to tenant's phone (the number owner entered during room allotment)
+            console.log('[TENANT ALLOTMENT] tenant.phone=', tenant.phone, 'tenantCheckinLink=', tenantCheckinLink);
+            if (tenant.phone) {
+                sendTemplateToResolvedUser({
+                    phone: tenant.phone,
+                    templateName: 'roomhy_kyc_pending',
+                    options: {
+                        namedParams: {
+                            tenant_name: tenant.name || 'Tenant',
+                            kyc_url: tenantCheckinLink
+                        }
+                    }
+                }).then((sent) => {
+                    console.log('[TENANT ALLOTMENT] WhatsApp kyc_pending sent=', sent, 'to phone=', tenant.phone);
+                }).catch((err) => console.warn('[TENANT ALLOTMENT] WhatsApp failed:', err && err.message));
+            } else {
+                console.warn('[TENANT ALLOTMENT] No phone — skipping WhatsApp');
+            }
+
+            // Also send a copy to owner email (if available) — no WhatsApp for owner copy
             const ownerEmail =
                 (property.owner && property.owner.email) ||
                 (property.owner && property.owner.profile && property.owner.profile.email) ||
                 '';
             if (ownerEmail) {
-                mailer.sendCredentials(ownerEmail, tenant.loginId, tenant.tempPassword, 'Tenant (Owner Copy)');
+                mailer.sendCredentials(ownerEmail, tenant.loginId, tenant.tempPassword, 'Tenant (Owner Copy)', { skipWhatsApp: true });
             }
         } catch (err) {
             console.warn('Failed to queue tenant credential email:', err && err.message);

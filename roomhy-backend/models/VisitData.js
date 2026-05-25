@@ -111,6 +111,32 @@ const VisitDataSchema = new mongoose.Schema({
         loginId: String,
         tempPassword: String
     },
+
+    // KYC link tracking
+    kycStatus: {
+        type: String,
+        enum: ['not_sent', 'sent', 'completed'],
+        default: 'not_sent',
+        index: true
+    },
+    kycToken: { type: String },
+    kycTokenExpiry: { type: Date },
+    kycSentAt: { type: Date },
+
+    // KYC data filled by owner
+    kycAadhaarNumber: { type: String },
+    kycPanNumber: { type: String },
+    kycPhone: { type: String },
+    kycCompletedAt: { type: Date },
+
+    // Bank Details (collected by employee in Visit Report)
+    bankAccountHolderName: { type: String },
+    bankAccountNumber:     { type: String },
+    bankIfscCode:          { type: String },
+    bankName:              { type: String },
+    bankBranchName:        { type: String },
+    bankUpiId:             { type: String },
+
     isLiveOnWebsite: {
         type: Boolean,
         default: false

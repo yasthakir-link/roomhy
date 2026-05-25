@@ -3,11 +3,14 @@ const RefundRequest = require('../models/RefundRequest');
 const Notification = require('../models/Notification');
 const User = require('../models/user');
 const Owner = require('../models/Owner');
+const CheckinRecord = require('../models/CheckinRecord');
 const ChatRoom = require('../models/ChatRoom');
 const ChatMessage = require('../models/ChatMessage');
 const mailer = require('../utils/mailer');
 const { notifySuperadmin } = require('../utils/superadminNotifier');
 const { sendBookingConfirmationButtons, sendTemplateToResolvedUser } = require('../utils/whatsappBot');
+// const { createOwnerAgreementRequest } = require('../services/zohoSignService'); // replaced by in-house PDF
+const { generateAgreementPdfBuffer } = require('../utils/generateAgreementPdf');
 
 function normalizeWebsiteUserId(raw) {
     const value = String(raw || '').trim().toLowerCase();
@@ -87,6 +90,247 @@ async function ensureChatRoomsForBooking({ bookingId, ownerId, ownerName, userId
     }
 
     return { ownerRoomId: normalizedOwnerId, userRoomId: normalizedUserId };
+}
+
+function resolveOwnerAgreementContact(ownerDoc = {}, request = {}) {
+    const loginId = String(ownerDoc.loginId || request.owner_id || '').trim().toUpperCase();
+    const name = ownerDoc.name || ownerDoc.profile?.name || request.owner_name || 'Property Owner';
+    const email = ownerDoc.email || ownerDoc.profile?.email || '';
+    const phone = ownerDoc.checkinPhone || ownerDoc.phone || ownerDoc.profile?.phone || '';
+    const area = ownerDoc.checkinArea || ownerDoc.area || ownerDoc.locationCode || ownerDoc.profile?.locationCode || '';
+    const aadhaarNumber =
+        ownerDoc.checkinAadhaarNumber ||
+        ownerDoc.kyc?.aadharNumber ||
+        ownerDoc.kyc?.aadhaarNumber ||
+        '';
+
+    return { loginId, name, email, phone, area, aadhaarNumber };
+}
+
+function pickFirstText(...values) {
+    for (const value of values) {
+        if (typeof value === 'string' && value.trim()) return value.trim();
+        if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    }
+    return '';
+}
+
+function buildAgreementContext(request = {}, approvalDetails = {}, ownerContact = {}) {
+    const fullAddress = pickFirstText(
+        approvalDetails.tenantAddress,
+        request.full_address,
+        request.address,
+        [request.address_street, request.address_city, request.address_state, request.address_postal_code]
+            .filter(Boolean)
+            .join(', '),
+        ''
+    );
+    return {
+        tenantName: pickFirstText(approvalDetails.tenantName, request.name, request.tenantName),
+        tenantAddress: fullAddress,
+        tenantEmail: pickFirstText(approvalDetails.tenantEmail, request.email),
+        tenantPhone: pickFirstText(approvalDetails.tenantPhone, request.phone),
+        backupEmail: pickFirstText(approvalDetails.backupEmail, request.backupEmail),
+        backupPhone: pickFirstText(approvalDetails.backupPhone, request.backupPhone),
+        propertyName: pickFirstText(approvalDetails.propertyName, request.property_name, request.propertyName),
+        propertyAddress: pickFirstText(approvalDetails.propertyAddress, request.propertyAddress, request.address, fullAddress),
+        accommodationType: pickFirstText(approvalDetails.accommodationType, request.property_type, request.propertyType, request.type),
+        roomNumber: pickFirstText(approvalDetails.roomNumber, request.roomNo, request.room_number, request.roomNumber),
+        ownerName: pickFirstText(approvalDetails.ownerName, ownerContact.name, request.owner_name),
+        rentAmount: pickFirstText(approvalDetails.rentAmount, request.rent_amount, request.rentAmount, request.total_amount, request.totalAmount, request.price),
+        duration: pickFirstText(approvalDetails.duration, request.duration, request.booking_duration, request.term),
+        licenseStartDate: pickFirstText(approvalDetails.licenseStartDate, request.check_in_date, request.checkInDate, request.start_date),
+        licenseEndDate: pickFirstText(approvalDetails.licenseEndDate, request.check_out_date, request.checkOutDate, request.end_date),
+        licenseFeeDueDate: pickFirstText(approvalDetails.licenseFeeDueDate, request.licenseFeeDueDate, '5'),
+        moveOutCharges: pickFirstText(approvalDetails.moveOutCharges, request.moveOutCharges),
+        noticePeriodCharges: pickFirstText(approvalDetails.noticePeriodCharges, request.noticePeriodCharges),
+        securityDeposit: pickFirstText(approvalDetails.securityDeposit, request.securityDeposit, request.deposit),
+        inclusions: pickFirstText(approvalDetails.inclusions, request.inclusions),
+        minimumStayDuration: pickFirstText(approvalDetails.minimumStayDuration, request.minimumStayDuration, '3 Months'),
+        gstCharges: pickFirstText(approvalDetails.gstCharges, request.gstCharges, '0')
+    };
+}
+
+function buildOwnerAgreementEmail({ ownerName, tenantName, propertyName, approvalLabel, rentAmount, duration }) {
+    const safeOwner = ownerName || 'Owner';
+    const safeTenant = tenantName || 'Tenant';
+    const safeProperty = propertyName || 'Property';
+    const title = approvalLabel || 'Booking Approved';
+    const safeRent = rentAmount || 'N/A';
+    const safeDuration = duration || 'N/A';
+
+    return {
+        subject: `${title} - ${safeProperty} | Booking Agreement`,
+        text: [
+            `Hi ${safeOwner},`,
+            '',
+            `Your booking for ${safeProperty} has been approved.`,
+            `Tenant: ${safeTenant}`,
+            `Rent: ${safeRent}`,
+            `Duration: ${safeDuration}`,
+            '',
+            'Please find your Booking Agreement PDF attached to this email.',
+            '',
+            'Thanks,',
+            'RoomHy'
+        ].join('\n'),
+        html: `
+            <div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+                <div style="background:#0f172a;color:#fff;padding:18px 22px;">
+                    <h2 style="margin:0;font-size:20px;">${title}</h2>
+                </div>
+                <div style="padding:22px;color:#111827;line-height:1.6;">
+                    <p style="margin-top:0;">Hi ${safeOwner},</p>
+                    <p>Your booking for <strong>${safeProperty}</strong> has been approved.</p>
+                    <p><strong>Tenant:</strong> ${safeTenant}</p>
+                    <p><strong>Rent:</strong> ${safeRent}</p>
+                    <p><strong>Duration:</strong> ${safeDuration}</p>
+                    <p>Please find your <strong>Booking Agreement PDF</strong> attached to this email. You may download and keep it for your records.</p>
+                    <div style="margin:22px 0;padding:14px 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;color:#166534;">
+                        <strong>Agreement PDF is attached to this email.</strong>
+                    </div>
+                    <p style="font-size:12px;color:#6b7280;">This is an automated email from RoomHy.</p>
+                </div>
+            </div>
+        `
+    };
+}
+
+// ======================================================
+// DYNAMIC FIELD MAPPING — booking approval agreement
+// Maps agreementContext (ctx) + ownerContact to the shared
+// generateAgreementPdfBuffer field schema.
+// ======================================================
+function generateBookingAgreementPdfBuffer(ctx, ownerContact) {
+    return generateAgreementPdfBuffer({
+        tenantName:          ctx.tenantName,
+        tenantAddress:       ctx.tenantAddress,
+        tenantEmail:         ctx.tenantEmail,
+        tenantPhone:         ctx.tenantPhone,
+        backupEmail:         ctx.backupEmail,
+        backupPhone:         ctx.backupPhone,
+        propertyName:        ctx.propertyName,
+        propertyAddress:     ctx.propertyAddress,
+        accommodationType:   ctx.accommodationType,
+        roomNumber:          ctx.roomNumber,
+        ownerName:           ownerContact.name || ctx.ownerName,
+        rentAmount:          ctx.rentAmount,
+        duration:            ctx.duration,
+        licenseStartDate:    ctx.licenseStartDate,
+        licenseEndDate:      ctx.licenseEndDate,
+        licenseFeeDueDate:   ctx.licenseFeeDueDate,
+        moveOutCharges:      ctx.moveOutCharges,
+        noticePeriodCharges: ctx.noticePeriodCharges,
+        securityDeposit:     ctx.securityDeposit,
+        inclusions:          ctx.inclusions,
+        minimumStayDuration: ctx.minimumStayDuration,
+        gstCharges:          ctx.gstCharges,
+        signatureDataUrl:    '',   // no tenant signature at booking-approval stage
+        eSignName:           '',
+        signedDate:          new Date().toISOString().slice(0, 10)
+    });
+}
+
+async function createAndEmailOwnerAgreementForBooking(request, ownerDoc, approvalDetails = {}) {
+    const ownerContact = resolveOwnerAgreementContact(ownerDoc || {}, request || {});
+    if (!ownerContact.loginId) {
+        return { sent: false, reason: 'missing_owner_loginId' };
+    }
+
+    if (!ownerContact.email) {
+        return { sent: false, reason: 'missing_owner_email', ownerContact };
+    }
+
+    const agreementContext = buildAgreementContext(request, approvalDetails, ownerContact);
+    const pdfBuffer = await generateBookingAgreementPdfBuffer(agreementContext, ownerContact);
+
+    const agreementPayload = {
+        provider: 'roomhy-pdf',
+        requestId: '',
+        signUrl: '',
+        status: 'agreement_sent',
+        initiatedAt: new Date(),
+        callbackPayload: {
+            source: 'booking-approval',
+            bookingId: String(request._id || ''),
+            propertyId: String(request.property_id || ''),
+            propertyName: String(request.property_name || ''),
+            tenantName: String(request.name || ''),
+            tenantEmail: String(request.email || ''),
+            requestType: String(request.request_type || '')
+        }
+    };
+
+    const record = await CheckinRecord.findOneAndUpdate(
+        { loginId: ownerContact.loginId, role: 'owner' },
+        {
+            $setOnInsert: {
+                loginId: ownerContact.loginId,
+                role: 'owner'
+            },
+            $set: {
+                ownerProfile: {
+                    name: ownerContact.name,
+                    email: ownerContact.email,
+                    phone: ownerContact.phone,
+                    address: ownerDoc?.address || ownerDoc?.profile?.address || '',
+                    area: ownerContact.area
+                },
+                ownerKyc: {
+                    ...(ownerDoc?.kyc || {}),
+                    aadhaarNumber: ownerContact.aadhaarNumber
+                },
+        ownerAgreement: agreementPayload
+            }
+        },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+
+    if (ownerDoc && typeof ownerDoc.save === 'function') {
+        ownerDoc.agreementRequestId = ownerDoc.agreementRequestId || '';
+        ownerDoc.agreementStatus = 'agreement_sent';
+        ownerDoc.isActive = Boolean(ownerDoc.isActive);
+        await ownerDoc.save();
+    }
+
+    const emailContent = buildOwnerAgreementEmail({
+        ownerName: ownerContact.name,
+        tenantName: agreementContext.tenantName || request.name || 'Tenant',
+        propertyName: agreementContext.propertyName || request.property_name || 'Property',
+        approvalLabel: 'Booking Approved',
+        rentAmount: agreementContext.rentAmount,
+        duration: agreementContext.duration
+    });
+
+    await mailer.sendMail(ownerContact.email, emailContent.subject, emailContent.text, emailContent.html, {
+        attachments: [
+            {
+                filename: `RoomHy-Booking-Agreement-${ownerContact.loginId}.pdf`,
+                content: pdfBuffer,
+                contentType: 'application/pdf'
+            }
+        ]
+    });
+
+    return {
+        sent: true,
+        ownerContact,
+        agreement: { provider: 'roomhy-pdf', requestId: '', status: 'agreement_sent' },
+        record,
+        agreementContext
+    };
+}
+
+function formatErrorDetails(err) {
+    if (!err) return { message: 'Unknown error' };
+    if (typeof err === 'string') return { message: err };
+    return {
+        message: err.message || String(err),
+        status: err.status || err.statusCode || null,
+        data: err.data || null,
+        responseStatus: err.response?.status || null,
+        responseData: err.response?.data || null
+    };
 }
 
 // ==================== BOOKING REQUEST OPERATIONS ====================
@@ -630,12 +874,29 @@ exports.approveBooking = async (req, res) => {
         }
 
         let chat = null;
+        let ownerAgreementResult = null;
+        const approvalDetails =
+            req.body?.agreementDetails ||
+            req.body?.approvalDetails ||
+            req.body?.ownerAgreement ||
+            {};
+        console.log('[BOOKING APPROVE] agreementDetails received', {
+            bookingId: String(req.params.id || ''),
+            keys: Object.keys(approvalDetails || {}),
+            tenantName: approvalDetails?.tenantName || '',
+            tenantEmail: approvalDetails?.tenantEmail || '',
+            propertyName: approvalDetails?.propertyName || '',
+            roomNumber: approvalDetails?.roomNumber || '',
+            rentAmount: approvalDetails?.rentAmount ?? '',
+            ownerName: approvalDetails?.ownerName || '',
+            duration: approvalDetails?.duration || ''
+        });
         // Send email notification to tenant
         try {
             const { sendBookingAcceptanceEmail } = require('../utils/emailNotifications');
             const tenantName = request.name || 'Valued Guest';
             const propertyName = request.property_name || 'Property';
-            const ownerDoc = await Owner.findOne({ loginId: String(request.owner_id || '').toUpperCase() }).lean();
+            const ownerDoc = await Owner.findOne({ loginId: String(request.owner_id || '').toUpperCase() });
             const ownerName =
                 req.body.owner_name ||
                 request.owner_name ||
@@ -702,6 +963,12 @@ exports.approveBooking = async (req, res) => {
             } catch (whatsAppErr) {
                 console.warn('booking approved whatsapp failed:', whatsAppErr.message);
             }
+
+            try {
+                ownerAgreementResult = await createAndEmailOwnerAgreementForBooking(request, ownerDoc, approvalDetails);
+            } catch (agreementErr) {
+                console.warn('owner agreement creation failed:', formatErrorDetails(agreementErr));
+            }
         } catch (emailErr) {
             console.error('Error sending approval email:', emailErr);
         }
@@ -712,7 +979,14 @@ exports.approveBooking = async (req, res) => {
                 ? 'Bid approved, user notified, and chat room created'
                 : 'Booking approved and notification sent',
             data: request,
-            chat
+            chat,
+            ownerAgreement: ownerAgreementResult ? {
+                sent: ownerAgreementResult.sent,
+                requestId: ownerAgreementResult.agreement?.requestId || '',
+                signUrl: ownerAgreementResult.agreement?.signUrl || '',
+                status: ownerAgreementResult.agreement?.status || 'pending_signature',
+                reason: ownerAgreementResult.reason || ''
+            } : { sent: false }
         });
     } catch (error) {
         console.error('Error approving booking:', error);
@@ -1731,5 +2005,3 @@ exports.processRefundPayment = async (req, res) => {
         });
     }
 };
-
-

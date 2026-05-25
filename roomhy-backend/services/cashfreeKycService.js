@@ -19,7 +19,7 @@ function isAadhaarBypassEnabled() {
 }
 
 function getMockOtp() {
-    return String(process.env.CASHFREE_MOCK_OTP || '123456').trim();
+    return String(Math.floor(100000 + Math.random() * 900000));
 }
 
 function getHeaders() {
@@ -118,10 +118,10 @@ async function requestAadhaarOtp(aadhaarNumber) {
     return { referenceId, raw: data };
 }
 
-async function verifyAadhaarOtp(referenceId, otp) {
+async function verifyAadhaarOtp(referenceId, otp, expectedMockOtp) {
     if (isAadhaarBypassEnabled()) {
-        const expectedOtp = getMockOtp();
-        if (String(otp || '').trim() !== expectedOtp) {
+        // In sandbox/bypass mode, compare against the OTP that was generated at send time
+        if (expectedMockOtp && String(otp || '').trim() !== String(expectedMockOtp).trim()) {
             const err = new Error('Invalid OTP');
             err.code = 'invalid_otp';
             throw err;
@@ -142,7 +142,22 @@ async function verifyAadhaarOtp(referenceId, otp) {
     return data;
 }
 
+async function aadhaarOcr(base64Image) {
+    const env = String(process.env.CASHFREE_ENV || 'sandbox').toLowerCase();
+    // Cashfree sandbox doesn't process real document images — signal the frontend to use its local fallback
+    if (env === 'sandbox') {
+        return { sandbox: true };
+    }
+
+    const data = await callCashfree('/verification/aadhaar/ocr', {
+        document1: base64Image
+    });
+
+    return data;
+}
+
 module.exports = {
     requestAadhaarOtp,
-    verifyAadhaarOtp
+    verifyAadhaarOtp,
+    aadhaarOcr
 };
